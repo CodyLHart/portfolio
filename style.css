@@ -1,4 +1,4 @@
-a {
+.a {
     text-decoration: none;
     color: black;
     font-family: 'Raleway', sans-serif;
@@ -6,8 +6,13 @@ a {
     padding: 0 10px;
 }
 
-a:hover {
-    color: #008080;
+.a:hover {
+    background-color: black;
+    color: white;
+}
+
+a {
+    padding: 0;
 }
 
 #about {
@@ -29,6 +34,46 @@ a:hover {
 
 }
 
+.about-square {
+    width: 20vw;
+    height: 20vw;
+    min-width: 200px;
+    min-height: 200px;
+    background-color: white;
+    margin: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0px 0px 40px 5px rgba(0,0,0,0.2);
+
+}
+
+.about-square p {
+    width: 100%;
+}
+
+.about-square img {
+    height: 6vw;
+    margin-bottom: 2vw;
+}
+
+.about-squares {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 50px;
+    margin-top: 20px;
+}
+
+.as-text {
+    text-align: center;
+    width: 80%;
+    font-size: 1.3vw;
+    line-height: 1.9vw;
+}
+
 body {
     margin: 0;
     font-family: "Raleway", sans-serif;
@@ -48,13 +93,13 @@ button {
     font-size: 16px;
     border: 1px solid black;
     padding: 5px 7px 3px 7px;
-    cursor: pointer;
-    margin-top: 15px;
+    margin: 5px;
 }
 
-button:hover {
+button:enabled:hover {
     background-color: black;
     color: white;
+    cursor: pointer;
 }
 
 .card-img {
@@ -121,6 +166,7 @@ h1 {
     text-align: right;
     margin: 5px 15px;
     display: inline-block;
+    color: black;
 }
 
 h3 {
@@ -294,6 +340,10 @@ p.card {
     padding: 4px 8px;
     margin: 5px;
     text-transform: uppercase;
+}
+
+textarea {
+    margin-bottom: 20px;
 }
 
 .title {

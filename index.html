@@ -12,9 +12,9 @@
     <div class="body-fill hidden"></div>
     <header>
         <nav>
-            <a href="#portfolio">Portfolio</a>
-            <a href="./CodyHartResume.pdf" target="_blank">Resume</a>
-            <a href="#contact">Contact</a>
+            <a class="a" href="#portfolio">Portfolio</a>
+            <a class="a" href="./CodyHartResume.pdf" target="_blank">Resume</a>
+            <a class="a" href="#contact">Contact</a>
         </nav>
         <a href="#top"><h1>CODY HART</h1></a>
     </header>
@@ -94,10 +94,11 @@
                     <div class="tag">Photoshop</div>
                 </div>
                 <p class="card">This is a MERN stack web application that is still in development to become a full e-commerce site for the apparel company that I started in 2018. In addition to creating this entire website from scratch, this entire line of shirts was designed from concept to completion by myself, and hand printed by myself and my business partner. </p>
-                <a href="https://surdist.herokuapp.com" target="_blank"><button>VIEW SITE</button></a>
-                <a href="https://github.com/CodyLHart/surdist" target="_blank"><button>VIEW CODE</button></a>
+                <a class="card" href="https://surdist.herokuapp.com" target="_blank"><button>VIEW SITE</button></a>
+                <a class="card" href="https://github.com/CodyLHart/surdist" target="_blank"><button>VIEW CODE</button></a>
             </div>
             <div class="details-card card hidden" id="wsgC">
+                <div class="x">X</div>
                 <img class="card-img card" src="./images/wsg-trans.png">
                 <div class="tags">
                     <div class="tag">Node.JS</div>
@@ -109,20 +110,22 @@
                     <div class="tag">Photoshop</div>
                 </div>
                 <p class="card">This was my first attempt at developing a full stack web application. It is a social media concept that I developed for use by musical artists and music venues. It is intended as a way to help bands find local support for their shows, and help venues without a talent buyer find acts. </p>
-                <a href="https://with-special-guests.herokuapp.com/users" target="_blank"><button>VIEW SITE</button></a>
-                <a href="https://github.com/CodyLHart/with-special-guests" target="_blank"><button>VIEW CODE</button></a>
+                <a class="card" href="https://with-special-guests.herokuapp.com/users" target="_blank"><button>VIEW SITE</button></a>
+                <a class="card" href="https://github.com/CodyLHart/with-special-guests" target="_blank"><button>VIEW CODE</button></a>
             </div>
             <div class="details-card card hidden" id="ahrsC">
+                <div class="x">X</div>
                 <img class="card-img card" src="./images/ahrs-trans.png">
                 <div class="tags">
                     <div class="tag">HTML</div>
                     <div class="tag">CSS</div>
                 </div>
                 <p class="card">Website developed for Richards and Simpson law firm.</p>
-                <a href="#" target="_blank"><button>VIEW SITE</button></a>
-                <a href="#"><button>VIEW CODE</button></a>
+                <a class="card" href="./ahrs-law/home.html" target="_blank"><button>VIEW SITE</button></a>
+                <a class="card" href="https://github.com/CodyLHart/ahrs-law" target="_blank"><button>VIEW CODE</button></a>
             </div>
             <div class="details-card card hidden" id="crcC">
+                <div class="x">X</div>
                 <img class="card-img card" src="./images/crc-trans.png">
                 <div class="tags">
                     <div class="tag">HTML</div>
@@ -130,20 +133,22 @@
                     <div class="tag">JavaScript</div>
                 </div>
                 <p class="card">Website developed for Boulder, CO based soul band, Cold River City.</p>
-                <a href="#" target="_blank"><button>VIEW SITE</button></a>
-                <a href="#"><button>VIEW CODE</button></a>
+                <a class="card"><button disabled>VIEW SITE</button></a>
+                <a class="card"><button disabled>VIEW CODE</button></a>
             </div>
             <div class="details-card card hidden" id="bgC">
+                <div class="x">X</div>
                 <img class="card-img card" src="./images/bg-trans.png">
                 <div class="tags">
                     <div class="tag">HTML</div>
                     <div class="tag">CSS</div>
                 </div>
                 <p class="card">Website developed for Denver, CO based rock and roll band, Boot Gun.</p>
-                <a href="#" target="_blank"><button>VIEW SITE</button></a>
-                <a href="#"><button>VIEW CODE</button></a>
+                <a class="card"><button disabled>VIEW SITE</button></a>
+                <a class="card"><button disabled>VIEW CODE</button></a>
             </div>
             <div class="details-card card hidden" id="metaC">
+                <div class="x">X</div>
                 <img class="card-img card" src="./images/meta-trans.png">
                 <div class="tags">
                     <div class="tag">HTML</div>
@@ -151,15 +156,32 @@
                     <div class="tag">JavaScript</div>
                 </div>
                 <p class="card">I know it should go without saying, but I did design and code this entire portfolio website myself.</p>
-                <a href="/" target="_blank"><button>VIEW SITE</button></a>
-                <a href="#"><button>VIEW CODE</button></a>
+                <a><button>VIEW SITE</button></a>
+                <a href="https://github.com/CodyLHart/portfolio" target="_blank"><button>VIEW CODE</button></a>
             </div>
         </div>
         <div class="section" id="about">
             <h2 class="title">ABOUT ME</h2>
-            <p>
-                Having spent the past ten years pursuing a number of different creative endeavors, from touring the country as a rock and roll guitarist to starting an absurdist apparel company, graphic design and web development have always been an infrequent side hustle for me. Having spent a number of years doing small web design projects for bands, artists, and lawyers I developed a deep love of CSS that I just can't seem to kick. Whenever other developers ask me what CSS framework I used on a project, I am always proud when I can say that I didn't. Eventually I worked to develop a deeper relationship with my second love, JavaScript, and I knew that I needed to be focusing a significant portion of my time and energy on continuing to develop my programming abilities. Throw in a few more languages and some more experience with the back end, and I have worked to become a more confident programmer than I ever would have imagined.
-            </p>
+            <div class="about-squares">
+                <div class="about-square">
+                    <img src="./images/note.png" alt="Music">
+                    <div class="as-text">
+                        I am a drummer, percussionist, and guitarist and have played shows in 32 states and Mexico.
+                    </div>
+                </div>
+                <div class="about-square">
+                    <img style="height: 5vw; margin-bottom: 2vw;" src="./images/surdist-logo.png" alt="Surdist">
+                    <div class="as-text">
+                        I started a t-shirt company as a joke. Our shirts are now carried in a number of stores around Colorado and Washington.
+                    </div>
+                </div>
+                <div class="about-square">
+                    <img src="./images/book.png" alt="Book">
+                    <div class="as-text">
+                        I have a dream of being a children's book author one day. I am in the process of developing my first one now.
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="section" id="contact">
             <h2 class="title">CONTACT</h2>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css?family=Cinzel|Montserrat|Raleway&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="./images/logo.png">
+    <title>Richards & Simpson - Our Practice</title>
+</head>
+<body>
+    <header>
+        <div id="header-top">
+            <div id="header-logo"><a href="./home.html"><img src="https://i.imgur.com/Pg7zuot.png"></a></div>
+            <div id="header-title">
+                <h2 class="names">Richards | Simpson</h2>
+                <h4 class="sub">Attorneys at Law</h4>
+            </div>
+        </div>
+        <nav>
+            <a class="right-line" href="./home.html">Home</a>
+            <a class="right-line" href="./our-practice.html">Our Practice</a>
+            <div class="dropdown">
+                <a class="right-line" class="dropbtn">Attorneys</a>
+                <div class="dropdown-content">
+                    <a href="./richards.html">Jeffrey Richards</a>
+                    <a href="./simpson.html">Michael Simpson</a>
+                </div>
+            </div>
+            <a class="right-line" href="./firm-news.html">Firm News</a>
+            <a class="right-line" href="./international.html">International</a>
+            <a href="./contact.html">Contact</a>
+        </nav>
+    </header>
+    <main id="main-our-practice">
+        <div class="page-name-div">
+            <h2 class="page-name">Our Practice</h2>
+        </div>
+        <div class="text-div">
+            <p class="text">Our expertise in handling the defense of civil litigation 
+                in Colorado is derived from over 50 years of successful trial and 
+                appellate work in Colorado. We are regularly in Federal District Court, 
+                the Courts of Colorado’s Front Range, the District Courts of Colorado’s 
+                Western mountain communities and ski towns and the courts of the 
+                agricultural centers of Colorado’s Eastern Plains.</p>
+        </div>
+        <div class="op-bottom-div">
+            <div class="bottom-left">
+                <h3 class="info-title">Our Litigation Practice Includes</h3>
+                <div class="olpi">
+                    <p>
+                        Automobile Litigation <br>
+                        Bad Faith <br> 
+                        DUI and Dram Shop Liability <br>
+                        Premises Liability <br>
+                        Ski Accidents <br>
+                        Trucking Accidents <br>
+                        Construction Defect <br>
+                        Professional Negligence <br>
+                        Pharmacy <br>
+                        Food Safety <br>
+                        Rental Cars <br>
+                        Retail Industry <br>
+                        Convenience Stores <br>
+                        Restaurants / Bars <br>
+                        Farming <br>
+                        Motorcycle <br>
+                        ATV <br>
+                        Insurance Coverage <br>
+                        Wrongful Death <br>
+                        Animal Liability <br>
+                        Roofing Disputes
+                    </p>
+                </div>
+            </div>
+            <div class="bottom-right">
+                <div class="photo-card">
+                    <img class="op-photos" src="./images/Mountains.jpg">
+                    <img class="op-photos" src="./images/Snow.jpg">
+                    <img class="op-photos" src="./images/Train.jpg">
+                    <img class="op-photos" src="./images/Plains.jpg">
+                </div>
+            </div>
+        </div>
+    </main>
+    <footer>
+        <p>600 Grant Street, Suite 620</p>
+        <p>Denver, CO 80203</p>
+        <p>Tel: (303)832-5588 &nbsp;Fax: (303)832-9265</p>
+    </footer>
+    
+    <script>
+        var myIndex = 0;
+        carousel();
+        
+        function carousel() {
+          var i;
+          var x = document.getElementsByClassName("op-photos");
+          for (i = 0; i < x.length; i++) {
+            x[i].style.opacity = 0;  
+          }
+          myIndex++;
+          if (myIndex > x.length) {myIndex = 1}    
+          x[myIndex-1].style.opacity = 1;  
+          setTimeout(carousel, 8000); // Change image every 2 seconds
+        }
+    </script>
+
+</body>
+</html>

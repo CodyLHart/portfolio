@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css?family=Cinzel|Montserrat|Raleway&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="./images/logo.png">
+    <title>Richards & Simpson - International</title>
+</head>
+<body>
+    <header>
+        <div id="header-top">
+            <div id="header-logo"><a href="./home.html"><img src="https://i.imgur.com/Pg7zuot.png"></a></div>
+            <div id="header-title">
+                <h2 class="names">Richards | Simpson</h2>
+                <h4 class="sub">Attorneys at Law</h4>
+            </div>
+        </div>
+        <nav>
+            <a class="right-line" href="./home.html">Home</a>
+            <a class="right-line" href="./our-practice.html">Our Practice</a>
+            <div class="dropdown">
+                <a class="right-line" class="dropbtn">Attorneys</a>
+                <div class="dropdown-content">
+                    <a href="./richards.html">Jeffrey Richards</a>
+                    <a href="./simpson.html">Michael Simpson</a>
+                </div>
+            </div>
+            <a class="right-line" href="./firm-news.html">Firm News</a>
+            <a class="right-line" href="./international.html">International</a>
+            <a href="./contact.html">Contact</a>
+        </nav>
+    </header>
+    <main id="main-international">
+        <div class="page-name-div">
+            <h2 class="page-name">International</h2>
+        </div>
+        <div class="text-div">
+            <p class="text">Jeffrey Richards is active in Colorado’s international legal 
+                and diplomatic community. He is the Honorary Consul of France for Colorado, 
+                and a member as well as the past Dean of the Colorado Consular Corps., 
+                Colorado’s principle diplomatic organization.
+                <br><br>
+                Mr. Richards’ international experience includes being a White House, 
+                Executive Office of the President, Intern/Clerk in the Office of the U.S. 
+                Trade Representative and working for the International Monetary Fund in 
+                Washington, D.C. Mr. Richards has worked in Paris, France for an international 
+                clothier and as a translator at the Université René Descartes, Paris V.
+                <br><br>
+                Mr. Richards is a fluent French-speaking U.S. attorney. He advises clients 
+                with interests in both Colorado and France regarding civil and business 
+                matters that involve the two countries. This office handles certified, legal 
+                translations for all types of U.S. and French documents.</p>
+        </div>
+        <div style="height: 150px;" class="op-bottom-div">
+        </div>
+    </main>
+    <footer>
+        <p>600 Grant Street, Suite 620</p>
+        <p>Denver, CO 80203</p>
+        <p>Tel: (303)832-5588 &nbsp;Fax: (303)832-9265</p>
+    </footer>
+    
+    <script>
+        var myIndex = 0;
+        carousel();
+        
+        function carousel() {
+          var i;
+          var x = document.getElementsByClassName("op-photos");
+          for (i = 0; i < x.length; i++) {
+            x[i].style.opacity = 0;  
+          }
+          myIndex++;
+          if (myIndex > x.length) {myIndex = 1}    
+          x[myIndex-1].style.opacity = 1;  
+          setTimeout(carousel, 8000); // Change image every 2 seconds
+        }
+    </script>
+
+</body>
+</html>
