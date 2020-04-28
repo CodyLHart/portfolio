@@ -24,7 +24,8 @@ a {
 #about p {
     background-color: white;
     width: 60vw;
-    font-size: 1.3vw;
+    font-size: 10px;
+    /* font-size: 1.3vw; */
     font-family: "Raleway", sans-serif;
     padding: 20px;
     text-align: center;
@@ -70,7 +71,8 @@ a {
 .as-text {
     text-align: center;
     width: 80%;
-    font-size: 1.3vw;
+    font-size: 18px;
+    /* font-size: 1.3vw; */
     line-height: 1.9vw;
 }
 
@@ -91,7 +93,6 @@ button {
     font-family: "Raleway", sans-serif;
     background-color: white;
     font-size: 16px;
-    border: 1px solid black;
     padding: 5px 7px 3px 7px;
     margin: 5px;
 }
@@ -103,8 +104,8 @@ button:enabled:hover {
 }
 
 .card-img {
-    width: 40vw;
-    height: 40vw;
+    width: 650px;
+    height: 650px;
     margin-top: 20px;
     margin-bottom: -7vw;
 }
@@ -118,22 +119,26 @@ button:enabled:hover {
 }
 
 .details-card {
-    /* height: 60vh; */
-    width: 50vw;
-    position: absolute;
-    /* top: 20vh; */
-    left: 25vw;
+    width: 90vw;
+    max-width: 850px;
+    height: 80vh;
+    position: fixed;
+    top: 10vh;
     background-color: white;
-    /* padding: 5vw; */
     padding-bottom: 40px;
-    margin-top: 75px;
+    /* margin-top: 75px; */
     display: flex;
     flex-direction: column;
     align-items: center;
     z-index: 9;
     box-shadow: 0px 0px 10px 5px rgba(0,0,0,0.4);
-
+    overflow: auto;
+    /* direction: rtl; */
 }
+
+.details-card::-webkit-scrollbar {
+    display: none;
+  }
 
 .flex-center {
     display: flex;
@@ -156,7 +161,8 @@ form {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 400px;
+    max-width: 400px;
+    width: 80vw;
     margin-bottom: 50px;
 }
 
@@ -226,6 +232,7 @@ input, textarea {
     font-size: 18px;
     font-family: "Raleway", sans-serif;
     margin: 5px;
+    background-color: #FEFEFE;
 }
 
 .intro {
@@ -251,6 +258,7 @@ input, textarea {
     text-align: left;
 }
 
+
 p.card {
     font-size: 20px;
     width: 75%;
@@ -262,7 +270,6 @@ p.card {
     height: 30vw;
     border-radius: 50%;
     margin: 40px;
-    /* border: 30px solid rgba(255, 255, 255, 0.5); */
     box-shadow: 0px 0px 10px 5px rgba(0,0,0,0.4);
 }
 
@@ -369,11 +376,10 @@ textarea {
 
 .x {
     position: absolute;
-    top: 0;
-    right: -40px;
-    background-color: white;
-    color: black;
-    /* border: 1px solid black; */
+    top: 1px;
+    right: 1px;
+    background-color: #E5E5E5;
+    color: #404040;
     font-size: 30px;
     width: 35px;
     height: 35px;
@@ -383,10 +389,9 @@ textarea {
 }
 
 .x:hover {
-    background-color: black;
-    color: white;
+    background-color: #404040;
+    color: #E5E5E5;
 }
-
 
 
 @media (max-width: 1200px) {
@@ -395,34 +400,96 @@ textarea {
     }
 }
 
+@media (max-width: 1000px) {
+    .details-card {
+        width: 80vw;
+    }
+    .card-img {
+        width: 65vw;
+        height: 65vw;
+    }
+}
+
 @media (max-width: 725px) {
     .project {
-        width: 80vw;
-        height: 80vw;
+        width: 60vw;
+        height: 60vw;
     }
 }
 
 @media (max-width: 500px) {
-    .intro {
-        flex-direction: column;
+    nav {
+        display: none;
     }
 
-    .photo {
-        height: 50vw;
+    .intro {
+        flex-direction: column;
+        margin-top: -30px;
+    }
+
+    .intro-text {
+        width: 80%;
+    }
+
+    .intro p {
+        font-size: 6vw;
+        /* margin: 2vw 1vw 2vw 0; */
+        font-family: "Raleway", sans-serif;
+        font-weight: 200;
     }
 
     .hiim {
-        font-size: 36px;
+        font-size: 10vw;
+        margin: 0 auto;
     }
 
     .iama-div {
-        position: relative;
-        left: 31px;
+        width: 100%;
     }
 
-    .project {
-        width: 90vw
+    .photo {
+        width: 65vw;
+        height: 65vw;
+        margin-top: 0;
     }
 
+    .tag {
+        font-size: 10px;
+    }
+
+    .tags {
+        width: 80%;
+    }
+
+    p.card {
+        font-size: 16px;
+        width: 75%;
+        line-height: 22px;
+        text-align: center;
+    }
+
+    .as-text {
+        text-align: center;
+        width: 80%;
+        font-size: 14px;
+        /* font-size: 1.3vw; */
+        line-height: 14px;
+    }
+
+    .about-square {
+        justify-content: center;
+    }
+
+    .about-square img {
+        height: 12vw;
+        margin-bottom: 5vw;
+    }
+
+    .title {
+        font-size: 5vw;
+    }
+
+    #contact h3 {
+        margin-top: 20px;
+    }
 }
-
