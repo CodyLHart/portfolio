@@ -54,7 +54,12 @@ a {
     width: 100%;
 }
 
-.about-square img {
+.as-img {
+    height: 6vw;
+    margin-bottom: 2vw;
+}
+
+.as-img-surd {
     height: 6vw;
     margin-bottom: 2vw;
 }
@@ -71,10 +76,12 @@ a {
 .as-text {
     text-align: center;
     width: 80%;
-    font-size: 18px;
-    /* font-size: 1.3vw; */
+    /* font-size: 18px; */
+    font-size: 1.3vw;
     line-height: 1.9vw;
 }
+
+
 
 body {
     margin: 0;
@@ -333,6 +340,8 @@ p.card {
     opacity: 0%;
 }
 
+
+
 .tags {
     width: 60%;
     display: flex;
@@ -408,6 +417,10 @@ textarea {
         width: 65vw;
         height: 65vw;
     }
+
+    .as-text {
+        
+    }
 }
 
 @media (max-width: 725px) {
@@ -425,6 +438,11 @@ textarea {
     .intro {
         flex-direction: column;
         margin-top: -30px;
+        background-size: 100% 100%;
+    }
+
+    #about, footer {
+        background-size: 100% 100%;
     }
 
     .intro-text {
