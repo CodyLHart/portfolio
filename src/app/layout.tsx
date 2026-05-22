@@ -27,6 +27,9 @@ export default function RootLayout({
       lang="en"
       className={`${plusJakartaSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="stylesheet" href="https://use.typekit.net/cev7joi.css" />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
