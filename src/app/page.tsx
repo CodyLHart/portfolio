@@ -177,18 +177,35 @@ const Card = ({ item }: { item: (typeof portfolio)[0] }) => (
 );
 
 const Gallery = () => (
-  <div
-    style={{ gap: "clamp(1rem, 3vw, 3rem)", padding: "4vw" }}
-    className=" w-full grid grid-cols-1 min-[440px]:grid-cols-2 md:grid-cols-3  bg-yellow-500/50 mix-blend-multiply "
-  >
-    {portfolio.map((item) => (
-      <div
-        key={item.title + item.subtitle}
-        className="flex flex-col items-center "
-      >
-        <Card item={item} />
-      </div>
-    ))}
+  <div className=" bg-yellow-500/50 mix-blend-multiply ">
+    <div
+      style={{ width: "80%" }}
+      className="bg-white m-auto mt-8 mb-0 py-4 px-8 text-xl font-sans  max-w-4xl"
+    >
+      Howdy! <br />
+      I'm Cody.
+      <br />
+      I am a software engineer and graphic designer based in Denver, Colorado. I
+      am still working on building out my portfolio to include more of my
+      software development and product design work, but in the meantime, here
+      are some of my favorite graphic design projects that I've worked on over
+      the years.
+      <br />
+      Thanks, and check back for more updates!
+    </div>
+    <div
+      style={{ gap: "clamp(1rem, 3vw, 3rem)", padding: "4vw" }}
+      className=" w-full grid grid-cols-1 min-[440px]:grid-cols-2 md:grid-cols-3   "
+    >
+      {portfolio.map((item) => (
+        <div
+          key={item.title + item.subtitle}
+          className="flex flex-col items-center "
+        >
+          <Card item={item} />
+        </div>
+      ))}
+    </div>
   </div>
 );
 
