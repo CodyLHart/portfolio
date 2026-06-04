@@ -179,8 +179,8 @@ const Card = ({ item }: { item: (typeof portfolio)[0] }) => (
 const Gallery = () => (
   <div className=" bg-yellow-500/50 mix-blend-multiply ">
     <div
-      style={{ width: "80%" }}
-      className="bg-white m-auto mt-8 mb-0 py-4 px-8 text-xl font-sans  max-w-4xl"
+      style={{ width: "80%", marginTop: "4vw" }}
+      className="bg-white m-auto  mb-0 py-4 px-8 text-xl font-sans  max-w-4xl"
     >
       Howdy! <br />
       I'm Cody.
