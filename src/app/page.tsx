@@ -183,12 +183,12 @@ const Gallery = () => (
       className="bg-white m-auto  mb-0 py-4 px-8 text-xl font-sans  max-w-4xl"
     >
       Howdy! <br />
-      I'm Cody.
+      My name is Cody.
       <br />
       I am a software engineer and graphic designer based in Denver, Colorado. I
       am still working on building out my portfolio to include more of my
       software development and product design work, but in the meantime, here
-      are some of my favorite graphic design projects that I've worked on over
+      are some of my favorite graphic design projects that I have worked on over
       the years.
       <br />
       Thanks, and check back for more updates!

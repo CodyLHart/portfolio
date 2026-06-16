@@ -2,11 +2,21 @@
   "name": "portfolio",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "next dev",
+    "dev:portfolio": "next dev",
     "build": "next build",
+    "build:portfolio": "next build",
+    "build:projects": "node scripts/run-project-scripts.mjs build",
+    "build:all": "npm run build:portfolio && npm run build:projects",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "lint:projects": "node scripts/run-project-scripts.mjs lint",
+    "lint:all": "npm run lint && npm run lint:projects"
   },
   "dependencies": {
     "next": "16.2.6",
