@@ -25,10 +25,8 @@ const HeaderNav = () => (
   <>
     <IoMenu className="text-5xl text-black md:hidden" />
     <div className="align-center justify-between gap-8 hidden md:flex">
-      <NavItem text="DESIGN" page="/" />
       <NavItem text="PROJECTS" page="/projects" />
-      {/* <NavItem text="ABOUT" page="/" />
-      <NavItem text="CONTACT" page="/" /> */}
+      <NavItem text="DESIGN" page="/design-portfolio" />
     </div>
   </>
 );

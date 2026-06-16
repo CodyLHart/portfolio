@@ -1,0 +1,11 @@
+{
+  "name": "@portfolio/habit-tracker",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev:api": "dotnet run --project api/HabitTracker.Api.csproj",
+    "dev:web": "npm --prefix web run dev",
+    "build": "dotnet build api/HabitTracker.Api.csproj && npm --prefix web run build",
+    "lint": "dotnet build api/HabitTracker.Api.csproj && npm --prefix web run lint"
+  }
+}
