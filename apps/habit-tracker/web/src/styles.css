@@ -172,6 +172,43 @@ button {
   width: 34px;
 }
 
+.account-menu {
+  position: relative;
+}
+
+.account-dropdown {
+  background: #fff;
+  box-shadow: 1px 1px 8px 2px #00000020;
+  display: grid;
+  gap: 10px;
+  min-width: 190px;
+  padding: 14px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 12px);
+  z-index: 60;
+}
+
+.account-dropdown p {
+  color: #0f172a;
+  font-weight: 900;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.account-dropdown button {
+  align-items: center;
+  background: #0f172a;
+  border: 1px solid #0f172a;
+  color: #fff;
+  display: inline-flex;
+  font-weight: 800;
+  gap: 8px;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 12px;
+}
+
 .dashboard {
   display: grid;
   gap: 20px;

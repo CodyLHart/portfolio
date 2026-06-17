@@ -28,6 +28,10 @@ const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
 
 export const api = {
   me: () => request<CurrentUser | null>("/api/auth/me"),
+  logout: () =>
+    request<null>("/api/auth/logout", {
+      method: "POST",
+    }),
   habits: () => request<Habit[]>("/api/habits"),
   entries: (from: string, to: string) =>
     request<HabitEntry[]>(`/api/habit-entries?from=${from}&to=${to}`).then(

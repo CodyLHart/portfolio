@@ -7,6 +7,7 @@ import {
   Plus,
   X,
   LogIn,
+  LogOut,
   RotateCcw,
   UserCircle,
 } from "lucide-react";
@@ -36,6 +37,7 @@ export default function App() {
   const [month, setMonth] = useState(new Date());
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -201,6 +203,25 @@ export default function App() {
     }
   };
 
+  const logout = async () => {
+    try {
+      setIsSaving(true);
+      setErrorMessage(null);
+      await api.logout();
+      setCurrentUser(null);
+      setHabits([]);
+      setEntries([]);
+      setSelectedHabitId(undefined);
+      setIsAccountMenuOpen(false);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Unable to log out.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const trackHabit = async (habit: Habit) => {
     try {
       setIsSaving(true);
@@ -288,14 +309,37 @@ export default function App() {
             Portfolio
           </a>
           {currentUser ? (
-            <button className="avatar-button" type="button" title="User profile">
-              {currentUser.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img alt="" src={currentUser.avatarUrl} />
-              ) : (
-                <UserCircle size={28} />
-              )}
-            </button>
+            <div className="account-menu">
+              <button
+                aria-expanded={isAccountMenuOpen}
+                aria-haspopup="menu"
+                className="avatar-button"
+                onClick={() => setIsAccountMenuOpen((isOpen) => !isOpen)}
+                type="button"
+                title="User profile"
+              >
+                {currentUser.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img alt="" src={currentUser.avatarUrl} />
+                ) : (
+                  <UserCircle size={28} />
+                )}
+              </button>
+              {isAccountMenuOpen ? (
+                <div className="account-dropdown" role="menu">
+                  <p>{currentUser.displayName}</p>
+                  <button
+                    disabled={isSaving}
+                    onClick={logout}
+                    role="menuitem"
+                    type="button"
+                  >
+                    <LogOut size={16} />
+                    Logout
+                  </button>
+                </div>
+              ) : null}
+            </div>
           ) : (
             <a
               className="google-button"
