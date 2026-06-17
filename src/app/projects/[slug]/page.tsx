@@ -42,64 +42,83 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   return (
     <div className="min-h-screen bg-white text-black">
       <Header />
-      <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-5 py-10 md:px-8">
-        <Link
-          className="w-fit font-mono text-sm font-semibold uppercase text-neutral-600 hover:text-black"
-          href="/projects"
-        >
-          Back to projects
-        </Link>
-
-        <section>
-          <p className="font-mono text-sm font-semibold uppercase tracking-[0.2em] text-yellow-700">
-            {project.status}
-          </p>
-          <h1 className="mt-3 font-sans text-4xl font-bold leading-tight md:text-6xl">
-            {project.name}
-          </h1>
-          <p className="mt-5 text-lg leading-8 text-neutral-700">
-            {project.summary}
-          </p>
-        </section>
-
-        <section className="grid gap-6 border-y border-neutral-200 py-8 md:grid-cols-2">
-          <div>
-            <h2 className="font-sans text-lg font-bold">Stack</h2>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {project.stack.map((tech) => (
-                <span
-                  key={tech}
-                  className="border border-neutral-300 bg-neutral-50 px-3 py-1 font-mono text-xs text-neutral-700"
-                >
-                  {tech}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h2 className="font-sans text-lg font-bold">Source location</h2>
-            <p className="mt-4 font-mono text-sm text-neutral-700">
-              {project.sourcePath ?? `apps/${project.slug}`}
-            </p>
-          </div>
-        </section>
-
-        {project.notes ? (
-          <section>
-            <h2 className="font-sans text-lg font-bold">Notes</h2>
-            <p className="mt-3 leading-7 text-neutral-700">{project.notes}</p>
-          </section>
-        ) : null}
-
-        {project.href ? (
-          <a
-            className="w-fit bg-black px-5 py-3 font-sans text-sm font-semibold text-white hover:bg-neutral-800"
-            href={project.href}
+      <main
+        className="min-h-[calc(100vh-80px)] px-5 py-8 md:px-8 md:py-12"
+        style={{ backgroundColor: "rgba(234, 179, 8, 0.5)" }}
+      >
+        <div className="mx-auto flex w-full max-w-4xl flex-col gap-8">
+          <Link
+            className="w-fit bg-white px-4 py-2 font-mono text-sm font-semibold uppercase text-black hover:bg-neutral-50"
+            href="/projects"
+            style={{ boxShadow: "1px 1px 5px 2px #00000015" }}
           >
-            Open project
-          </a>
-        ) : null}
+            Back to projects
+          </Link>
+
+          <section
+            className="bg-white px-6 py-7 md:px-8 md:py-9"
+            style={{ boxShadow: "1px 1px 5px 2px #00000015" }}
+          >
+            <p className="font-mono text-sm font-semibold uppercase tracking-[0.2em] text-yellow-700">
+              {project.status}
+            </p>
+            <h1 className="mt-3 font-serif text-5xl leading-none md:text-7xl">
+              {project.name}
+            </h1>
+            <p className="mt-5 text-lg leading-8 text-neutral-800">
+              {project.summary}
+            </p>
+          </section>
+
+          <section
+            className="grid gap-6 bg-white px-6 py-7 md:grid-cols-2 md:px-8"
+            style={{ boxShadow: "1px 1px 5px 2px #00000015" }}
+          >
+            <div>
+              <h2 className="font-serif text-3xl leading-none">Stack</h2>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {project.stack.map((tech) => (
+                  <span
+                    key={tech}
+                    className="border border-neutral-300 bg-white px-3 py-1 font-mono text-xs text-neutral-700"
+                  >
+                    {tech}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h2 className="font-serif text-3xl leading-none">
+                Source location
+              </h2>
+              <p className="mt-4 font-mono text-sm text-neutral-700">
+                {project.sourcePath ?? `apps/${project.slug}`}
+              </p>
+            </div>
+          </section>
+
+          {project.notes ? (
+            <section
+              className="bg-white px-6 py-7 md:px-8"
+              style={{ boxShadow: "1px 1px 5px 2px #00000015" }}
+            >
+              <h2 className="font-serif text-3xl leading-none">Notes</h2>
+              <p className="mt-3 leading-7 text-neutral-800">
+                {project.notes}
+              </p>
+            </section>
+          ) : null}
+
+          {project.href ? (
+            <a
+              className="w-fit bg-black px-5 py-3 font-sans text-sm font-semibold text-white hover:bg-neutral-800"
+              href={project.href}
+            >
+              Open project
+            </a>
+          ) : null}
+        </div>
       </main>
     </div>
   );

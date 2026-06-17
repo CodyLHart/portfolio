@@ -33,8 +33,8 @@ const HeaderNav = () => (
 export default function Header() {
   return (
     <header
-      style={{ boxShadow: "0 4px 8px 0 #0000005" }}
-      className="w-screen flex items-center justify-between pl-4 pr-8 "
+      style={{ boxShadow: "0 8px 18px -10px #00000080", height: 80 }}
+      className="sticky top-0 z-50 flex w-full items-center justify-between bg-white pl-4 pr-8"
     >
       <HeaderLogo />
       <HeaderNav />
