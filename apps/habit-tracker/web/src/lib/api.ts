@@ -11,7 +11,16 @@ const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   });
 
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
+    const detail = await response.text();
+    throw new Error(
+      detail
+        ? `Request failed: ${response.status} ${detail}`
+        : `Request failed: ${response.status}`,
+    );
+  }
+
+  if (response.status === 204) {
+    return null as T;
   }
 
   return response.json() as Promise<T>;
@@ -21,7 +30,13 @@ export const api = {
   me: () => request<CurrentUser | null>("/api/auth/me"),
   habits: () => request<Habit[]>("/api/habits"),
   entries: (from: string, to: string) =>
-    request<HabitEntry[]>(`/api/habit-entries?from=${from}&to=${to}`),
+    request<HabitEntry[]>(`/api/habit-entries?from=${from}&to=${to}`).then(
+      (entries) =>
+        entries.map((entry) => ({
+          ...entry,
+          date: entry.date.slice(0, 10),
+        })),
+    ),
   createHabit: (habit: HabitDraft) =>
     request<Habit>("/api/habits", {
       method: "POST",

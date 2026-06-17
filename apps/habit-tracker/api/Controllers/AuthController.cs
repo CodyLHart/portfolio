@@ -22,10 +22,10 @@ namespace HabitTracker.Api.Controllers
         }
 
         [HttpGet("login/google")]
-        public IActionResult LoginWithGoogle([FromQuery] string? returnUrl = "http://localhost:5173")
+        public IActionResult LoginWithGoogle([FromQuery] string? returnUrl = "http://127.0.0.1:5173")
         {
             return Challenge(
-                new AuthenticationProperties { RedirectUri = returnUrl ?? "http://localhost:5173" },
+                new AuthenticationProperties { RedirectUri = returnUrl ?? "http://127.0.0.1:5173" },
                 GoogleDefaults.AuthenticationScheme);
         }
 
@@ -37,7 +37,12 @@ namespace HabitTracker.Api.Controllers
                 return Ok(null);
             }
 
-            var userId = User.GetAppUserId();
+            if (!User.TryGetAppUserId(out var userId))
+            {
+                await HttpContext.SignOutAsync();
+                return Ok(null);
+            }
+
             var user = await _db.Users
                 .Where(candidate => candidate.Id == userId)
                 .Select(candidate => new
@@ -48,6 +53,11 @@ namespace HabitTracker.Api.Controllers
                     candidate.AvatarUrl
                 })
                 .FirstOrDefaultAsync();
+
+            if (user == null)
+            {
+                await HttpContext.SignOutAsync();
+            }
 
             return Ok(user);
         }
@@ -65,7 +75,6 @@ namespace HabitTracker.Api.Controllers
         public async Task<IActionResult> Users()
         {
             var users = await _db.Users
-                .OrderByDescending(user => user.LastLoginAt)
                 .Select(user => new
                 {
                     user.Id,
@@ -77,7 +86,7 @@ namespace HabitTracker.Api.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(users);
+            return Ok(users.OrderByDescending(user => user.LastLoginAt));
         }
     }
 }

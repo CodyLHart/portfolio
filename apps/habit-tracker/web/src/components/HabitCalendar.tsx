@@ -8,6 +8,8 @@ type HabitCalendarProps = {
   selectedHabitId?: string;
 };
 
+const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
 export function HabitCalendar({
   entries,
   habits,
@@ -15,6 +17,7 @@ export function HabitCalendar({
   selectedHabitId,
 }: HabitCalendarProps) {
   const days = getMonthDays(month);
+  const leadingEmptyDays = days[0]?.getDay() ?? 0;
   const visibleHabits = selectedHabitId
     ? habits.filter((habit) => habit.id === selectedHabitId)
     : habits;
@@ -44,6 +47,18 @@ export function HabitCalendar({
 
   return (
     <div className="calendar-grid">
+      {weekDays.map((day) => (
+        <div className="calendar-weekday" key={day}>
+          {day}
+        </div>
+      ))}
+      {Array.from({ length: leadingEmptyDays }).map((_, index) => (
+        <div
+          aria-hidden="true"
+          className="calendar-day calendar-day-empty"
+          key={`empty-${index}`}
+        />
+      ))}
       {days.map((date) => {
         const completion = getDayCompletion(date);
 

@@ -62,7 +62,6 @@ button {
 .user-nav,
 .calendar-toolbar,
 .form-header,
-.field-row,
 .list-header {
   align-items: center;
   display: flex;
@@ -71,6 +70,7 @@ button {
 }
 
 .google-button,
+.portfolio-link,
 .avatar-button,
 .icon-actions button,
 .habit button,
@@ -93,11 +93,27 @@ button {
   padding: 0 14px;
 }
 
+.portfolio-link {
+  padding: 0 14px;
+}
+
+.user-name {
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
 .avatar-button,
 .icon-actions button {
   aspect-ratio: 1;
   padding: 0;
   width: 42px;
+}
+
+.avatar-button img {
+  border-radius: 999px;
+  height: 28px;
+  width: 28px;
 }
 
 .dashboard {
@@ -161,9 +177,21 @@ button {
 
 .calendar-grid {
   display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(7, minmax(58px, 1fr));
+  gap: clamp(4px, 1vw, 10px);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   margin-top: 20px;
+}
+
+.calendar-weekday {
+  color: #64748b;
+  font-size: clamp(0.56rem, 1.8vw, 0.76rem);
+  font-weight: 900;
+  letter-spacing: 0;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 2px;
+  text-align: center;
+  text-transform: uppercase;
 }
 
 .calendar-day {
@@ -174,26 +202,31 @@ button {
   flex-direction: column;
   justify-content: space-between;
   min-width: 0;
-  padding: 8px;
+  padding: clamp(3px, 1.2vw, 8px);
+}
+
+.calendar-day-empty {
+  background: transparent;
+  border-color: transparent;
 }
 
 .calendar-day > span {
   color: #475569;
-  font-size: 0.8rem;
+  font-size: clamp(0.58rem, 1.8vw, 0.8rem);
   font-weight: 800;
 }
 
 .completion-ring {
-  height: 36px;
+  height: clamp(18px, 5vw, 36px);
   margin-left: auto;
-  width: 36px;
+  width: clamp(18px, 5vw, 36px);
 }
 
 .completion-ring span {
   color: #334155;
-  font-size: 0.66rem;
-  height: 27px;
-  width: 27px;
+  font-size: clamp(0.42rem, 1.4vw, 0.66rem);
+  height: 75%;
+  width: 75%;
 }
 
 .side-column {
@@ -227,8 +260,15 @@ button {
   padding: 0 12px;
 }
 
-.field-row > label {
-  flex: 1;
+.field-row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 0.75fr) minmax(0, 1fr);
+}
+
+.field-row > label,
+.habit-form input {
+  min-width: 0;
 }
 
 .icon-preview {
@@ -328,6 +368,28 @@ button {
   padding: 0 10px;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.status-message {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.5;
+  margin: 0;
+  padding: 12px;
+}
+
+.status-message.error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
 @media (max-width: 960px) {
   .app-header,
   .dashboard,
@@ -336,10 +398,6 @@ button {
     align-items: stretch;
     display: flex;
     flex-direction: column;
-  }
-
-  .calendar-grid {
-    grid-template-columns: repeat(4, minmax(64px, 1fr));
   }
 
   .side-column,

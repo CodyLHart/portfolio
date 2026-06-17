@@ -15,7 +15,7 @@ namespace HabitTracker.Api
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();
-                    webBuilder.UseUrls("http://localhost:5087");
+                    webBuilder.UseUrls("http://127.0.0.1:5087");
                 });
     }
 }

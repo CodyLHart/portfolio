@@ -7,6 +7,7 @@ using HabitTracker.Api.Models;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.OAuth;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -51,6 +52,7 @@ namespace HabitTracker.Api
                     options.ClientSecret = _configuration["Authentication:Google:ClientSecret"] ?? "";
                     options.CallbackPath = "/signin-google";
                     options.SaveTokens = true;
+                    options.ClaimActions.MapJsonKey("urn:google:picture", "picture", "url");
                     options.Events.OnCreatingTicket = UpsertGoogleUser;
                 });
 
@@ -58,7 +60,7 @@ namespace HabitTracker.Api
             {
                 options.AddPolicy("LocalWeb", builder =>
                     builder
-                        .WithOrigins("http://localhost:5173")
+                        .WithOrigins("http://127.0.0.1:5173", "http://localhost:5173")
                         .AllowAnyHeader()
                         .AllowAnyMethod()
                         .AllowCredentials());

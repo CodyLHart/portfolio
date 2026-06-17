@@ -38,10 +38,9 @@ namespace HabitTracker.Api.Controllers
             var userId = User.GetAppUserId();
             var habits = await _db.Habits
                 .Where(habit => habit.UserId == userId)
-                .OrderByDescending(habit => habit.CreatedAt)
                 .ToListAsync();
 
-            return Ok(habits);
+            return Ok(habits.OrderByDescending(habit => habit.CreatedAt));
         }
 
         [HttpPost]

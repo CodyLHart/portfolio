@@ -1,47 +1,87 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, LogIn, UserCircle } from "lucide-react";
 import { HabitCalendar } from "./components/HabitCalendar";
 import { HabitForm } from "./components/HabitForm";
 import { HabitIcon } from "./components/HabitIcon";
-import { formatMonth, toDateKey } from "./lib/date";
-import { Habit, HabitDraft, HabitEntry } from "./types/habit";
+import { endOfMonth, formatMonth, startOfMonth, toDateKey } from "./lib/date";
+import { api } from "./lib/api";
+import { CurrentUser, Habit, HabitDraft, HabitEntry } from "./types/habit";
 import "./styles.css";
 
 const today = toDateKey(new Date());
-
-const seedHabits: Habit[] = [
-  {
-    id: "read",
-    name: "Read",
-    icon: "book",
-    targetAmount: 50,
-    unit: "pages",
-    frequency: "weekly",
-    color: "#2563eb",
-    createdAt: today,
-  },
-  {
-    id: "water",
-    name: "Hydrate",
-    icon: "glassWater",
-    targetAmount: 8,
-    unit: "glasses",
-    frequency: "daily",
-    color: "#0891b2",
-    createdAt: today,
-  },
-];
-
-const seedEntries: HabitEntry[] = [
-  { id: "1", habitId: "read", date: today, amount: 20 },
-  { id: "2", habitId: "water", date: today, amount: 5 },
-];
+const portfolioUrl = import.meta.env.VITE_PORTFOLIO_URL ?? "http://127.0.0.1:3000";
 
 export default function App() {
-  const [habits, setHabits] = useState(seedHabits);
-  const [entries, setEntries] = useState(seedEntries);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [habits, setHabits] = useState<Habit[]>([]);
+  const [entries, setEntries] = useState<HabitEntry[]>([]);
   const [selectedHabitId, setSelectedHabitId] = useState<string | undefined>();
   const [month, setMonth] = useState(new Date());
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const loadEntries = useCallback(async (visibleMonth: Date) => {
+    const from = toDateKey(startOfMonth(visibleMonth));
+    const to = toDateKey(endOfMonth(visibleMonth));
+    const monthEntries = await api.entries(from, to);
+    setEntries(monthEntries);
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadInitialData = async () => {
+      try {
+        setIsLoading(true);
+        setErrorMessage(null);
+
+        const user = await api.me();
+
+        if (!isMounted) {
+          return;
+        }
+
+        setCurrentUser(user);
+
+        if (!user) {
+          setHabits([]);
+          setEntries([]);
+          return;
+        }
+
+        const [savedHabits, savedEntries] = await Promise.all([
+          api.habits(),
+          api.entries(toDateKey(startOfMonth(month)), toDateKey(endOfMonth(month))),
+        ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setHabits(savedHabits);
+        setEntries(savedEntries);
+      } catch (error) {
+        if (isMounted) {
+          setErrorMessage(
+            error instanceof Error
+              ? error.message
+              : "Unable to load habit tracker data.",
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadInitialData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [month]);
 
   const selectedHabit = habits.find((habit) => habit.id === selectedHabitId);
   const totalCompletion = useMemo(() => {
@@ -60,32 +100,54 @@ export default function App() {
     return Math.round((completion / habits.length) * 100);
   }, [entries, habits]);
 
-  const createHabit = (draft: HabitDraft) => {
-    const habit: Habit = {
-      id: crypto.randomUUID(),
-      name: draft.name,
-      icon: draft.icon ?? "target",
-      targetAmount: draft.targetAmount,
-      unit: draft.unit,
-      frequency: draft.frequency,
-      color: draft.color,
-      createdAt: new Date().toISOString(),
-    };
+  const createHabit = async (draft: HabitDraft) => {
+    try {
+      setIsSaving(true);
+      setErrorMessage(null);
 
-    setHabits((current) => [habit, ...current]);
-    setSelectedHabitId(habit.id);
+      const habit = await api.createHabit(draft);
+      setHabits((current) => [habit, ...current]);
+      setSelectedHabitId(habit.id);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Unable to create habit.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const trackHabit = (habit: Habit, amount: number) => {
-    setEntries((current) => [
-      {
-        id: crypto.randomUUID(),
-        habitId: habit.id,
-        date: today,
-        amount,
-      },
-      ...current,
-    ]);
+  const trackHabit = async (habit: Habit, amount: number) => {
+    try {
+      setIsSaving(true);
+      setErrorMessage(null);
+
+      const entry = await api.trackHabit(habit.id, today, amount);
+      setEntries((current) => [{ ...entry, date: entry.date.slice(0, 10) }, ...current]);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Unable to track habit.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const changeMonth = async (nextMonth: Date) => {
+    setMonth(nextMonth);
+
+    if (!currentUser) {
+      return;
+    }
+
+    try {
+      setErrorMessage(null);
+      await loadEntries(nextMonth);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Unable to load calendar.",
+      );
+    }
   };
 
   return (
@@ -95,14 +157,31 @@ export default function App() {
           <p className="eyebrow">Habit Tracker</p>
           <h1>Track the shape of your weeks.</h1>
         </div>
-        <nav className="user-nav" aria-label="User">
-          <a className="google-button" href="/api/auth/login/google">
-            <LogIn size={18} />
-            Google sign-in
+        <nav className="user-nav" aria-label="Navigation">
+          <a className="portfolio-link" href={portfolioUrl}>
+            Portfolio
           </a>
-          <button className="avatar-button" type="button" title="User profile">
-            <UserCircle size={24} />
-          </button>
+          {currentUser ? (
+            <>
+              <span className="user-name">{currentUser.displayName}</span>
+              <button className="avatar-button" type="button" title="User profile">
+                {currentUser.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img alt="" src={currentUser.avatarUrl} />
+                ) : (
+                  <UserCircle size={24} />
+                )}
+              </button>
+            </>
+          ) : (
+            <a
+              className="google-button"
+              href="http://127.0.0.1:5087/api/auth/login/google?returnUrl=http%3A%2F%2F127.0.0.1%3A5173"
+            >
+              <LogIn size={18} />
+              Google sign-in
+            </a>
+          )}
         </nav>
       </header>
 
@@ -133,7 +212,9 @@ export default function App() {
             <div className="icon-actions">
               <button
                 onClick={() =>
-                  setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))
+                  changeMonth(
+                    new Date(month.getFullYear(), month.getMonth() - 1, 1),
+                  )
                 }
                 type="button"
               >
@@ -141,7 +222,9 @@ export default function App() {
               </button>
               <button
                 onClick={() =>
-                  setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))
+                  changeMonth(
+                    new Date(month.getFullYear(), month.getMonth() + 1, 1),
+                  )
                 }
                 type="button"
               >
@@ -158,6 +241,13 @@ export default function App() {
         </section>
 
         <aside className="side-column">
+          {errorMessage ? <p className="status-message error">{errorMessage}</p> : null}
+          {!currentUser && !isLoading ? (
+            <p className="status-message">
+              Sign in with Google to load your habits and save new tracking data.
+            </p>
+          ) : null}
+
           <HabitForm onCreate={createHabit} />
 
           <section className="panel habit-list">
@@ -167,6 +257,12 @@ export default function App() {
                 All
               </button>
             </div>
+            {isLoading ? <p className="status-message">Loading habits...</p> : null}
+            {!isLoading && currentUser && habits.length === 0 ? (
+              <p className="status-message">
+                No habits yet. Create one above to start tracking.
+              </p>
+            ) : null}
             {habits.map((habit) => (
               <article
                 className={selectedHabitId === habit.id ? "habit active" : "habit"}
@@ -181,6 +277,7 @@ export default function App() {
                   </p>
                 </div>
                 <button
+                  disabled={isSaving}
                   onClick={(event) => {
                     event.stopPropagation();
                     trackHabit(habit, habit.targetAmount);

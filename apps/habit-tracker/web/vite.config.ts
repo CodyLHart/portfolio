@@ -6,9 +6,9 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/api": "http://localhost:5087",
-      "/auth": "http://localhost:5087",
-      "/signin-google": "http://localhost:5087",
+      "/api": "http://127.0.0.1:5087",
+      "/auth": "http://127.0.0.1:5087",
+      "/signin-google": "http://127.0.0.1:5087",
     },
   },
 });

@@ -57,9 +57,10 @@ export const projects: PortfolioProject[] = [
     ],
     status: "draft",
     featured: true,
+    href: "http://127.0.0.1:5173",
     sourcePath: "apps/habit-tracker",
     notes:
-      "The first version uses SQLite locally and is structured so the database provider can be changed later.",
+      "The first version uses SQLite locally and is structured so the database provider can be changed later. The open link points at the local Vite app until the habit tracker frontend is deployed.",
   },
 ];
 
