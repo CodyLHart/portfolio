@@ -4,7 +4,14 @@ import { HabitDraft, HabitFrequency } from "../types/habit";
 import { HabitIcon } from "./HabitIcon";
 
 const frequencies: HabitFrequency[] = ["daily", "weekly", "monthly"];
-const colors = ["#2563eb", "#16a34a", "#dc2626", "#9333ea", "#ea580c", "#0891b2"];
+const colors = [
+  "#2563eb",
+  "#16a34a",
+  "#dc2626",
+  "#9333ea",
+  "#ea580c",
+  "#0891b2",
+];
 
 type HabitFormProps = {
   onCreate: (habit: HabitDraft) => void;
@@ -12,7 +19,7 @@ type HabitFormProps = {
 
 export function HabitForm({ onCreate }: HabitFormProps) {
   const [name, setName] = useState("");
-  const [targetAmount, setTargetAmount] = useState(1);
+  const [targetAmount, setTargetAmount] = useState("1");
   const [unit, setUnit] = useState("times");
   const [frequency, setFrequency] = useState<HabitFrequency>("daily");
   const [color, setColor] = useState(colors[0]);
@@ -27,9 +34,15 @@ export function HabitForm({ onCreate }: HabitFormProps) {
       return;
     }
 
+    const parsedTargetAmount = Number(targetAmount);
+
+    if (!Number.isFinite(parsedTargetAmount) || parsedTargetAmount <= 0) {
+      return;
+    }
+
     onCreate({
       name: name.trim(),
-      targetAmount,
+      targetAmount: parsedTargetAmount,
       unit: unit.trim() || "times",
       frequency,
       icon,
@@ -37,7 +50,7 @@ export function HabitForm({ onCreate }: HabitFormProps) {
     });
 
     setName("");
-    setTargetAmount(1);
+    setTargetAmount("1");
     setUnit("times");
     setFrequency("daily");
     setColor(colors[0]);
@@ -49,11 +62,7 @@ export function HabitForm({ onCreate }: HabitFormProps) {
       <div className="form-header">
         <div>
           <p className="eyebrow">New habit</p>
-          <h2>Create a target</h2>
         </div>
-        <span className="icon-preview" style={{ borderColor: color }}>
-          <HabitIcon color={color} icon={icon} size={28} />
-        </span>
       </div>
 
       <label>
@@ -70,7 +79,7 @@ export function HabitForm({ onCreate }: HabitFormProps) {
           Target
           <input
             min="0"
-            onChange={(event) => setTargetAmount(Number(event.target.value))}
+            onChange={(event) => setTargetAmount(event.target.value)}
             step="0.25"
             type="number"
             value={targetAmount}
@@ -78,7 +87,10 @@ export function HabitForm({ onCreate }: HabitFormProps) {
         </label>
         <label>
           Unit
-          <input onChange={(event) => setUnit(event.target.value)} value={unit} />
+          <input
+            onChange={(event) => setUnit(event.target.value)}
+            value={unit}
+          />
         </label>
       </div>
 
@@ -117,7 +129,10 @@ export function HabitForm({ onCreate }: HabitFormProps) {
             title={option}
             type="button"
           >
-            <HabitIcon color={icon === option ? color : "#475569"} icon={option} />
+            <HabitIcon
+              color={icon === option ? color : "#475569"}
+              icon={option}
+            />
           </button>
         ))}
       </div>

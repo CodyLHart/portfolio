@@ -47,4 +47,8 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ habitId, date, amount, note }),
     }),
+  deleteEntry: (entryId: string) =>
+    request<null>(`/api/habit-entries/${entryId}`, {
+      method: "DELETE",
+    }),
 };

@@ -1,8 +1,15 @@
+@import "tailwindcss";
+
 :root {
   color: #0f172a;
-  background: #f8fafc;
+  background: #fff;
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
     sans-serif;
 }
 
@@ -15,7 +22,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -25,29 +33,62 @@ button {
 
 .app-shell {
   min-height: 100vh;
+}
+
+.portfolio-header {
+  align-items: center;
+  background: #fff;
+  box-shadow: 0 8px 18px -10px #00000080;
+  display: flex;
+  height: 80px;
+  justify-content: space-between;
+  padding: 0 32px 0 16px;
+  position: sticky;
+  top: 0;
+  width: 100%;
+  z-index: 50;
+}
+
+.header-logo {
+  background: #000;
+  color: #fff;
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1;
+  padding: 12px 4px;
+  text-align: center;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.header-logo span {
+  display: block;
+}
+
+.header-nav {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.app-main {
+  min-height: calc(100vh - 80px);
   padding: 24px;
 }
 
-.app-header {
-  align-items: end;
-  display: flex;
-  gap: 24px;
-  justify-content: space-between;
-  margin: 0 auto 24px;
-  max-width: 1280px;
-}
-
-.app-header h1,
+.hero-panel h1,
 .panel h2,
 .habit-form h2 {
   margin: 0;
 }
 
-.app-header h1 {
-  font-size: clamp(2.3rem, 5vw, 5.6rem);
+.hero-panel h1 {
+  font-size: clamp(1.35rem, 2vw, 1.9rem);
   letter-spacing: 0;
-  line-height: 0.95;
-  max-width: 860px;
+  line-height: 1.08;
+  max-width: 460px;
 }
 
 .eyebrow {
@@ -59,7 +100,6 @@ button {
   text-transform: uppercase;
 }
 
-.user-nav,
 .calendar-toolbar,
 .form-header,
 .list-header {
@@ -67,6 +107,14 @@ button {
   display: flex;
   gap: 12px;
   justify-content: space-between;
+}
+
+.list-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 .google-button,
@@ -110,10 +158,18 @@ button {
   width: 42px;
 }
 
+.avatar-button {
+  background: transparent;
+  border: 0;
+  min-height: auto;
+  width: auto;
+}
+
 .avatar-button img {
   border-radius: 999px;
-  height: 28px;
-  width: 28px;
+  display: block;
+  height: 34px;
+  width: 34px;
 }
 
 .dashboard {
@@ -127,19 +183,23 @@ button {
 .panel,
 .habit-form {
   background: #fff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+  border: 0;
+  box-shadow: 1px 1px 5px 2px #00000015;
   padding: 22px;
 }
 
 .hero-panel {
   align-items: center;
   display: flex;
+  gap: 18px;
   justify-content: space-between;
+  min-height: 128px;
 }
 
 .hero-panel h2 {
-  font-size: clamp(2rem, 6vw, 5rem);
+  font-size: clamp(1.25rem, 2vw, 2rem);
+  line-height: 1;
+  margin-top: 10px;
 }
 
 .large-ring,
@@ -152,8 +212,8 @@ button {
 }
 
 .large-ring {
-  height: 168px;
-  width: 168px;
+  height: 92px;
+  width: 92px;
 }
 
 .large-ring span,
@@ -167,8 +227,9 @@ button {
 }
 
 .large-ring span {
-  height: 124px;
-  width: 124px;
+  font-size: 1.05rem;
+  height: 68px;
+  width: 68px;
 }
 
 .calendar-panel {
@@ -198,16 +259,24 @@ button {
   aspect-ratio: 1;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
+  color: inherit;
+  cursor: pointer;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   min-width: 0;
   padding: clamp(3px, 1.2vw, 8px);
+  text-align: left;
 }
 
 .calendar-day-empty {
   background: transparent;
   border-color: transparent;
+}
+
+.calendar-day.selected {
+  border-color: #0f172a;
+  box-shadow: inset 0 0 0 2px #0f172a;
 }
 
 .calendar-day > span {
@@ -342,9 +411,10 @@ button {
 .habit {
   align-items: center;
   border: 1px solid #e2e8f0;
+  box-shadow: 1px 1px 5px 1px #00000012;
   display: grid;
   gap: 12px;
-  grid-template-columns: 32px minmax(0, 1fr) auto;
+  grid-template-columns: 32px minmax(0, 1fr);
   padding: 12px;
 }
 
@@ -363,7 +433,134 @@ button {
   font-size: 0.88rem;
 }
 
+.habit-progress {
+  background: #e2e8f0;
+  height: 8px;
+  margin-top: 8px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.habit-progress span {
+  background: #0f172a;
+  display: block;
+  height: 100%;
+}
+
 .habit button {
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.track-entry {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 72px;
+  grid-column: 1 / -1;
+  min-width: 190px;
+}
+
+.track-entry.time-entry {
+  grid-template-columns: minmax(72px, 96px) minmax(96px, 120px) 72px;
+}
+
+.track-entry label {
+  color: #64748b;
+  display: flex;
+  flex-direction: column;
+  font-size: 0.68rem;
+  font-weight: 900;
+  gap: 4px;
+  line-height: 1;
+  min-width: 0;
+  text-transform: uppercase;
+}
+
+.track-entry input,
+.track-entry select,
+.track-entry textarea {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  min-height: 34px;
+  min-width: 0;
+  padding: 0 8px;
+  width: 100%;
+}
+
+.track-entry textarea {
+  line-height: 1.35;
+  padding: 8px;
+  resize: vertical;
+}
+
+.track-entry select {
+  min-width: 0;
+}
+
+.track-entry button:not(.drawer-toggle) {
+  width: 72px;
+}
+
+.track-entry .drawer-toggle {
+  background: transparent;
+  border: 0;
+  color: #64748b;
+  grid-column: 1 / -1;
+  margin-bottom: -12px;
+  min-height: 22px;
+  padding: 0;
+  width: 100%;
+}
+
+.track-entry .drawer-toggle:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.entry-note-field {
+  grid-column: 1 / -1;
+}
+
+.entry-note {
+  color: #334155 !important;
+  margin-top: 6px !important;
+}
+
+.entry-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.entry-item {
+  align-items: center;
+  border: 1px solid #e2e8f0;
+  box-shadow: 1px 1px 5px 1px #00000012;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 12px;
+}
+
+.entry-item h3,
+.entry-item p {
+  margin: 0;
+}
+
+.entry-item p {
+  color: #64748b;
+  font-size: 0.88rem;
+}
+
+.entry-item button {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  display: inline-flex;
+  font-weight: 800;
+  gap: 6px;
   min-height: 34px;
   padding: 0 10px;
 }
@@ -390,19 +587,178 @@ button:disabled {
   color: #991b1b;
 }
 
+.modal-backdrop {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 100;
+}
+
+.day-modal {
+  background: #fff;
+  box-shadow: 1px 1px 10px 4px #00000030;
+  max-height: min(720px, calc(100vh - 48px));
+  max-width: 640px;
+  overflow: auto;
+  padding: 22px;
+  width: min(100%, 640px);
+}
+
+.habit-modal {
+  background: #fff;
+  box-shadow: 1px 1px 10px 4px #00000030;
+  max-height: min(760px, calc(100vh - 48px));
+  max-width: 520px;
+  overflow: auto;
+  padding: 48px 22px 22px;
+  position: relative;
+  width: min(100%, 520px);
+}
+
+.habit-modal .habit-form {
+  box-shadow: none;
+  padding: 0;
+}
+
+.modal-close-button {
+  align-items: center;
+  aspect-ratio: 1;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  display: grid;
+  place-items: center;
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  width: 34px;
+}
+
+.modal-header {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.modal-header h2 {
+  font-size: 2rem;
+  line-height: 1;
+  margin: 0;
+}
+
+.modal-header button {
+  background: #fff;
+  border: 1px solid #0f172a;
+  color: #0f172a;
+  font-weight: 800;
+  min-height: 40px;
+  padding: 0 14px;
+}
+
+.day-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.day-progress-item {
+  align-items: center;
+  border: 1px solid #e2e8f0;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  padding: 12px;
+}
+
+.day-progress-item h3,
+.day-progress-item p {
+  margin: 0;
+}
+
+.day-progress-item p {
+  color: #64748b;
+  font-size: 0.88rem;
+}
+
+.day-progress-item strong {
+  font-size: 0.95rem;
+}
+
+.entry-count {
+  margin-top: 6px !important;
+}
+
+.day-notes {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.day-notes p {
+  background: #f8fafc;
+  border-left: 3px solid #0f172a;
+  color: #334155;
+  line-height: 1.4;
+  padding: 8px 10px;
+}
+
 @media (max-width: 960px) {
-  .app-header,
   .dashboard,
-  .hero-panel,
-  .user-nav {
+  .hero-panel {
     align-items: stretch;
     display: flex;
     flex-direction: column;
+  }
+
+  .portfolio-header {
+    padding-right: 16px;
+  }
+
+  .header-nav {
+    gap: 8px;
   }
 
   .side-column,
   .calendar-panel {
     grid-column: auto;
     grid-row: auto;
+  }
+
+  .track-entry {
+    min-width: 0;
+  }
+
+  .track-entry.time-entry {
+    grid-template-columns: minmax(72px, 96px) minmax(96px, 120px) 72px;
+  }
+}
+
+@media (max-width: 420px) {
+  .track-entry {
+    grid-template-columns: minmax(72px, 1fr) 72px;
+  }
+
+  .track-entry.time-entry {
+    grid-template-columns: minmax(72px, 1fr) 72px;
+  }
+
+  .track-entry.time-entry label:nth-child(2) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 520px) {
+  .day-progress-item {
+    grid-template-columns: 32px minmax(0, 1fr);
+  }
+
+  .day-progress-item strong {
+    grid-column: 2;
   }
 }

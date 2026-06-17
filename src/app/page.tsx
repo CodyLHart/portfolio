@@ -8,10 +8,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white text-black">
       <Header />
-      <main
-        className="min-h-[calc(100vh-80px)] px-5 py-8 md:px-8 md:py-12 bg-red-500/50 mix-blend-multiply "
-        // style={{ backgroundColor: "rgba(234, 179, 8, 0.5)" }}
-      >
+      <main className="min-h-[calc(100vh-80px)] px-5 py-8 md:px-8 md:py-12 bg-yellow-500/50 mix-blend-multiply ">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-10">
           <section
             style={{ boxShadow: "1px 1px 5px 2px #00000015" }}

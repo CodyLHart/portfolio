@@ -18,6 +18,15 @@ namespace HabitTracker.Api.Controllers
         public string? Note { get; set; }
     }
 
+    public class HabitEntryResponse
+    {
+        public Guid Id { get; set; }
+        public Guid HabitId { get; set; }
+        public DateTime Date { get; set; }
+        public decimal Amount { get; set; }
+        public string? Note { get; set; }
+    }
+
     [Authorize]
     [ApiController]
     [Route("api/habit-entries")]
@@ -42,6 +51,14 @@ namespace HabitTracker.Api.Controllers
                     entry.Date >= from.Date &&
                     entry.Date <= to.Date)
                 .OrderByDescending(entry => entry.Date)
+                .Select(entry => new HabitEntryResponse
+                {
+                    Id = entry.Id,
+                    HabitId = entry.HabitId,
+                    Date = entry.Date,
+                    Amount = entry.Amount,
+                    Note = entry.Note
+                })
                 .ToListAsync();
 
             return Ok(entries);
@@ -72,7 +89,36 @@ namespace HabitTracker.Api.Controllers
             _db.HabitEntries.Add(entry);
             await _db.SaveChangesAsync();
 
-            return Ok(entry);
+            return Ok(new HabitEntryResponse
+            {
+                Id = entry.Id,
+                HabitId = entry.HabitId,
+                Date = entry.Date,
+                Amount = entry.Amount,
+                Note = entry.Note
+            });
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            var userId = User.GetAppUserId();
+            var entry = await _db.HabitEntries
+                .Include(candidate => candidate.Habit)
+                .FirstOrDefaultAsync(candidate =>
+                    candidate.Id == id &&
+                    candidate.Habit != null &&
+                    candidate.Habit.UserId == userId);
+
+            if (entry == null)
+            {
+                return NotFound();
+            }
+
+            _db.HabitEntries.Remove(entry);
+            await _db.SaveChangesAsync();
+
+            return NoContent();
         }
     }
 }

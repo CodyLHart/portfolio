@@ -5,6 +5,8 @@ type HabitCalendarProps = {
   entries: HabitEntry[];
   habits: Habit[];
   month: Date;
+  onSelectDate: (dateKey: string) => void;
+  selectedDateKey?: string;
   selectedHabitId?: string;
 };
 
@@ -14,6 +16,8 @@ export function HabitCalendar({
   entries,
   habits,
   month,
+  onSelectDate,
+  selectedDateKey,
   selectedHabitId,
 }: HabitCalendarProps) {
   const days = getMonthDays(month);
@@ -61,9 +65,17 @@ export function HabitCalendar({
       ))}
       {days.map((date) => {
         const completion = getDayCompletion(date);
+        const dayKey = toDateKey(date);
 
         return (
-          <div className="calendar-day" key={date.toISOString()}>
+          <button
+            className={
+              selectedDateKey === dayKey ? "calendar-day selected" : "calendar-day"
+            }
+            key={date.toISOString()}
+            onClick={() => onSelectDate(dayKey)}
+            type="button"
+          >
             <span>{date.getDate()}</span>
             <div
               aria-label={`${completion}% complete`}
@@ -74,7 +86,7 @@ export function HabitCalendar({
             >
               <span>{completion}</span>
             </div>
-          </div>
+          </button>
         );
       })}
     </div>
