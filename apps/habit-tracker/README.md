@@ -95,6 +95,7 @@ The API supports these configuration values:
 
 ```bash
 Database__Provider=Postgres
+Database__RunMigrationsOnStartup=false
 ConnectionStrings__HabitTracker=<production-database-connection-string>
 Authentication__Google__ClientId=<google-oauth-client-id>
 Authentication__Google__ClientSecret=<google-oauth-client-secret>
@@ -102,10 +103,15 @@ Client__WebUrl=https://habit-tracker.example.com
 Client__AllowedOrigins__0=https://habit-tracker.example.com
 ```
 
-Use a managed PostgreSQL connection string for production. The API runs EF Core
-migrations automatically when `Database__Provider` is set to `Postgres`; local
-SQLite development still uses `EnsureCreated` so the existing local database can
-keep working.
+Use a managed PostgreSQL connection string for production. Initialize Neon by
+running this SQL script in the Neon SQL editor:
+
+```text
+apps/habit-tracker/api/sql/neon-initial-schema.sql
+```
+
+Local SQLite development still uses `EnsureCreated` so the existing local
+database can keep working.
 
 For production Google OAuth, add this redirect URI:
 

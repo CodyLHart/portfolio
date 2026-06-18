@@ -84,11 +84,11 @@ namespace HabitTracker.Api
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, HabitTrackerDbContext db)
         {
-            if (IsPostgresProvider())
+            if (ShouldRunMigrationsOnStartup())
             {
                 db.Database.Migrate();
             }
-            else
+            else if (!IsPostgresProvider())
             {
                 db.Database.EnsureCreated();
             }
@@ -179,6 +179,13 @@ namespace HabitTracker.Api
 
             return string.Equals(provider, "Postgres", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(provider, "PostgreSQL", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool ShouldRunMigrationsOnStartup()
+        {
+            return IsPostgresProvider() &&
+                bool.TryParse(_configuration["Database:RunMigrationsOnStartup"], out var runMigrations) &&
+                runMigrations;
         }
     }
 }
