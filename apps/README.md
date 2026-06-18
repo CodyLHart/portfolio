@@ -23,7 +23,8 @@ Use a stable slug because it can become part of the public URL:
 ## Connecting an app to the portfolio
 
 Add an entry in `src/data/projects.ts` with the same slug. The central portfolio
-will use that registry to render `/projects` and project detail pages.
+will use that registry to render the home project listing and project detail
+pages.
 
 For static projects, the app can eventually build into a public path that the
 portfolio serves. For full framework apps with their own server/runtime, deploy

@@ -49,7 +49,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         <div className="mx-auto flex w-full max-w-4xl flex-col gap-8">
           <Link
             className="w-fit bg-white px-4 py-2 font-mono text-sm font-semibold uppercase text-black hover:bg-neutral-50"
-            href="/projects"
+            href="/"
             style={{ boxShadow: "1px 1px 5px 2px #00000015" }}
           >
             Back to projects

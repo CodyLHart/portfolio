@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using HabitTracker.Api.Data;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace HabitTracker.Api.Controllers
 {
@@ -15,17 +17,19 @@ namespace HabitTracker.Api.Controllers
     public class AuthController : ControllerBase
     {
         private readonly HabitTrackerDbContext _db;
+        private readonly IConfiguration _configuration;
 
-        public AuthController(HabitTrackerDbContext db)
+        public AuthController(HabitTrackerDbContext db, IConfiguration configuration)
         {
             _db = db;
+            _configuration = configuration;
         }
 
         [HttpGet("login/google")]
-        public IActionResult LoginWithGoogle([FromQuery] string? returnUrl = "http://127.0.0.1:5173")
+        public IActionResult LoginWithGoogle([FromQuery] string? returnUrl = null)
         {
             return Challenge(
-                new AuthenticationProperties { RedirectUri = returnUrl ?? "http://127.0.0.1:5173" },
+                new AuthenticationProperties { RedirectUri = GetAllowedReturnUrl(returnUrl) },
                 GoogleDefaults.AuthenticationScheme);
         }
 
@@ -87,6 +91,29 @@ namespace HabitTracker.Api.Controllers
                 .ToListAsync();
 
             return Ok(users.OrderByDescending(user => user.LastLoginAt));
+        }
+
+        private string GetAllowedReturnUrl(string? returnUrl)
+        {
+            var fallbackUrl = _configuration["Client:WebUrl"] ?? "http://127.0.0.1:5173";
+            var allowedOrigins = _configuration
+                .GetSection("Client:AllowedOrigins")
+                .Get<string[]>() ?? new[] { fallbackUrl };
+
+            if (
+                string.IsNullOrWhiteSpace(returnUrl) ||
+                !Uri.TryCreate(returnUrl, UriKind.Absolute, out var requestedUri)
+            )
+            {
+                return fallbackUrl;
+            }
+
+            var requestedOrigin = requestedUri.GetLeftPart(UriPartial.Authority);
+
+            return allowedOrigins.Any(origin =>
+                string.Equals(origin, requestedOrigin, System.StringComparison.OrdinalIgnoreCase))
+                    ? returnUrl
+                    : fallbackUrl;
         }
     }
 }

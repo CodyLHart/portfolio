@@ -23,6 +23,13 @@ npm run lint
 The root site is still Vercel-friendly and can continue to deploy from the
 existing GitHub integration.
 
+For production, set the deployed habit tracker URL so the root portfolio opens
+the live app instead of the local Vite dev server:
+
+```bash
+NEXT_PUBLIC_HABIT_TRACKER_URL=https://habit-tracker.example.com
+```
+
 ## All projects
 
 ```bash
@@ -42,6 +49,14 @@ npm run dev:api
 npm run dev:web
 ```
 
-The API targets the installed .NET 5 SDK on this machine. Before public
-deployment, upgrade the API to a current LTS .NET version and move from SQLite
-to a managed database if multiple users will rely on the app.
+The API currently targets .NET 10. Local development defaults to SQLite, while
+production can use PostgreSQL by setting `Database__Provider=Postgres` and a
+hosted PostgreSQL connection string.
+
+Production config examples live in:
+
+```text
+.env.example
+apps/habit-tracker/web/.env.example
+apps/habit-tracker/api/appsettings.Production.example.json
+```

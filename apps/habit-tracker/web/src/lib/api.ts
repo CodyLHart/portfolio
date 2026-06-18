@@ -1,7 +1,9 @@
 import { CurrentUser, Habit, HabitDraft, HabitEntry } from "../types/habit";
 
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
+
 const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
-  const response = await fetch(path, {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
     credentials: "include",
     headers: {
       "Content-Type": "application/json",

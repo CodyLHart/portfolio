@@ -28,6 +28,7 @@ import "./styles.css";
 
 const today = toDateKey(new Date());
 const portfolioUrl = import.meta.env.VITE_PORTFOLIO_URL ?? "http://127.0.0.1:3000";
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
@@ -297,6 +298,11 @@ export default function App() {
     }
   };
 
+  const appUrl = import.meta.env.VITE_HABIT_TRACKER_URL ?? window.location.origin;
+  const googleLoginUrl = `${apiBaseUrl}/api/auth/login/google?returnUrl=${encodeURIComponent(
+    appUrl,
+  )}`;
+
   return (
     <div className="app-shell">
       <header className="portfolio-header">
@@ -343,7 +349,7 @@ export default function App() {
           ) : (
             <a
               className="google-button"
-              href="http://127.0.0.1:5087/api/auth/login/google?returnUrl=http%3A%2F%2F127.0.0.1%3A5173"
+              href={googleLoginUrl}
             >
               <LogIn size={18} />
               Google sign-in

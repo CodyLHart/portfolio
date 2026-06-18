@@ -20,17 +20,18 @@ namespace HabitTracker.Api
     public class Startup
     {
         private readonly IConfiguration _configuration;
+        private readonly IWebHostEnvironment _environment;
 
-        public Startup(IConfiguration configuration)
+        public Startup(IConfiguration configuration, IWebHostEnvironment environment)
         {
             _configuration = configuration;
+            _environment = environment;
         }
 
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
-            services.AddDbContext<HabitTrackerDbContext>(options =>
-                options.UseSqlite(_configuration.GetConnectionString("HabitTracker")));
+            services.AddDbContext<HabitTrackerDbContext>(ConfigureDatabase);
 
             services
                 .AddAuthentication(options =>
@@ -42,7 +43,12 @@ namespace HabitTracker.Api
                 {
                     options.Cookie.Name = "habit_tracker_auth";
                     options.Cookie.HttpOnly = true;
-                    options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
+                    options.Cookie.SameSite = _environment.IsDevelopment()
+                        ? Microsoft.AspNetCore.Http.SameSiteMode.Lax
+                        : Microsoft.AspNetCore.Http.SameSiteMode.None;
+                    options.Cookie.SecurePolicy = _environment.IsDevelopment()
+                        ? Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest
+                        : Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
                     options.LoginPath = "/api/auth/login/google";
                     options.LogoutPath = "/api/auth/logout";
                 })
@@ -58,9 +64,17 @@ namespace HabitTracker.Api
 
             services.AddCors(options =>
             {
+                var allowedOrigins = _configuration
+                    .GetSection("Client:AllowedOrigins")
+                    .Get<string[]>() ?? new[]
+                    {
+                        "http://127.0.0.1:5173",
+                        "http://localhost:5173"
+                    };
+
                 options.AddPolicy("LocalWeb", builder =>
                     builder
-                        .WithOrigins("http://127.0.0.1:5173", "http://localhost:5173")
+                        .WithOrigins(allowedOrigins)
                         .AllowAnyHeader()
                         .AllowAnyMethod()
                         .AllowCredentials());
@@ -69,7 +83,14 @@ namespace HabitTracker.Api
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, HabitTrackerDbContext db)
         {
-            db.Database.EnsureCreated();
+            if (IsPostgresProvider())
+            {
+                db.Database.Migrate();
+            }
+            else
+            {
+                db.Database.EnsureCreated();
+            }
 
             if (env.IsDevelopment())
             {
@@ -131,6 +152,27 @@ namespace HabitTracker.Api
 
             var identity = context.Principal?.Identities.FirstOrDefault();
             identity?.AddClaim(new Claim("app_user_id", user.Id.ToString()));
+        }
+
+        private void ConfigureDatabase(DbContextOptionsBuilder options)
+        {
+            var connectionString = _configuration.GetConnectionString("HabitTracker");
+
+            if (IsPostgresProvider())
+            {
+                options.UseNpgsql(connectionString);
+                return;
+            }
+
+            options.UseSqlite(connectionString);
+        }
+
+        private bool IsPostgresProvider()
+        {
+            var provider = _configuration["Database:Provider"];
+
+            return string.Equals(provider, "Postgres", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(provider, "PostgreSQL", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

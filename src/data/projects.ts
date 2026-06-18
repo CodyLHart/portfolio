@@ -11,6 +11,9 @@ export type PortfolioProject = {
   notes?: string;
 };
 
+const habitTrackerUrl =
+  process.env.NEXT_PUBLIC_HABIT_TRACKER_URL ?? "http://127.0.0.1:5173";
+
 export const projects: PortfolioProject[] = [
   {
     slug: "portfolio-shell",
@@ -57,7 +60,7 @@ export const projects: PortfolioProject[] = [
     ],
     status: "draft",
     featured: true,
-    href: "http://127.0.0.1:5173",
+    href: habitTrackerUrl,
     sourcePath: "apps/habit-tracker",
     notes:
       "The first version uses SQLite locally and is structured so the database provider can be changed later. The open link points at the local Vite app until the habit tracker frontend is deployed.",
