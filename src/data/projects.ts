@@ -11,8 +11,12 @@ export type PortfolioProject = {
   notes?: string;
 };
 
-const habitTrackerUrl =
-  process.env.NEXT_PUBLIC_HABIT_TRACKER_URL ?? "http://127.0.0.1:5173";
+const externalUrl = (url: string) =>
+  url.startsWith("/") || /^https?:\/\//i.test(url) ? url : `https://${url}`;
+
+const habitTrackerUrl = externalUrl(
+  process.env.NEXT_PUBLIC_HABIT_TRACKER_URL ?? "http://127.0.0.1:5173",
+);
 
 export const projects: PortfolioProject[] = [
   {
@@ -53,17 +57,18 @@ export const projects: PortfolioProject[] = [
       "ASP.NET Core",
       "C#",
       "SQLite",
+      "PostgreSQL",
       "Entity Framework Core",
       "React",
       "Vite",
       "TypeScript",
     ],
-    status: "draft",
+    status: "live",
     featured: true,
     href: habitTrackerUrl,
     sourcePath: "apps/habit-tracker",
     notes:
-      "The first version uses SQLite locally and is structured so the database provider can be changed later. The open link points at the local Vite app until the habit tracker frontend is deployed.",
+      "The production app runs as an independent Vite frontend, ASP.NET Core API, and Neon PostgreSQL database while keeping SQLite available for local development.",
   },
 ];
 
