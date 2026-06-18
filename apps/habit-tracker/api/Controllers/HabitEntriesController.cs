@@ -43,13 +43,15 @@ namespace HabitTracker.Api.Controllers
         public async Task<IActionResult> List([FromQuery] DateTime from, [FromQuery] DateTime to)
         {
             var userId = User.GetAppUserId();
+            var fromDate = ToUtcDate(from);
+            var toDate = ToUtcDate(to);
             var entries = await _db.HabitEntries
                 .Include(entry => entry.Habit)
                 .Where(entry =>
                     entry.Habit != null &&
                     entry.Habit.UserId == userId &&
-                    entry.Date >= from.Date &&
-                    entry.Date <= to.Date)
+                    entry.Date >= fromDate &&
+                    entry.Date <= toDate)
                 .OrderByDescending(entry => entry.Date)
                 .Select(entry => new HabitEntryResponse
                 {
@@ -80,7 +82,7 @@ namespace HabitTracker.Api.Controllers
             {
                 Id = Guid.NewGuid(),
                 HabitId = request.HabitId,
-                Date = request.Date == default ? DateTime.UtcNow.Date : request.Date.Date,
+                Date = request.Date == default ? DateTime.UtcNow.Date : ToUtcDate(request.Date),
                 Amount = request.Amount <= 0 ? 1 : request.Amount,
                 Note = request.Note,
                 CreatedAt = DateTimeOffset.UtcNow
@@ -119,6 +121,11 @@ namespace HabitTracker.Api.Controllers
             await _db.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        private static DateTime ToUtcDate(DateTime date)
+        {
+            return DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
         }
     }
 }
