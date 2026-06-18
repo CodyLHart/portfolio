@@ -17,10 +17,9 @@ namespace HabitTracker.Api
                 {
                     webBuilder.UseStartup<Startup>();
                     var port = Environment.GetEnvironmentVariable("PORT");
-                    var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ??
-                        (string.IsNullOrWhiteSpace(port)
-                            ? "http://127.0.0.1:5087"
-                            : $"http://0.0.0.0:{port}");
+                    var urls = string.IsNullOrWhiteSpace(port)
+                        ? Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? "http://127.0.0.1:5087"
+                        : $"http://0.0.0.0:{port}";
 
                     webBuilder.UseUrls(urls);
                 });
