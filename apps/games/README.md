@@ -1,8 +1,8 @@
 # Games
 
-A standalone portfolio app for playable browser games. The first game is
-Klondike Solitaire with draw 1/draw 3, standard scoring, Vegas scoring, undo,
-tap-to-move, and drag/drop controls.
+A standalone portfolio app for playable browser games. Current games include
+Klondike Solitaire and Minesweeper with difficulty presets, custom boards,
+mobile-friendly controls, and local stats.
 
 ## Local development
 

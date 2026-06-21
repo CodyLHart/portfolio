@@ -77,7 +77,7 @@ export const projects: PortfolioProject[] = [
     slug: "games",
     name: "Games",
     summary:
-      "A growing arcade of browser games, starting with mobile-friendly Klondike Solitaire.",
+      "A growing arcade of browser games with mobile-friendly Klondike Solitaire and Minesweeper.",
     kind: "Interactive games",
     stack: [
       "React",
@@ -93,7 +93,7 @@ export const projects: PortfolioProject[] = [
     href: gamesUrl,
     sourcePath: "apps/games",
     notes:
-      "The first game is Klondike Solitaire with draw 1/draw 3, standard and Vegas scoring, undo, tap-to-move, drag/drop controls, and local stats persistence.",
+      "Includes Klondike Solitaire with draw 1/draw 3 and Vegas scoring plus Minesweeper with beginner, intermediate, advanced, and custom boards.",
   },
 ];
 

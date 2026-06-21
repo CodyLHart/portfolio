@@ -170,6 +170,11 @@ button:disabled {
   padding: 12px 18px;
 }
 
+.game-card h2,
+.toolbar-title h1 {
+  overflow-wrap: anywhere;
+}
+
 .game-layout {
   display: grid;
   gap: 16px;
@@ -223,6 +228,30 @@ button:disabled {
   z-index: 40;
 }
 
+.stats-popover dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.stats-popover div {
+  align-items: center;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 10px;
+}
+
+.stats-popover dt {
+  color: #64748b;
+  font-weight: 800;
+}
+
+.stats-popover dd {
+  font-weight: 900;
+  margin: 0;
+}
+
 .score-panel {
   align-items: center;
   display: grid;
@@ -261,6 +290,12 @@ button:disabled {
   background: #0f172a;
   border-color: #0f172a;
   color: #fff;
+}
+
+.active-action {
+  background: #0f172a !important;
+  border-color: #0f172a !important;
+  color: #fff !important;
 }
 
 .table-panel {
@@ -477,36 +512,6 @@ button:disabled {
   display: none;
 }
 
-.stats-panel {
-  align-self: start;
-  grid-column: 2;
-  grid-row: 2 / span 4;
-}
-
-.stats-panel dl {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-}
-
-.stats-panel div {
-  align-items: center;
-  border-bottom: 1px solid #e2e8f0;
-  display: flex;
-  justify-content: space-between;
-  padding-bottom: 10px;
-}
-
-.stats-panel dt {
-  color: #64748b;
-  font-weight: 800;
-}
-
-.stats-panel dd {
-  font-weight: 900;
-  margin: 0;
-}
-
 .status-message {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
@@ -537,9 +542,171 @@ button:disabled {
   padding: 9px 10px;
 }
 
+.minesweeper-layout {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0 auto;
+  max-width: 1420px;
+}
+
+.minesweeper-toolbar,
+.mine-score-panel {
+  grid-column: 1 / -1;
+}
+
+.mine-score-panel {
+  grid-template-columns: repeat(3, minmax(70px, 1fr)) auto;
+}
+
+.mine-difficulty-control {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mine-difficulty-control button {
+  min-height: 34px;
+  min-width: 104px;
+  padding: 0 10px;
+}
+
+.mine-custom-controls {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, 82px) auto;
+}
+
+.mine-custom-controls label {
+  display: grid;
+  gap: 5px;
+}
+
+.mine-custom-controls span {
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mine-custom-controls input {
+  border: 1px solid #cbd5e1;
+  font: inherit;
+  font-weight: 800;
+  min-height: 40px;
+  min-width: 0;
+  padding: 0 10px;
+  width: 100%;
+}
+
+.mine-custom-controls input:disabled {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.mine-custom-controls button {
+  align-self: end;
+  align-items: center;
+  background: #0f172a;
+  border: 1px solid #0f172a;
+  color: #fff;
+  display: inline-flex;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 40px;
+  min-width: 88px;
+  padding: 0 14px;
+  width: fit-content;
+}
+
+.mine-board-panel {
+  background: #2f6d55;
+  box-shadow: inset 0 0 0 1px #ffffff30, 1px 1px 5px 2px #00000015;
+  grid-column: 1;
+  justify-self: start;
+  padding: clamp(10px, 2vw, 18px);
+  width: fit-content;
+}
+
+.mine-board {
+  display: grid;
+  gap: 3px;
+  width: max-content;
+}
+
+.mine-cell {
+  align-items: center;
+  background: #edf2f7;
+  border: 2px solid;
+  border-color: #ffffff #94a3b8 #64748b #ffffff;
+  box-shadow: 1px 2px 3px #00000025;
+  color: #0f172a;
+  display: inline-flex;
+  font-size: calc(var(--mine-cell-size) * 0.52);
+  font-weight: 950;
+  height: var(--mine-cell-size);
+  justify-content: center;
+  line-height: 1;
+  min-height: 0;
+  padding: 0;
+  touch-action: manipulation;
+  width: var(--mine-cell-size);
+}
+
+.mine-cell:hover {
+  background: #fff;
+}
+
+.mine-cell.revealed {
+  background: #dce6df;
+  border-color: #8fa197 #d9e4dc #d9e4dc #8fa197;
+  box-shadow: inset 1px 1px 3px #00000025;
+}
+
+.mine-cell.flagged {
+  color: #dc2626;
+}
+
+.mine-cell.mine-hit {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.mine-count-1 {
+  color: #2563eb;
+}
+
+.mine-count-2 {
+  color: #15803d;
+}
+
+.mine-count-3 {
+  color: #dc2626;
+}
+
+.mine-count-4 {
+  color: #4338ca;
+}
+
+.mine-count-5 {
+  color: #b45309;
+}
+
+.mine-count-6 {
+  color: #0f766e;
+}
+
+.mine-count-7,
+.mine-count-8 {
+  color: #111827;
+}
+
 :root {
   --card-width: clamp(44px, 10.5vw, 96px);
   --card-height: calc(var(--card-width) * 1.42);
+  --mine-cell-size: clamp(26px, 4.6vw, 34px);
   --stack-offset: clamp(18px, 3vw, 28px);
   --waste-offset: clamp(16px, 3vw, 28px);
   --waste-width: calc(var(--card-width) + (var(--waste-offset) * 2));
@@ -550,18 +717,13 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
-  .stats-panel,
+  .minesweeper-layout {
+    grid-template-columns: 1fr;
+  }
+
   .table-panel {
     grid-column: auto;
     grid-row: auto;
-  }
-
-  .stats-panel dl {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  .stats-panel div {
-    display: block;
   }
 }
 
@@ -589,9 +751,16 @@ button:disabled {
     right: auto;
   }
 
-  .score-panel,
-  .stats-panel dl {
+  .score-panel {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .mine-score-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mine-custom-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .score-actions {
@@ -605,6 +774,7 @@ button:disabled {
 
   :root {
     --card-width: clamp(42px, 12.2vw, 70px);
+    --mine-cell-size: clamp(24px, 8vw, 32px);
     --stack-offset: clamp(16px, 4.2vw, 22px);
     --waste-offset: clamp(12px, 4vw, 20px);
   }

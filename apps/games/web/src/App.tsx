@@ -1,6 +1,7 @@
 import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { ArrowLeft, Lightbulb, RotateCcw, Settings, Undo2 } from "lucide-react";
+import { ArrowLeft, BarChart3, Lightbulb, RotateCcw, Settings, Undo2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { MinesweeperGame } from "./components/MinesweeperGame";
 import { Pile } from "./components/Pile";
 import { formatScore, formatSeconds } from "./lib/format";
 import { pileId } from "./lib/solitaire";
@@ -8,14 +9,17 @@ import { useSolitaireStore } from "./lib/store";
 import "./styles.css";
 
 const portfolioUrl = import.meta.env.VITE_PORTFOLIO_URL ?? "http://127.0.0.1:3000";
+type ActiveGame = "menu" | "minesweeper" | "solitaire";
 
 export default function App() {
+  const [activeGame, setActiveGame] = useState<ActiveGame>("menu");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isStatsOpen, setIsStatsOpen] = useState(false);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
+  const statsMenuRef = useRef<HTMLDivElement>(null);
   const {
-    activeGame,
     autoMove,
-    backToMenu,
+    backToMenu: backToSolitaireMenu,
     dragMove,
     drawStock,
     game,
@@ -27,7 +31,7 @@ export default function App() {
     message,
     moveSelectedTo,
     newGame,
-    openGame,
+    openGame: openSolitaire,
     selectCard,
     selectedCardId,
     setDrawMode,
@@ -51,22 +55,34 @@ export default function App() {
   }, [tick]);
 
   useEffect(() => {
-    if (!isSettingsOpen) {
+    if (!isSettingsOpen && !isStatsOpen) {
       return undefined;
     }
 
     const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+
       if (
+        isSettingsOpen &&
         settingsMenuRef.current &&
-        !settingsMenuRef.current.contains(event.target as Node)
+        !settingsMenuRef.current.contains(target)
       ) {
         setIsSettingsOpen(false);
+      }
+
+      if (
+        isStatsOpen &&
+        statsMenuRef.current &&
+        !statsMenuRef.current.contains(target)
+      ) {
+        setIsStatsOpen(false);
       }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setIsSettingsOpen(false);
+        setIsStatsOpen(false);
       }
     };
 
@@ -77,7 +93,7 @@ export default function App() {
       window.removeEventListener("pointerdown", handlePointerDown);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isSettingsOpen]);
+  }, [isSettingsOpen, isStatsOpen]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const cardId = event.active.data.current?.cardId as string | undefined;
@@ -88,6 +104,16 @@ export default function App() {
     }
 
     dragMove(cardId, pile);
+  };
+
+  const backToMenu = () => {
+    backToSolitaireMenu();
+    setActiveGame("menu");
+  };
+
+  const openSolitaireGame = () => {
+    openSolitaire();
+    setActiveGame("solitaire");
   };
 
   return (
@@ -111,7 +137,7 @@ export default function App() {
               <p className="eyebrow">Games</p>
               <h1>Playable browser games built as independent apps.</h1>
             </section>
-            <button className="game-card" onClick={openGame} type="button">
+            <button className="game-card" onClick={openSolitaireGame} type="button">
               <div>
                 <p className="eyebrow">Klondike</p>
                 <h2>Solitaire</h2>
@@ -122,7 +148,21 @@ export default function App() {
               </div>
               <span>Play</span>
             </button>
+            <button className="game-card" onClick={() => setActiveGame("minesweeper")} type="button">
+              <div>
+                <p className="eyebrow">Classic</p>
+                <h2>Minesweeper</h2>
+                <p>
+                  Beginner, intermediate, advanced, and custom boards with
+                  first-click safety, flags, long-press mobile controls, and
+                  persisted stats.
+                </p>
+              </div>
+              <span>Play</span>
+            </button>
           </div>
+        ) : activeGame === "minesweeper" ? (
+          <MinesweeperGame onBack={backToMenu} />
         ) : (
           <DndContext onDragEnd={handleDragEnd} sensors={sensors}>
             <div className="game-layout">
@@ -208,6 +248,56 @@ export default function App() {
                       </div>
                     ) : null}
                   </div>
+                  <div className="settings-menu" ref={statsMenuRef}>
+                    <button
+                      aria-expanded={isStatsOpen}
+                      aria-label="Game stats"
+                      className="icon-button"
+                      onClick={() => setIsStatsOpen((isOpen) => !isOpen)}
+                      type="button"
+                    >
+                      <BarChart3 size={18} />
+                    </button>
+                    {isStatsOpen ? (
+                      <div className="settings-popover stats-popover">
+                        <p className="eyebrow">Stats</p>
+                        <dl>
+                          <div>
+                            <dt>Played</dt>
+                            <dd>{stats.gamesPlayed}</dd>
+                          </div>
+                          <div>
+                            <dt>Won</dt>
+                            <dd>{stats.gamesWon}</dd>
+                          </div>
+                          <div>
+                            <dt>Win rate</dt>
+                            <dd>
+                              {stats.gamesPlayed === 0
+                                ? "0%"
+                                : `${Math.round((stats.gamesWon / stats.gamesPlayed) * 100)}%`}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>Best time</dt>
+                            <dd>{stats.bestSeconds === null ? "—" : formatSeconds(stats.bestSeconds)}</dd>
+                          </div>
+                          <div>
+                            <dt>Fewest moves</dt>
+                            <dd>{stats.fewestMoves ?? "—"}</dd>
+                          </div>
+                        </dl>
+                        {message ? <p className="status-message">{message}</p> : null}
+                        {hints.length > 0 ? (
+                          <ol className="hint-list" aria-label="Available moves">
+                            {hints.map((hint, index) => (
+                              <li key={`${hint}-${index}`}>{hint}</li>
+                            ))}
+                          </ol>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
                   <button onClick={() => newGame()} type="button">
                     <RotateCcw size={18} />
                     New
@@ -282,44 +372,6 @@ export default function App() {
                   ))}
                 </div>
               </section>
-
-              <aside className="panel stats-panel">
-                <p className="eyebrow">Stats</p>
-                <dl>
-                  <div>
-                    <dt>Played</dt>
-                    <dd>{stats.gamesPlayed}</dd>
-                  </div>
-                  <div>
-                    <dt>Won</dt>
-                    <dd>{stats.gamesWon}</dd>
-                  </div>
-                  <div>
-                    <dt>Win rate</dt>
-                    <dd>
-                      {stats.gamesPlayed === 0
-                        ? "0%"
-                        : `${Math.round((stats.gamesWon / stats.gamesPlayed) * 100)}%`}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Best time</dt>
-                    <dd>{stats.bestSeconds === null ? "—" : formatSeconds(stats.bestSeconds)}</dd>
-                  </div>
-                  <div>
-                    <dt>Fewest moves</dt>
-                    <dd>{stats.fewestMoves ?? "—"}</dd>
-                  </div>
-                </dl>
-                {message ? <p className="status-message">{message}</p> : null}
-                {hints.length > 0 ? (
-                  <ol className="hint-list" aria-label="Available moves">
-                    {hints.map((hint, index) => (
-                      <li key={`${hint}-${index}`}>{hint}</li>
-                    ))}
-                  </ol>
-                ) : null}
-              </aside>
             </div>
           </DndContext>
         )}
