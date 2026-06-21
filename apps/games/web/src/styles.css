@@ -1,0 +1,611 @@
+@import "tailwindcss";
+
+:root {
+  color: #0f172a;
+  background: #fff;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button {
+  cursor: pointer;
+  font: inherit;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.portfolio-header {
+  align-items: center;
+  background: #fff;
+  box-shadow: 0 8px 18px -10px #00000080;
+  display: flex;
+  height: 80px;
+  justify-content: space-between;
+  padding: 0 32px 0 16px;
+  position: sticky;
+  top: 0;
+  width: 100%;
+  z-index: 50;
+}
+
+.header-logo {
+  background: #000;
+  color: #fff;
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1;
+  padding: 12px 4px;
+  text-align: center;
+  text-decoration: none;
+  transition: opacity 160ms ease, box-shadow 160ms ease;
+  width: fit-content;
+}
+
+.header-logo:hover {
+  box-shadow: 0 7px 16px -9px #000;
+  opacity: 0.85;
+}
+
+.header-logo span {
+  display: block;
+}
+
+.header-nav {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.portfolio-link,
+.game-toolbar button,
+.text-button,
+.toolbar-actions button,
+.settings-popover button,
+.segmented-control button {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  display: inline-flex;
+  font-weight: 800;
+  gap: 8px;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 14px;
+  text-decoration: none;
+}
+
+.app-main {
+  min-height: calc(100vh - 80px);
+  padding: 24px;
+}
+
+.panel {
+  background: #fff;
+  box-shadow: 1px 1px 5px 2px #00000015;
+  padding: 20px;
+}
+
+.eyebrow {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+.menu-layout {
+  display: grid;
+  gap: 20px;
+  margin: 0 auto;
+  max-width: 1180px;
+}
+
+.menu-hero h1 {
+  font-size: clamp(2.5rem, 8vw, 6.8rem);
+  letter-spacing: 0;
+  line-height: 0.9;
+  margin: 0;
+  max-width: 980px;
+}
+
+.game-card {
+  background: #fff;
+  border: 0;
+  box-shadow: 1px 1px 5px 2px #00000015;
+  color: #0f172a;
+  display: flex;
+  justify-content: space-between;
+  min-height: 240px;
+  padding: 24px;
+  text-align: left;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.game-card:hover {
+  box-shadow: 2px 3px 10px 3px #00000020;
+  transform: translateY(-2px);
+}
+
+.game-card h2 {
+  font-size: clamp(2.5rem, 7vw, 5rem);
+  line-height: 0.9;
+  margin: 0;
+}
+
+.game-card p:not(.eyebrow) {
+  color: #475569;
+  line-height: 1.6;
+  max-width: 620px;
+}
+
+.game-card > span {
+  align-self: end;
+  background: #0f172a;
+  color: #fff;
+  font-weight: 900;
+  padding: 12px 18px;
+}
+
+.game-layout {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  margin: 0 auto;
+  max-width: 1420px;
+}
+
+.game-toolbar {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-column: 1 / -1;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.toolbar-title h1 {
+  font-size: clamp(2rem, 4vw, 4rem);
+  line-height: 0.9;
+  margin: 0;
+}
+
+.toolbar-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.icon-button {
+  aspect-ratio: 1;
+  min-width: 40px;
+  padding: 0 !important;
+}
+
+.settings-menu {
+  position: relative;
+}
+
+.settings-popover {
+  background: #fff;
+  box-shadow: 1px 1px 8px 2px #00000020;
+  display: grid;
+  gap: 16px;
+  min-width: min(320px, calc(100vw - 32px));
+  padding: 16px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  z-index: 40;
+}
+
+.score-panel {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(70px, 1fr)) auto;
+  padding: 10px 14px;
+}
+
+.score-panel strong {
+  display: block;
+  font-size: clamp(1rem, 2vw, 1.35rem);
+  line-height: 1;
+}
+
+.score-panel .eyebrow {
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+}
+
+.score-actions {
+  justify-content: flex-end;
+}
+
+.segmented-control {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.scoring-control {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.segmented-control button.active {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #fff;
+}
+
+.table-panel {
+  background: #2f6d55;
+  box-shadow: inset 0 0 0 1px #ffffff30, 1px 1px 5px 2px #00000015;
+  grid-column: 1;
+  min-height: 640px;
+  overflow-x: auto;
+  padding: clamp(10px, 2vw, 18px);
+}
+
+.board-top {
+  align-items: start;
+  display: grid;
+  gap: clamp(6px, 1.2vw, 14px);
+  grid-template-columns: var(--card-width) var(--waste-width) minmax(0, 1fr);
+  min-width: calc((var(--card-width) * 7) + 72px);
+}
+
+.foundation-row {
+  display: grid;
+  gap: clamp(6px, 1.2vw, 14px);
+  grid-template-columns: repeat(4, var(--card-width));
+  justify-content: end;
+}
+
+.tableau-row {
+  display: grid;
+  gap: clamp(6px, 1.2vw, 14px);
+  grid-template-columns: repeat(7, var(--card-width));
+  margin-top: 20px;
+  min-width: calc((var(--card-width) * 7) + 72px);
+}
+
+.pile {
+  background: #ffffff18;
+  border: 1px solid #ffffff45;
+  color: #ffffffb5;
+  display: block;
+  height: var(--card-height);
+  min-width: 0;
+  padding: 0;
+  position: relative;
+  width: var(--card-width);
+}
+
+.board-top > .pile:nth-child(2) {
+  width: var(--waste-width);
+}
+
+.stock-pile {
+  align-items: center;
+  display: grid;
+  place-items: center;
+}
+
+.tableau-pile {
+  background: transparent;
+  border-color: transparent;
+  min-height: calc(var(--card-height) + (var(--stack-offset) * 12));
+}
+
+.empty-tableau-pile {
+  min-height: var(--card-height);
+}
+
+.empty-tableau-placeholder {
+  border: 1px dashed #ffffff90;
+  display: block;
+  height: var(--card-height);
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: var(--card-width);
+}
+
+.drop-over {
+  box-shadow: 0 0 0 3px #fef08a;
+}
+
+.hint-target {
+  box-shadow: 0 0 0 3px #67e8f9, 0 0 22px #67e8f980;
+}
+
+.pile-placeholder {
+  align-items: center;
+  color: #ffffffbf;
+  display: grid;
+  font-size: 0.78rem;
+  font-weight: 900;
+  inset: 0;
+  letter-spacing: 0.1em;
+  place-items: center;
+  position: absolute;
+  text-transform: uppercase;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #d8dee7;
+  box-shadow: 1px 2px 4px #00000025;
+  color: #0f172a;
+  display: block;
+  font-weight: 900;
+  height: var(--card-height);
+  left: 0;
+  line-height: 1;
+  padding: 7px;
+  position: absolute;
+  text-align: left;
+  touch-action: none;
+  width: var(--card-width);
+  z-index: 1;
+}
+
+.card.top-card,
+.stock-card {
+  position: relative;
+}
+
+.tableau-pile .card.top-card {
+  position: absolute;
+}
+
+.card-rank,
+.card-suit {
+  font-size: clamp(0.72rem, 2.3vw, 1rem);
+  position: absolute;
+}
+
+.top-left {
+  left: 7px;
+  top: 7px;
+}
+
+.top-right {
+  right: 7px;
+  top: 7px;
+}
+
+.bottom-right {
+  bottom: 7px;
+  right: 7px;
+  transform: rotate(180deg);
+}
+
+.bottom-left {
+  bottom: 7px;
+  left: 7px;
+  transform: rotate(180deg);
+}
+
+.card strong {
+  left: 50%;
+  font-size: clamp(1.4rem, 4vw, 2.25rem);
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.face-down {
+  align-items: center;
+  background:
+    linear-gradient(135deg, #0f172a 25%, transparent 25%) -8px 0 / 16px 16px,
+    linear-gradient(225deg, #0f172a 25%, transparent 25%) -8px 0 / 16px 16px,
+    linear-gradient(315deg, #0f172a 25%, transparent 25%) 0 0 / 16px 16px,
+    linear-gradient(45deg, #0f172a 25%, #1d4ed8 25%) 0 0 / 16px 16px;
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+
+.card-back-mark {
+  background: #fff;
+  color: #0f172a;
+  padding: 6px 3px;
+}
+
+.card-red {
+  color: #dc2626;
+}
+
+.card-black {
+  color: #0f172a;
+}
+
+.card.selected {
+  box-shadow: 0 0 0 3px #fef08a, 1px 2px 4px #00000025;
+}
+
+.card.hinted {
+  box-shadow: 0 0 0 3px #67e8f9, 1px 2px 4px #00000025;
+}
+
+.selected-stack,
+.hinted-stack {
+  display: block;
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  width: var(--card-width);
+  z-index: 20;
+}
+
+.selected-stack {
+  box-shadow: 0 0 0 3px #fef08a, 0 0 20px #fef08a80;
+}
+
+.hinted-stack {
+  box-shadow: 0 0 0 3px #67e8f9, 0 0 20px #67e8f980;
+}
+
+.foundation-mini {
+  display: none;
+}
+
+.stats-panel {
+  align-self: start;
+  grid-column: 2;
+  grid-row: 2 / span 4;
+}
+
+.stats-panel dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.stats-panel div {
+  align-items: center;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 10px;
+}
+
+.stats-panel dt {
+  color: #64748b;
+  font-weight: 800;
+}
+
+.stats-panel dd {
+  font-weight: 900;
+  margin: 0;
+}
+
+.status-message {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-weight: 800;
+  line-height: 1.45;
+  margin: 16px 0 0;
+  padding: 12px;
+}
+
+.hint-list {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+  max-height: 220px;
+  overflow: auto;
+  padding: 0;
+}
+
+.hint-list li {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 0.88rem;
+  font-weight: 750;
+  line-height: 1.35;
+  list-style-position: inside;
+  padding: 9px 10px;
+}
+
+:root {
+  --card-width: clamp(44px, 10.5vw, 96px);
+  --card-height: calc(var(--card-width) * 1.42);
+  --stack-offset: clamp(18px, 3vw, 28px);
+  --waste-offset: clamp(16px, 3vw, 28px);
+  --waste-width: calc(var(--card-width) + (var(--waste-offset) * 2));
+}
+
+@media (max-width: 980px) {
+  .game-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-panel,
+  .table-panel {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .stats-panel dl {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .stats-panel div {
+    display: block;
+  }
+}
+
+@media (max-width: 720px) {
+  .app-main {
+    padding: 14px;
+  }
+
+  .portfolio-header {
+    padding-right: 16px;
+  }
+
+  .game-card,
+  .game-toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar-actions {
+    justify-content: start;
+  }
+
+  .settings-popover {
+    left: 0;
+    right: auto;
+  }
+
+  .score-panel,
+  .stats-panel dl {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .score-actions {
+    grid-column: 1 / -1;
+    justify-content: start;
+  }
+
+  .scoring-control {
+    grid-template-columns: 1fr;
+  }
+
+  :root {
+    --card-width: clamp(42px, 12.2vw, 70px);
+    --stack-offset: clamp(16px, 4.2vw, 22px);
+    --waste-offset: clamp(12px, 4vw, 20px);
+  }
+}

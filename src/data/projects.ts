@@ -17,6 +17,9 @@ const externalUrl = (url: string) =>
 const habitTrackerUrl = externalUrl(
   process.env.NEXT_PUBLIC_HABIT_TRACKER_URL ?? "http://127.0.0.1:5173",
 );
+const gamesUrl = externalUrl(
+  process.env.NEXT_PUBLIC_GAMES_URL ?? "http://127.0.0.1:5174",
+);
 
 export const projects: PortfolioProject[] = [
   {
@@ -69,6 +72,28 @@ export const projects: PortfolioProject[] = [
     sourcePath: "apps/habit-tracker",
     notes:
       "The production app runs as an independent Vite frontend, ASP.NET Core API, and Neon PostgreSQL database while keeping SQLite available for local development.",
+  },
+  {
+    slug: "games",
+    name: "Games",
+    summary:
+      "A growing arcade of browser games, starting with mobile-friendly Klondike Solitaire.",
+    kind: "Interactive games",
+    stack: [
+      "React",
+      "Vite",
+      "TypeScript",
+      "Tailwind CSS",
+      "dnd-kit",
+      "Zustand",
+      "Motion",
+    ],
+    status: "draft",
+    featured: true,
+    href: gamesUrl,
+    sourcePath: "apps/games",
+    notes:
+      "The first game is Klondike Solitaire with draw 1/draw 3, standard and Vegas scoring, undo, tap-to-move, drag/drop controls, and local stats persistence.",
   },
 ];
 

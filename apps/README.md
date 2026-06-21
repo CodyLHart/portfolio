@@ -14,6 +14,13 @@ apps/
     src/
 ```
 
+Current independent apps include:
+
+```text
+apps/games/          browser games, starting with Klondike Solitaire
+apps/habit-tracker/  habit tracking app with independent web/API deployments
+```
+
 Use a stable slug because it can become part of the public URL:
 
 ```text
