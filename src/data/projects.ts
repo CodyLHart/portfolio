@@ -88,7 +88,7 @@ export const projects: PortfolioProject[] = [
       "Zustand",
       "Motion",
     ],
-    status: "draft",
+    status: "live",
     featured: true,
     href: gamesUrl,
     sourcePath: "apps/games",
