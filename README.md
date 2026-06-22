@@ -10,6 +10,8 @@ choose their own stack.
 apps/
   design-portfolio/  design gallery metadata, currently served at /design-portfolio
   habit-tracker/     C# API + SQLite + React/Vite frontend
+  games/             React/Vite browser games app
+  list-app/          Next.js + Supabase collaborative list app
 ```
 
 ## Root site
@@ -23,11 +25,13 @@ npm run lint
 The root site is still Vercel-friendly and can continue to deploy from the
 existing GitHub integration.
 
-For production, set the deployed habit tracker URL so the root portfolio opens
-the live app instead of the local Vite dev server:
+For production, set deployed app URLs so the root portfolio opens live apps
+instead of local dev servers:
 
 ```bash
 NEXT_PUBLIC_HABIT_TRACKER_URL=https://habit-tracker.example.com
+NEXT_PUBLIC_GAMES_URL=https://games.example.com
+NEXT_PUBLIC_LIST_APP_URL=https://list-app.example.com
 ```
 
 ## All projects
@@ -59,4 +63,20 @@ Production config examples live in:
 .env.example
 apps/habit-tracker/web/.env.example
 apps/habit-tracker/api/appsettings.Production.example.json
+```
+
+## List App
+
+```bash
+cd apps/list-app
+npm run dev
+```
+
+Create a Supabase project, run `apps/list-app/supabase/schema.sql`, enable
+Google auth, and set these variables in the List App deployment:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+NEXT_PUBLIC_PORTFOLIO_URL=https://www.codyhart.dev
 ```

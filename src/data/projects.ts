@@ -20,6 +20,9 @@ const habitTrackerUrl = externalUrl(
 const gamesUrl = externalUrl(
   process.env.NEXT_PUBLIC_GAMES_URL ?? "http://127.0.0.1:5174",
 );
+const listAppUrl = externalUrl(
+  process.env.NEXT_PUBLIC_LIST_APP_URL ?? "http://127.0.0.1:3001",
+);
 
 export const projects: PortfolioProject[] = [
   {
@@ -94,6 +97,27 @@ export const projects: PortfolioProject[] = [
     sourcePath: "apps/games",
     notes:
       "Includes Klondike Solitaire with draw 1/draw 3 and Vegas scoring plus Minesweeper with beginner, intermediate, advanced, and custom boards.",
+  },
+  {
+    slug: "list-app",
+    name: "List App",
+    summary:
+      "A collaborative full-stack list app with Google sign-in, friends, roles, realtime updates, item metadata, suggestions, and restorable list history.",
+    kind: "Full-stack collaboration app",
+    stack: [
+      "Next.js",
+      "React",
+      "TypeScript",
+      "Supabase Auth",
+      "Supabase Realtime",
+      "PostgreSQL",
+    ],
+    status: "draft",
+    featured: true,
+    href: listAppUrl,
+    sourcePath: "apps/list-app",
+    notes:
+      "Built as an independent Next.js app backed by Supabase Postgres, Auth, Realtime, and row-level security.",
   },
 ];
 
