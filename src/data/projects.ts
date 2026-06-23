@@ -112,7 +112,7 @@ export const projects: PortfolioProject[] = [
       "Supabase Realtime",
       "PostgreSQL",
     ],
-    status: "draft",
+    status: "live",
     featured: true,
     href: listAppUrl,
     sourcePath: "apps/list-app",
