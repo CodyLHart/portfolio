@@ -19,15 +19,17 @@ export default function Home() {
             style={{ boxShadow: "1px 1px 5px 2px #00000015" }}
           >
             <p className="font-mono text-sm font-semibold uppercase tracking-[0.2em] text-yellow-700">
-              Independent apps
+              Development Potfolio
             </p>
             <h1 className="mt-3 font-serif text-5xl leading-none md:text-7xl">
-              Projects built to grow beyond one stack.
+              Hi, I’m Cody. I build apps.
             </h1>
             <p className="mt-5 text-lg leading-8 text-neutral-800">
-              This portfolio can now point to standalone apps that live in their
-              own folders, own their dependencies, and can use whatever
-              framework or language makes sense for the project.
+              This portfolio is a collection of some projects that I have done.
+              These include some apps I have built for my own use. I decided to
+              make my own version of the apps I use most often to get rid of
+              pesky ads and in-app purchases, give myself the power to add any
+              features I want, and put my data back into my own hands.
             </p>
           </section>
 
