@@ -64,6 +64,20 @@ const categoryPalette = [
 const getDropPlacement = (clientY: number, rect: DOMRect): DropPlacement =>
   clientY > rect.top + rect.height / 2 ? "after" : "before";
 
+const getOAuthRedirectUrl = () => {
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+
+  const url = new URL(window.location.href);
+
+  if (url.hostname === "127.0.0.1" && url.port === "3001") {
+    url.hostname = "localhost";
+  }
+
+  return url.toString();
+};
+
 const getCategoryStyle = (
   listId: string | null | undefined,
   category: string,
@@ -151,11 +165,29 @@ export function ListApp() {
     itemId: string;
     placement: DropPlacement;
   } | null>(null);
+  const [draggedListId, setDraggedListId] = useState<string | null>(null);
+  const [listDropIndicator, setListDropIndicator] = useState<{
+    listId: string;
+    placement: DropPlacement;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const dropHandledRef = useRef(false);
 
   const user = session?.user ?? null;
   const activeList = lists.find((list) => list.id === activeListId) ?? null;
+  const acceptedFriendProfiles = useMemo(
+    () =>
+      friends
+        .filter((friend) => friend.status === "accepted")
+        .map((friend) =>
+          friend.requester_id === user?.id ? friend.addressee : friend.requester,
+        )
+        .filter((friend): friend is Profile => Boolean(friend))
+        .sort((first, second) =>
+          first.display_name.localeCompare(second.display_name),
+        ),
+    [friends, user?.id],
+  );
   const currentRole = getCurrentRole(
     activeList,
     collaborators,
@@ -302,7 +334,10 @@ export function ListApp() {
       throw collabResult.error;
     }
 
-    if (orderResult.error) {
+    if (
+      orderResult.error &&
+      !isMissingListOrderPreferencesError(orderResult.error)
+    ) {
       throw orderResult.error;
     }
 
@@ -315,7 +350,9 @@ export function ListApp() {
         [...ownedLists, ...collaboratorLists].map((list) => [list.id, list]),
       ).values(),
     );
-    const orderPreferences = (orderResult.data ?? []) as ListOrderPreference[];
+    const orderPreferences = orderResult.error
+      ? []
+      : ((orderResult.data ?? []) as ListOrderPreference[]);
     const sortedLists = sortListsByPreference(uniqueLists, orderPreferences);
 
     setLists(sortedLists);
@@ -623,13 +660,25 @@ export function ListApp() {
       return;
     }
 
-    await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabase.auth.signInWithOAuth({
       options: {
-        redirectTo:
-          typeof window === "undefined" ? undefined : window.location.href,
+        redirectTo: getOAuthRedirectUrl(),
+        skipBrowserRedirect: true,
       },
       provider: "google",
     });
+
+    if (error) {
+      setStatusMessage(error.message);
+      return;
+    }
+
+    if (data.url) {
+      window.location.assign(data.url);
+      return;
+    }
+
+    setStatusMessage("Unable to start Google sign-in.");
   };
 
   const signOut = async () => {
@@ -709,9 +758,10 @@ export function ListApp() {
     }
 
     const timestamp = new Date().toISOString();
-    const { error: orderError } = await supabase
-      .from("list_order_preferences")
-      .upsert(
+    let orderError: unknown = null;
+
+    try {
+      const { error } = await supabase.from("list_order_preferences").upsert(
         [data as List, ...lists].map((list, index) => ({
           list_id: list.id,
           position: index + 1,
@@ -721,8 +771,13 @@ export function ListApp() {
         { onConflict: "user_id,list_id" },
       );
 
-    if (orderError) {
-      setStatusMessage(orderError.message);
+      orderError = error;
+    } catch (error) {
+      orderError = error;
+    }
+
+    if (orderError && !isMissingListOrderPreferencesError(orderError)) {
+      setStatusMessage(getErrorMessage(orderError));
     }
 
     setNewListDraft(emptyNewListDraft);
@@ -1174,6 +1229,10 @@ export function ListApp() {
   };
 
   const acceptFriendRequest = async (friendshipId: string) => {
+    if (!user) {
+      return;
+    }
+
     const { error } = await supabase
       .from("friendships")
       .update({ status: "accepted", updated_at: new Date().toISOString() })
@@ -1181,7 +1240,17 @@ export function ListApp() {
 
     if (error) {
       setStatusMessage(error.message);
+      return;
     }
+
+    await supabase
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("recipient_id", user.id)
+      .eq("type", "friend_request")
+      .contains("payload", { friendshipId });
+
+    await loadFriendsAndNotifications(user.id);
   };
 
   const inviteCollaborator = async () => {
@@ -1234,6 +1303,10 @@ export function ListApp() {
   };
 
   const acceptListInvite = async (collaboratorId: string) => {
+    if (!user) {
+      return;
+    }
+
     const { error } = await supabase
       .from("list_collaborators")
       .update({ status: "accepted", updated_at: new Date().toISOString() })
@@ -1244,9 +1317,67 @@ export function ListApp() {
       return;
     }
 
-    if (user) {
-      await loadLists(user.id);
+    await supabase
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("recipient_id", user.id)
+      .eq("type", "list_invite")
+      .contains("payload", { collaboratorId });
+
+    await loadLists(user.id);
+    await loadFriendsAndNotifications(user.id);
+  };
+
+  const ignoreNotification = async (notification: Notification) => {
+    if (!user) {
+      return;
     }
+
+    if (notification.type === "friend_request") {
+      const friendshipId = String(notification.payload.friendshipId ?? "");
+      if (friendshipId) {
+        const { error } = await supabase
+          .from("friendships")
+          .update({ status: "blocked", updated_at: new Date().toISOString() })
+          .eq("id", friendshipId)
+          .eq("status", "pending");
+
+        if (error) {
+          setStatusMessage(error.message);
+          return;
+        }
+      }
+    }
+
+    if (notification.type === "list_invite") {
+      const collaboratorId = String(notification.payload.collaboratorId ?? "");
+      if (collaboratorId) {
+        const { error } = await supabase
+          .from("list_collaborators")
+          .update({ status: "declined", updated_at: new Date().toISOString() })
+          .eq("id", collaboratorId)
+          .eq("status", "pending");
+
+        if (error) {
+          setStatusMessage(error.message);
+          return;
+        }
+      }
+    }
+
+    const { error } = await supabase
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("id", notification.id)
+      .eq("recipient_id", user.id);
+
+    if (error) {
+      setStatusMessage(error.message);
+      return;
+    }
+
+    await loadFriendsAndNotifications(user.id);
+    await loadLists(user.id);
   };
 
   const updateCollaboratorRole = async (
@@ -1289,38 +1420,72 @@ export function ListApp() {
     );
   };
 
-  const reorderList = async (listId: string, direction: -1 | 1) => {
+  const persistListOrder = async (orderedLists: List[]) => {
     if (!user) {
       return;
     }
 
-    const currentIndex = lists.findIndex((list) => list.id === listId);
-    const nextIndex = currentIndex + direction;
+    const timestamp = new Date().toISOString();
+    let error: unknown = null;
 
-    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= lists.length) {
+    try {
+      const { error: orderError } = await supabase
+        .from("list_order_preferences")
+        .upsert(
+          orderedLists.map((list, index) => ({
+            list_id: list.id,
+            position: index + 1,
+            updated_at: timestamp,
+            user_id: user.id,
+          })),
+          { onConflict: "user_id,list_id" },
+        );
+
+      error = orderError;
+    } catch (orderError) {
+      error = orderError;
+    }
+
+    if (error) {
+      if (isMissingListOrderPreferencesError(error)) {
+        setStatusMessage(
+          "List ordering is unavailable until the latest Supabase schema is applied.",
+        );
+        return;
+      }
+
+      setStatusMessage(getErrorMessage(error));
+      void loadLists(user.id);
+    }
+  };
+
+  const reorderListByDrop = (
+    draggedId: string,
+    targetId: string,
+    placement: DropPlacement,
+  ) => {
+    if (draggedId === targetId) {
+      return;
+    }
+
+    const draggedIndex = lists.findIndex((list) => list.id === draggedId);
+    const targetIndex = lists.findIndex((list) => list.id === targetId);
+
+    if (draggedIndex < 0 || targetIndex < 0) {
       return;
     }
 
     const orderedLists = [...lists];
-    const [movedList] = orderedLists.splice(currentIndex, 1);
-    orderedLists.splice(nextIndex, 0, movedList);
-    setLists(orderedLists);
-
-    const timestamp = new Date().toISOString();
-    const { error } = await supabase.from("list_order_preferences").upsert(
-      orderedLists.map((list, index) => ({
-        list_id: list.id,
-        position: index + 1,
-        updated_at: timestamp,
-        user_id: user.id,
-      })),
-      { onConflict: "user_id,list_id" },
+    const [movedList] = orderedLists.splice(draggedIndex, 1);
+    const nextTargetIndex = orderedLists.findIndex(
+      (list) => list.id === targetId,
     );
+    const insertionIndex =
+      placement === "after" ? nextTargetIndex + 1 : nextTargetIndex;
 
-    if (error) {
-      setStatusMessage(error.message);
-      void loadLists(user.id);
-    }
+    orderedLists.splice(insertionIndex, 0, movedList);
+    setLists(orderedLists);
+    void persistListOrder(orderedLists);
   };
 
   const updateListName = async () => {
@@ -1409,6 +1574,11 @@ export function ListApp() {
                   Sign in with Google
                 </button>
               </div>
+              {statusMessage ? (
+                <p className="status-message" style={{ marginTop: 16 }}>
+                  {statusMessage}
+                </p>
+              ) : null}
             </div>
           </section>
         </main>
@@ -1420,6 +1590,7 @@ export function ListApp() {
     <Shell
       acceptFriendRequest={acceptFriendRequest}
       acceptListInvite={acceptListInvite}
+      ignoreNotification={ignoreNotification}
       notifications={notifications}
       onSignOut={signOut}
       profile={profile}
@@ -1441,47 +1612,83 @@ export function ListApp() {
               </button>
             </div>
             <nav className="list-nav" aria-label="Lists">
-              {lists.map((list, index) => (
-                <div
-                  className={
-                    list.id === activeListId
-                      ? "list-nav-row active"
-                      : "list-nav-row"
-                  }
-                  key={list.id}
-                >
-                  <button
-                    className="list-nav-title"
-                    onClick={() => selectActiveList(list.id)}
-                    type="button"
-                  >
-                    <strong>{list.title}</strong>
-                  </button>
-                  <div
-                    aria-label={`${list.title} order controls`}
-                    className="list-order-controls"
-                  >
-                    <button
-                      aria-label={`Move ${list.title} up`}
-                      disabled={index === 0}
-                      onClick={() => reorderList(list.id, -1)}
-                      title="Move up"
-                      type="button"
+              {lists.map((list) => {
+                const isDropTarget = listDropIndicator?.listId === list.id;
+
+                return (
+                  <div key={list.id}>
+                    {isDropTarget &&
+                    listDropIndicator.placement === "before" ? (
+                      <div className="drop-indicator" />
+                    ) : null}
+                    <div
+                      className={[
+                        list.id === activeListId
+                          ? "list-nav-row active"
+                          : "list-nav-row",
+                        draggedListId === list.id ? "dragging" : "",
+                      ].join(" ")}
+                      draggable={lists.length > 1}
+                      onDragEnd={() => {
+                        setDraggedListId(null);
+                        setListDropIndicator(null);
+                      }}
+                      onDragOver={(event) => {
+                        if (draggedListId && draggedListId !== list.id) {
+                          event.preventDefault();
+                          event.dataTransfer.dropEffect = "move";
+                          setListDropIndicator({
+                            listId: list.id,
+                            placement: getDropPlacement(
+                              event.clientY,
+                              event.currentTarget.getBoundingClientRect(),
+                            ),
+                          });
+                        }
+                      }}
+                      onDragStart={(event) => {
+                        setDraggedListId(list.id);
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData("text/plain", list.id);
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        const droppedId =
+                          event.dataTransfer.getData("text/plain") ||
+                          draggedListId;
+                        const placement = getDropPlacement(
+                          event.clientY,
+                          event.currentTarget.getBoundingClientRect(),
+                        );
+
+                        if (droppedId) {
+                          reorderListByDrop(droppedId, list.id, placement);
+                        }
+
+                        setDraggedListId(null);
+                        setListDropIndicator(null);
+                      }}
                     >
-                      ↑
-                    </button>
-                    <button
-                      aria-label={`Move ${list.title} down`}
-                      disabled={index === lists.length - 1}
-                      onClick={() => reorderList(list.id, 1)}
-                      title="Move down"
-                      type="button"
-                    >
-                      ↓
-                    </button>
+                      <span
+                        aria-hidden="true"
+                        className={`drag-handle ${lists.length > 1 ? "" : "disabled"}`}
+                      >
+                        ⋮⋮
+                      </span>
+                      <button
+                        className="list-nav-title"
+                        onClick={() => selectActiveList(list.id)}
+                        type="button"
+                      >
+                        <strong>{list.title}</strong>
+                      </button>
+                    </div>
+                    {isDropTarget && listDropIndicator.placement === "after" ? (
+                      <div className="drop-indicator" />
+                    ) : null}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </nav>
           </aside>
 
@@ -1966,6 +2173,24 @@ export function ListApp() {
           <FriendList friends={friends} userId={session.user.id} />
           <p className="eyebrow">Invite To List</p>
           <div className="field-grid">
+            {acceptedFriendProfiles.length > 0 ? (
+              <select
+                disabled={!isOwner}
+                onChange={(event) => {
+                  if (event.target.value) {
+                    setInviteEmail(event.target.value);
+                  }
+                }}
+                value=""
+              >
+                <option value="">Select existing friend</option>
+                {acceptedFriendProfiles.map((friend) => (
+                  <option key={friend.id} value={friend.email}>
+                    {friend.display_name} ({friend.email})
+                  </option>
+                ))}
+              </select>
+            ) : null}
             <input
               disabled={!isOwner}
               onChange={(event) => setInviteEmail(event.target.value)}
@@ -2190,6 +2415,26 @@ export function ListApp() {
           </div>
           <p className="eyebrow">Optional Collaborator</p>
           <div className="field-grid">
+            {acceptedFriendProfiles.length > 0 ? (
+              <select
+                onChange={(event) => {
+                  if (event.target.value) {
+                    setNewListDraft((current) => ({
+                      ...current,
+                      collaboratorEmail: event.target.value,
+                    }));
+                  }
+                }}
+                value=""
+              >
+                <option value="">Select existing friend</option>
+                {acceptedFriendProfiles.map((friend) => (
+                  <option key={friend.id} value={friend.email}>
+                    {friend.display_name} ({friend.email})
+                  </option>
+                ))}
+              </select>
+            ) : null}
             <input
               onChange={(event) =>
                 setNewListDraft((current) => ({
@@ -2239,6 +2484,7 @@ type ShellProps = {
   acceptFriendRequest?: (friendshipId: string) => void;
   acceptListInvite?: (collaboratorId: string) => void;
   children: React.ReactNode;
+  ignoreNotification?: (notification: Notification) => void;
   notifications?: Notification[];
   onSignOut: (() => void) | null;
   profile: Profile | null;
@@ -2248,6 +2494,7 @@ function Shell({
   acceptFriendRequest,
   acceptListInvite,
   children,
+  ignoreNotification,
   notifications = [],
   onSignOut,
   profile,
@@ -2269,10 +2516,11 @@ function Shell({
           </a>
           {profile ? (
             <div className="avatar-row">
-              {acceptFriendRequest && acceptListInvite ? (
+              {acceptFriendRequest && acceptListInvite && ignoreNotification ? (
                 <NotificationsMenu
                   acceptFriendRequest={acceptFriendRequest}
                   acceptListInvite={acceptListInvite}
+                  ignoreNotification={ignoreNotification}
                   notifications={notifications}
                 />
               ) : null}
@@ -2340,19 +2588,22 @@ function Avatar({ profile }: { profile: Profile }) {
 type NotificationsMenuProps = {
   acceptFriendRequest: (friendshipId: string) => void;
   acceptListInvite: (collaboratorId: string) => void;
+  ignoreNotification: (notification: Notification) => void;
   notifications: Notification[];
 };
 
 function NotificationsMenu({
   acceptFriendRequest,
   acceptListInvite,
+  ignoreNotification,
   notifications,
 }: NotificationsMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement | null>(null);
-  const unreadCount = notifications.filter(
+  const visibleNotifications = notifications.filter(
     (notification) => !notification.read_at,
-  ).length;
+  );
+  const unreadCount = visibleNotifications.length;
 
   useEffect(() => {
     if (!isOpen) {
@@ -2402,40 +2653,58 @@ function NotificationsMenu({
         <div className="popover-panel">
           <p className="eyebrow">Inbox</p>
           <div className="notification-list">
-            {notifications.length === 0 ? (
-              <p className="muted">No notifications.</p>
+            {visibleNotifications.length === 0 ? (
+              <p className="muted">No relevant notifications.</p>
             ) : null}
-            {notifications.map((notification) => (
+            {visibleNotifications.map((notification) => (
               <div className="small-card" key={notification.id}>
                 <strong>{notificationLabel(notification)}</strong>
                 <span className="muted">
                   {formatDateTime(notification.created_at)}
                 </span>
                 {notification.type === "friend_request" ? (
-                  <button
-                    className="secondary-button"
-                    onClick={() =>
-                      acceptFriendRequest(
-                        String(notification.payload.friendshipId),
-                      )
-                    }
-                    type="button"
-                  >
-                    Accept Friend
-                  </button>
+                  <div className="inline-actions">
+                    <button
+                      className="secondary-button"
+                      onClick={() =>
+                        acceptFriendRequest(
+                          String(notification.payload.friendshipId),
+                        )
+                      }
+                      type="button"
+                    >
+                      Accept Friend
+                    </button>
+                    <button
+                      className="secondary-button"
+                      onClick={() => ignoreNotification(notification)}
+                      type="button"
+                    >
+                      Ignore
+                    </button>
+                  </div>
                 ) : null}
                 {notification.type === "list_invite" ? (
-                  <button
-                    className="secondary-button"
-                    onClick={() =>
-                      acceptListInvite(
-                        String(notification.payload.collaboratorId),
-                      )
-                    }
-                    type="button"
-                  >
-                    Accept List
-                  </button>
+                  <div className="inline-actions">
+                    <button
+                      className="secondary-button"
+                      onClick={() =>
+                        acceptListInvite(
+                          String(notification.payload.collaboratorId),
+                        )
+                      }
+                      type="button"
+                    >
+                      Accept List
+                    </button>
+                    <button
+                      className="secondary-button"
+                      onClick={() => ignoreNotification(notification)}
+                      type="button"
+                    >
+                      Ignore
+                    </button>
+                  </div>
                 ) : null}
               </div>
             ))}
@@ -3027,11 +3296,36 @@ const notificationLabel = (notification: Notification) => {
   }
 
   if (notification.type === "list_invite") {
-    return `${notification.actor?.display_name ?? "Someone"} invited you to a list.`;
+    const listTitle =
+      typeof notification.payload.listTitle === "string"
+        ? notification.payload.listTitle
+        : "a list";
+
+    return `${notification.actor?.display_name ?? "Someone"} invited you to ${listTitle}.`;
   }
 
   return "Your role changed.";
 };
 
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : "Something went wrong.";
+const isMissingListOrderPreferencesError = (error: unknown) => {
+  const maybeError = error as { code?: unknown; message?: unknown };
+
+  return (
+    maybeError?.code === "PGRST205" &&
+    typeof maybeError.message === "string" &&
+    maybeError.message.includes("list_order_preferences")
+  );
+};
+
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  const maybeError = error as { message?: unknown };
+  if (typeof maybeError?.message === "string") {
+    return maybeError.message;
+  }
+
+  return "Something went wrong.";
+};

@@ -347,17 +347,21 @@ textarea {
 }
 
 .list-nav-row {
-  align-items: stretch;
+  align-items: center;
   background: #fff;
   border: 1px solid #e2e8f0;
   display: grid;
   gap: 0;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
 }
 
 .list-nav-row.active {
   border-color: #0f172a;
   box-shadow: inset 4px 0 0 #0f172a;
+}
+
+.list-nav-row.dragging {
+  opacity: 0.5;
 }
 
 .list-nav-title {
@@ -370,30 +374,9 @@ textarea {
   text-align: left;
 }
 
-.list-order-controls {
-  border-left: 1px solid #e2e8f0;
-  display: grid;
-  grid-template-rows: repeat(2, minmax(0, 1fr));
-  width: 36px;
-}
-
-.list-order-controls button {
-  background: #f8fafc;
-  border: 0;
-  color: #334155;
-  font-size: 0.9rem;
-  font-weight: 900;
-  min-height: 0;
-  padding: 0;
-}
-
-.list-order-controls button + button {
-  border-top: 1px solid #e2e8f0;
-}
-
-.list-order-controls button:disabled {
-  color: #cbd5e1;
-  cursor: not-allowed;
+.list-nav-row .drag-handle {
+  padding-left: 10px;
+  padding-right: 6px;
 }
 
 .muted {

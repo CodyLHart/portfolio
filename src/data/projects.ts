@@ -21,7 +21,7 @@ const gamesUrl = externalUrl(
   process.env.NEXT_PUBLIC_GAMES_URL ?? "http://127.0.0.1:5174",
 );
 const listAppUrl = externalUrl(
-  process.env.NEXT_PUBLIC_LIST_APP_URL ?? "http://127.0.0.1:3001",
+  process.env.NEXT_PUBLIC_LIST_APP_URL ?? "http://localhost:3001",
 );
 
 export const projects: PortfolioProject[] = [
