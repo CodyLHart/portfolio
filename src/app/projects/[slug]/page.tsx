@@ -43,8 +43,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     <div className="min-h-screen bg-white text-black">
       <Header />
       <main
-        className="min-h-[calc(100vh-80px)] px-5 py-8 md:px-8 md:py-12"
-        style={{ backgroundColor: "rgba(234, 179, 8, 0.5)" }}
+        className="min-h-[calc(100vh-80px)] bg-yellow-500/50 px-5 py-8 md:px-8 md:py-12"
       >
         <div className="mx-auto flex w-full max-w-4xl flex-col gap-8">
           <Link
@@ -62,7 +61,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
             <p className="font-mono text-sm font-semibold uppercase tracking-[0.2em] text-yellow-700">
               {project.status}
             </p>
-            <h1 className="mt-3 font-serif text-5xl leading-none md:text-7xl">
+            <h1 className="page-title mt-3 font-serif">
               {project.name}
             </h1>
             <p className="mt-5 text-lg leading-8 text-neutral-800">
@@ -75,7 +74,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
             style={{ boxShadow: "1px 1px 5px 2px #00000015" }}
           >
             <div>
-              <h2 className="font-serif text-3xl leading-none">Stack</h2>
+              <h2 className="section-title font-serif">Stack</h2>
               <div className="mt-4 flex flex-wrap gap-2">
                 {project.stack.map((tech) => (
                   <span
@@ -89,7 +88,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
             </div>
 
             <div>
-              <h2 className="font-serif text-3xl leading-none">
+              <h2 className="section-title font-serif">
                 Source location
               </h2>
               <p className="mt-4 font-mono text-sm text-neutral-700">
@@ -103,7 +102,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
               className="bg-white px-6 py-7 md:px-8"
               style={{ boxShadow: "1px 1px 5px 2px #00000015" }}
             >
-              <h2 className="font-serif text-3xl leading-none">Notes</h2>
+              <h2 className="section-title font-serif">Notes</h2>
               <p className="mt-3 leading-7 text-neutral-800">
                 {project.notes}
               </p>

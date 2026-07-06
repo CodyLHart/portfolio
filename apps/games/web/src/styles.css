@@ -1,8 +1,12 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400&display=swap");
 @import "tailwindcss";
 
 :root {
   color: #0f172a;
   background: #fff;
+  --app-h1-size: 2.35rem;
+  --app-h2-size: 1.55rem;
+  --app-h3-size: 1.05rem;
   font-family:
     Inter,
     ui-sans-serif,
@@ -19,6 +23,27 @@
 
 body {
   margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: 0;
+  line-height: 1;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+h1 {
+  font-size: var(--app-h1-size);
+}
+
+h2 {
+  font-size: var(--app-h2-size);
+}
+
+h3 {
+  font-size: var(--app-h3-size);
 }
 
 button {
@@ -53,13 +78,17 @@ button:disabled {
   background: #000;
   color: #fff;
   display: block;
+  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   font-size: 1.25rem;
   font-weight: 400;
+  -webkit-font-smoothing: antialiased;
   line-height: 1;
   padding: 12px 4px;
   text-align: center;
   text-decoration: none;
-  transition: opacity 160ms ease, box-shadow 160ms ease;
+  transition:
+    opacity 160ms ease,
+    box-shadow 160ms ease;
   width: fit-content;
 }
 
@@ -120,15 +149,18 @@ button:disabled {
 .menu-layout {
   display: grid;
   gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 280px));
+  justify-content: start;
   margin: 0 auto;
   max-width: 1180px;
 }
 
+.menu-hero {
+  grid-column: 1 / -1;
+}
+
 .menu-hero h1 {
-  font-size: clamp(2.5rem, 8vw, 6.8rem);
-  letter-spacing: 0;
-  line-height: 0.9;
-  margin: 0;
+  font-size: var(--app-h1-size);
   max-width: 980px;
 }
 
@@ -138,11 +170,15 @@ button:disabled {
   box-shadow: 1px 1px 5px 2px #00000015;
   color: #0f172a;
   display: flex;
+  flex-direction: column;
   justify-content: space-between;
-  min-height: 240px;
-  padding: 24px;
+  min-height: 0;
+  padding: 20px;
+  aspect-ratio: 1 / 1;
   text-align: left;
-  transition: transform 160ms ease, box-shadow 160ms ease;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .game-card:hover {
@@ -151,15 +187,14 @@ button:disabled {
 }
 
 .game-card h2 {
-  font-size: clamp(2.5rem, 7vw, 5rem);
-  line-height: 0.9;
-  margin: 0;
+  font-size: var(--app-h2-size);
 }
 
 .game-card p:not(.eyebrow) {
   color: #475569;
-  line-height: 1.6;
-  max-width: 620px;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  max-width: none;
 }
 
 .game-card > span {
@@ -192,9 +227,7 @@ button:disabled {
 }
 
 .toolbar-title h1 {
-  font-size: clamp(2rem, 4vw, 4rem);
-  line-height: 0.9;
-  margin: 0;
+  font-size: var(--app-h1-size);
 }
 
 .toolbar-actions {
@@ -300,7 +333,9 @@ button:disabled {
 
 .table-panel {
   background: #2f6d55;
-  box-shadow: inset 0 0 0 1px #ffffff30, 1px 1px 5px 2px #00000015;
+  box-shadow:
+    inset 0 0 0 1px #ffffff30,
+    1px 1px 5px 2px #00000015;
   grid-column: 1;
   min-height: 640px;
   overflow-x: auto;
@@ -377,7 +412,9 @@ button:disabled {
 }
 
 .hint-target {
-  box-shadow: 0 0 0 3px #67e8f9, 0 0 22px #67e8f980;
+  box-shadow:
+    0 0 0 3px #67e8f9,
+    0 0 22px #67e8f980;
 }
 
 .pile-placeholder {
@@ -483,11 +520,15 @@ button:disabled {
 }
 
 .card.selected {
-  box-shadow: 0 0 0 3px #fef08a, 1px 2px 4px #00000025;
+  box-shadow:
+    0 0 0 3px #fef08a,
+    1px 2px 4px #00000025;
 }
 
 .card.hinted {
-  box-shadow: 0 0 0 3px #67e8f9, 1px 2px 4px #00000025;
+  box-shadow:
+    0 0 0 3px #67e8f9,
+    1px 2px 4px #00000025;
 }
 
 .selected-stack,
@@ -501,11 +542,15 @@ button:disabled {
 }
 
 .selected-stack {
-  box-shadow: 0 0 0 3px #fef08a, 0 0 20px #fef08a80;
+  box-shadow:
+    0 0 0 3px #fef08a,
+    0 0 20px #fef08a80;
 }
 
 .hinted-stack {
-  box-shadow: 0 0 0 3px #67e8f9, 0 0 20px #67e8f980;
+  box-shadow:
+    0 0 0 3px #67e8f9,
+    0 0 20px #67e8f980;
 }
 
 .foundation-mini {
@@ -623,7 +668,9 @@ button:disabled {
 
 .mine-board-panel {
   background: #2f6d55;
-  box-shadow: inset 0 0 0 1px #ffffff30, 1px 1px 5px 2px #00000015;
+  box-shadow:
+    inset 0 0 0 1px #ffffff30,
+    1px 1px 5px 2px #00000015;
   grid-column: 1;
   justify-self: start;
   padding: clamp(10px, 2vw, 18px);
@@ -728,6 +775,11 @@ button:disabled {
 }
 
 @media (max-width: 720px) {
+  :root {
+    --app-h1-size: 2rem;
+    --app-h2-size: 1.35rem;
+  }
+
   .app-main {
     padding: 14px;
   }
@@ -740,6 +792,10 @@ button:disabled {
   .game-toolbar {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .menu-layout {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .toolbar-actions {

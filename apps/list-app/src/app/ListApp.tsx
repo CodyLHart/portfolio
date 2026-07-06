@@ -13,6 +13,7 @@ import {
   List,
   ListItemFields,
   ListItem,
+  ListOrderPreference,
   ListRole,
   ListSnapshot,
   Notification,
@@ -83,6 +84,37 @@ const normalizeItemFields = (
   ...defaultItemFields,
   ...(fields ?? {}),
 });
+
+const sortListsByPreference = (
+  nextLists: List[],
+  preferences: ListOrderPreference[],
+) => {
+  const positions = new Map(
+    preferences.map((preference) => [
+      preference.list_id,
+      Number(preference.position),
+    ]),
+  );
+
+  return [...nextLists].sort((first, second) => {
+    const firstPosition = positions.get(first.id);
+    const secondPosition = positions.get(second.id);
+
+    if (firstPosition !== undefined && secondPosition !== undefined) {
+      return firstPosition - secondPosition;
+    }
+
+    if (firstPosition !== undefined) {
+      return -1;
+    }
+
+    if (secondPosition !== undefined) {
+      return 1;
+    }
+
+    return second.updated_at.localeCompare(first.updated_at);
+  });
+};
 
 export function ListApp() {
   const [session, setSession] = useState<Session | null>(null);
@@ -248,7 +280,7 @@ export function ListApp() {
   }, [categoryOptions, draft.category]);
 
   const loadLists = useCallback(async (userId: string) => {
-    const [ownedResult, collabResult] = await Promise.all([
+    const [ownedResult, collabResult, orderResult] = await Promise.all([
       supabase
         .from("lists")
         .select("*")
@@ -259,6 +291,7 @@ export function ListApp() {
         .select("list_id, lists(*)")
         .eq("user_id", userId)
         .eq("status", "accepted"),
+      supabase.from("list_order_preferences").select("*").eq("user_id", userId),
     ]);
 
     if (ownedResult.error) {
@@ -269,6 +302,10 @@ export function ListApp() {
       throw collabResult.error;
     }
 
+    if (orderResult.error) {
+      throw orderResult.error;
+    }
+
     const ownedLists = (ownedResult.data ?? []) as List[];
     const collaboratorLists = (collabResult.data ?? [])
       .map((row) => row.lists as unknown as List | null)
@@ -277,12 +314,12 @@ export function ListApp() {
       new Map(
         [...ownedLists, ...collaboratorLists].map((list) => [list.id, list]),
       ).values(),
-    ).sort((first, second) =>
-      second.updated_at.localeCompare(first.updated_at),
     );
+    const orderPreferences = (orderResult.data ?? []) as ListOrderPreference[];
+    const sortedLists = sortListsByPreference(uniqueLists, orderPreferences);
 
-    setLists(uniqueLists);
-    setActiveListId((current) => current ?? uniqueLists[0]?.id ?? null);
+    setLists(sortedLists);
+    setActiveListId((current) => current ?? sortedLists[0]?.id ?? null);
   }, []);
 
   const loadProfile = useCallback(async (authUser: User) => {
@@ -568,15 +605,17 @@ export function ListApp() {
     };
   }, [activeListId, loadListData, loadLists, profile, user]);
 
-  useEffect(() => {
+  const selectActiveList = (listId: string) => {
     setSelectedCategories([]);
     setSelectedPriorities([]);
     setDeleteListConfirmation("");
-  }, [activeListId]);
+    setActiveListId(listId);
+  };
 
-  useEffect(() => {
+  const openOwnerSettings = () => {
     setListNameDraft(activeList?.title ?? "");
-  }, [activeList?.title]);
+    setActiveListModal("owner");
+  };
 
   const signIn = async () => {
     if (!isSupabaseConfigured) {
@@ -667,6 +706,23 @@ export function ListApp() {
           "List created, but no account was found for that collaborator email.",
         );
       }
+    }
+
+    const timestamp = new Date().toISOString();
+    const { error: orderError } = await supabase
+      .from("list_order_preferences")
+      .upsert(
+        [data as List, ...lists].map((list, index) => ({
+          list_id: list.id,
+          position: index + 1,
+          updated_at: timestamp,
+          user_id: user.id,
+        })),
+        { onConflict: "user_id,list_id" },
+      );
+
+    if (orderError) {
+      setStatusMessage(orderError.message);
     }
 
     setNewListDraft(emptyNewListDraft);
@@ -941,11 +997,18 @@ export function ListApp() {
   };
 
   const deleteActiveList = async () => {
-    if (!activeList || !isOwner || deleteListConfirmation !== activeList.title) {
+    if (
+      !activeList ||
+      !isOwner ||
+      deleteListConfirmation !== activeList.title
+    ) {
       return;
     }
 
-    const { error } = await supabase.from("lists").delete().eq("id", activeList.id);
+    const { error } = await supabase
+      .from("lists")
+      .delete()
+      .eq("id", activeList.id);
 
     if (error) {
       setStatusMessage(error.message);
@@ -1226,6 +1289,40 @@ export function ListApp() {
     );
   };
 
+  const reorderList = async (listId: string, direction: -1 | 1) => {
+    if (!user) {
+      return;
+    }
+
+    const currentIndex = lists.findIndex((list) => list.id === listId);
+    const nextIndex = currentIndex + direction;
+
+    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= lists.length) {
+      return;
+    }
+
+    const orderedLists = [...lists];
+    const [movedList] = orderedLists.splice(currentIndex, 1);
+    orderedLists.splice(nextIndex, 0, movedList);
+    setLists(orderedLists);
+
+    const timestamp = new Date().toISOString();
+    const { error } = await supabase.from("list_order_preferences").upsert(
+      orderedLists.map((list, index) => ({
+        list_id: list.id,
+        position: index + 1,
+        updated_at: timestamp,
+        user_id: user.id,
+      })),
+      { onConflict: "user_id,list_id" },
+    );
+
+    if (error) {
+      setStatusMessage(error.message);
+      void loadLists(user.id);
+    }
+  };
+
   const updateListName = async () => {
     if (!activeList || !isOwner || !listNameDraft.trim()) {
       return;
@@ -1243,7 +1340,9 @@ export function ListApp() {
     }
 
     setLists((current) =>
-      current.map((list) => (list.id === activeList.id ? { ...list, title: nextTitle } : list)),
+      current.map((list) =>
+        list.id === activeList.id ? { ...list, title: nextTitle } : list,
+      ),
     );
     setDeleteListConfirmation("");
   };
@@ -1289,11 +1388,11 @@ export function ListApp() {
   if (!session) {
     return (
       <Shell onSignOut={null} profile={null}>
-        <main className="app-main">
+        <main className="app-main bg-yellow-500/50">
           <section className="landing">
             <div className="panel">
               <p className="eyebrow">List App</p>
-              <h1>Shared lists with memory.</h1>
+              <h1>Lists App</h1>
             </div>
             <div className="panel">
               <p>
@@ -1325,7 +1424,7 @@ export function ListApp() {
       onSignOut={signOut}
       profile={profile}
     >
-      <main className="app-main">
+      <main className="app-main bg-yellow-500/50">
         <div className="app-grid">
           <aside className="sidebar panel">
             <div className="toolbar">
@@ -1342,15 +1441,46 @@ export function ListApp() {
               </button>
             </div>
             <nav className="list-nav" aria-label="Lists">
-              {lists.map((list) => (
-                <button
-                  className={list.id === activeListId ? "active" : ""}
+              {lists.map((list, index) => (
+                <div
+                  className={
+                    list.id === activeListId
+                      ? "list-nav-row active"
+                      : "list-nav-row"
+                  }
                   key={list.id}
-                  onClick={() => setActiveListId(list.id)}
-                  type="button"
                 >
-                  <strong>{list.title}</strong>
-                </button>
+                  <button
+                    className="list-nav-title"
+                    onClick={() => selectActiveList(list.id)}
+                    type="button"
+                  >
+                    <strong>{list.title}</strong>
+                  </button>
+                  <div
+                    aria-label={`${list.title} order controls`}
+                    className="list-order-controls"
+                  >
+                    <button
+                      aria-label={`Move ${list.title} up`}
+                      disabled={index === 0}
+                      onClick={() => reorderList(list.id, -1)}
+                      title="Move up"
+                      type="button"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      aria-label={`Move ${list.title} down`}
+                      disabled={index === lists.length - 1}
+                      onClick={() => reorderList(list.id, 1)}
+                      title="Move down"
+                      type="button"
+                    >
+                      ↓
+                    </button>
+                  </div>
+                </div>
               ))}
             </nav>
           </aside>
@@ -1416,7 +1546,7 @@ export function ListApp() {
                     <button
                       aria-label="Settings"
                       className="list-tool-button"
-                      onClick={() => setActiveListModal("owner")}
+                      onClick={openOwnerSettings}
                       title="Settings"
                       type="button"
                     >
@@ -1673,10 +1803,17 @@ export function ListApp() {
                         >
                           <option value="">Unassigned</option>
                           {collaborators
-                            .filter((collaborator) => collaborator.status === "accepted")
+                            .filter(
+                              (collaborator) =>
+                                collaborator.status === "accepted",
+                            )
                             .map((collaborator) => (
-                              <option key={collaborator.user_id} value={collaborator.user_id}>
-                                {collaborator.profile?.display_name ?? collaborator.user_id}
+                              <option
+                                key={collaborator.user_id}
+                                value={collaborator.user_id}
+                              >
+                                {collaborator.profile?.display_name ??
+                                  collaborator.user_id}
                               </option>
                             ))}
                         </select>
@@ -1902,7 +2039,11 @@ export function ListApp() {
             />
             <button
               className="secondary-button"
-              disabled={!isOwner || !listNameDraft.trim() || listNameDraft.trim() === activeList.title}
+              disabled={
+                !isOwner ||
+                !listNameDraft.trim() ||
+                listNameDraft.trim() === activeList.title
+              }
               onClick={updateListName}
               type="button"
             >
@@ -1950,11 +2091,14 @@ export function ListApp() {
           <p className="eyebrow">Delete List</p>
           <div className="danger-zone">
             <p className="muted">
-              Type <strong>{activeList.title}</strong> to permanently delete this list.
+              Type <strong>{activeList.title}</strong> to permanently delete
+              this list.
             </p>
             <input
               disabled={!isOwner}
-              onChange={(event) => setDeleteListConfirmation(event.target.value)}
+              onChange={(event) =>
+                setDeleteListConfirmation(event.target.value)
+              }
               value={deleteListConfirmation}
             />
             <button
@@ -2549,7 +2693,10 @@ function ListToolModal({
 }) {
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
-      <div className="modal tool-modal" onMouseDown={(event) => event.stopPropagation()}>
+      <div
+        className="modal tool-modal"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
         <div className="modal-header">
           <h2>{title}</h2>
           <button className="icon-button" onClick={onClose} type="button">
@@ -2756,7 +2903,10 @@ function RestoreModal({
   snapshot: ListSnapshot;
 }) {
   return (
-    <div className="modal-backdrop" onMouseDown={() => setRestoreSnapshot(null)}>
+    <div
+      className="modal-backdrop"
+      onMouseDown={() => setRestoreSnapshot(null)}
+    >
       <div className="modal" onMouseDown={(event) => event.stopPropagation()}>
         <h2>Restore list</h2>
         <p>

@@ -1,3 +1,6 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400&display=swap");
+@import "tailwindcss";
+
 * {
   box-sizing: border-box;
 }
@@ -5,6 +8,9 @@
 :root {
   background: #fff;
   color: #0f172a;
+  --app-h1-size: 2.35rem;
+  --app-h2-size: 1.55rem;
+  --app-h3-size: 1.05rem;
   font-family:
     Inter,
     ui-sans-serif,
@@ -17,6 +23,27 @@
 
 body {
   margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: 0;
+  line-height: 1;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+h1 {
+  font-size: var(--app-h1-size);
+}
+
+h2 {
+  font-size: var(--app-h2-size);
+}
+
+h3 {
+  font-size: var(--app-h3-size);
 }
 
 button,
@@ -60,13 +87,17 @@ textarea:disabled {
   background: #000;
   color: #fff;
   display: block;
+  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   font-size: 1.25rem;
   font-weight: 400;
+  -webkit-font-smoothing: antialiased;
   line-height: 1;
   padding: 12px 4px;
   text-align: center;
   text-decoration: none;
-  transition: opacity 160ms ease, box-shadow 160ms ease;
+  transition:
+    opacity 160ms ease,
+    box-shadow 160ms ease;
   width: fit-content;
 }
 
@@ -100,7 +131,7 @@ textarea:disabled {
 }
 
 .app-main {
-  background: color-mix(in srgb, #eab308 50%, transparent);
+  /* background: color-mix(in srgb, #eab308 50%, transparent); */
   min-height: calc(100vh - 80px);
   padding: 24px;
 }
@@ -168,10 +199,8 @@ textarea:disabled {
 }
 
 .landing h1 {
-  font-size: clamp(3rem, 9vw, 7rem);
+  font-size: var(--app-h1-size);
   letter-spacing: 0;
-  line-height: 0.9;
-  margin: 0;
   max-width: 980px;
 }
 
@@ -317,9 +346,23 @@ textarea {
   gap: 8px;
 }
 
-.list-nav button {
+.list-nav-row {
+  align-items: stretch;
   background: #fff;
   border: 1px solid #e2e8f0;
+  display: grid;
+  gap: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.list-nav-row.active {
+  border-color: #0f172a;
+  box-shadow: inset 4px 0 0 #0f172a;
+}
+
+.list-nav-title {
+  background: transparent;
+  border: 0;
   color: #0f172a;
   display: grid;
   gap: 4px;
@@ -327,9 +370,30 @@ textarea {
   text-align: left;
 }
 
-.list-nav button.active {
-  border-color: #0f172a;
-  box-shadow: inset 4px 0 0 #0f172a;
+.list-order-controls {
+  border-left: 1px solid #e2e8f0;
+  display: grid;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  width: 36px;
+}
+
+.list-order-controls button {
+  background: #f8fafc;
+  border: 0;
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 900;
+  min-height: 0;
+  padding: 0;
+}
+
+.list-order-controls button + button {
+  border-top: 1px solid #e2e8f0;
+}
+
+.list-order-controls button:disabled {
+  color: #cbd5e1;
+  cursor: not-allowed;
 }
 
 .muted {
@@ -337,9 +401,7 @@ textarea {
 }
 
 .list-title {
-  margin: 0;
-  font-size: clamp(2rem, 5vw, 4.5rem);
-  line-height: 0.9;
+  font-size: var(--app-h1-size);
 }
 
 .item-form {
@@ -856,6 +918,11 @@ textarea {
 }
 
 @media (max-width: 760px) {
+  :root {
+    --app-h1-size: 2rem;
+    --app-h2-size: 1.35rem;
+  }
+
   .app-main {
     padding: 14px;
   }

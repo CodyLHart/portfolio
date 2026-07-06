@@ -2,7 +2,7 @@ import Link from "next/link";
 
 const HeaderLogo = () => (
   <Link
-    className="font-sans font-regular text-xl text-center w-fit bg-black py-3 px-1 text-white leading-none transition hover:opacity-85 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-black"
+    className="header-logo font-sans text-center w-fit bg-black py-3 px-1 text-xl font-normal leading-none text-white antialiased transition hover:opacity-85 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-black"
     href="/"
     aria-label="Cody Hart home"
   >

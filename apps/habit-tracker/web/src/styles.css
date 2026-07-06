@@ -1,8 +1,12 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400&display=swap");
 @import "tailwindcss";
 
 :root {
   color: #0f172a;
   background: #fff;
+  --app-h1-size: 2.35rem;
+  --app-h2-size: 1.55rem;
+  --app-h3-size: 1.05rem;
   font-family:
     Inter,
     ui-sans-serif,
@@ -19,6 +23,27 @@
 
 body {
   margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: 0;
+  line-height: 1;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+h1 {
+  font-size: var(--app-h1-size);
+}
+
+h2 {
+  font-size: var(--app-h2-size);
+}
+
+h3 {
+  font-size: var(--app-h3-size);
 }
 
 button,
@@ -53,8 +78,10 @@ button {
   background: #000;
   color: #fff;
   display: block;
+  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   font-size: 1.25rem;
   font-weight: 400;
+  -webkit-font-smoothing: antialiased;
   line-height: 1;
   padding: 12px 4px;
   text-align: center;
@@ -85,9 +112,8 @@ button {
 }
 
 .hero-panel h1 {
-  font-size: clamp(1.35rem, 2vw, 1.9rem);
-  letter-spacing: 0;
-  line-height: 1.08;
+  font-size: var(--app-h1-size);
+  line-height: 1;
   max-width: 460px;
 }
 
@@ -234,7 +260,7 @@ button {
 }
 
 .hero-panel h2 {
-  font-size: clamp(1.25rem, 2vw, 2rem);
+  font-size: var(--app-h2-size);
   line-height: 1;
   margin-top: 10px;
 }
@@ -684,8 +710,6 @@ button:disabled {
 }
 
 .modal-header h2 {
-  font-size: 2rem;
-  line-height: 1;
   margin: 0;
 }
 
@@ -746,6 +770,11 @@ button:disabled {
 }
 
 @media (max-width: 960px) {
+  :root {
+    --app-h1-size: 2rem;
+    --app-h2-size: 1.35rem;
+  }
+
   .dashboard,
   .hero-panel {
     align-items: stretch;

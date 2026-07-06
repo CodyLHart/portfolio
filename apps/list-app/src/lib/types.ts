@@ -104,6 +104,13 @@ export type SnapshotItem = Pick<
   | "title"
 >;
 
+export type ListOrderPreference = {
+  list_id: string;
+  position: number;
+  updated_at: string;
+  user_id: string;
+};
+
 export type Notification = {
   actor?: Profile | null;
   actor_id: string | null;

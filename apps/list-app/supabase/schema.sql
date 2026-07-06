@@ -88,6 +88,14 @@ create table if not exists public.list_snapshots (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.list_order_preferences (
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  list_id uuid not null references public.lists(id) on delete cascade,
+  position numeric not null default 0,
+  updated_at timestamptz not null default now(),
+  primary key (user_id, list_id)
+);
+
 create table if not exists public.notifications (
   id uuid primary key default gen_random_uuid(),
   recipient_id uuid not null references public.profiles(id) on delete cascade,
@@ -105,6 +113,7 @@ alter table public.list_collaborators enable row level security;
 alter table public.list_items enable row level security;
 alter table public.list_item_suggestions enable row level security;
 alter table public.list_snapshots enable row level security;
+alter table public.list_order_preferences enable row level security;
 alter table public.notifications enable row level security;
 
 create or replace function public.is_list_member(target_list_id uuid)
@@ -251,6 +260,27 @@ on public.list_snapshots for all
 to authenticated
 using (public.list_role_for(list_id) = 'owner')
 with check (public.list_role_for(list_id) = 'owner');
+
+create policy "users can read their list order"
+on public.list_order_preferences for select
+to authenticated
+using (user_id = auth.uid());
+
+create policy "users can create their list order"
+on public.list_order_preferences for insert
+to authenticated
+with check (user_id = auth.uid() and public.is_list_member(list_id));
+
+create policy "users can update their list order"
+on public.list_order_preferences for update
+to authenticated
+using (user_id = auth.uid() and public.is_list_member(list_id))
+with check (user_id = auth.uid() and public.is_list_member(list_id));
+
+create policy "users can delete their list order"
+on public.list_order_preferences for delete
+to authenticated
+using (user_id = auth.uid());
 
 create policy "users can read their notifications"
 on public.notifications for select

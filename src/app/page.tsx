@@ -21,7 +21,7 @@ export default function Home() {
             <p className="font-mono text-sm font-semibold uppercase tracking-[0.2em] text-yellow-700">
               Development Potfolio
             </p>
-            <h1 className="mt-3 font-serif text-5xl leading-none md:text-7xl">
+            <h1 className="page-title mt-3 font-serif">
               Hi, I’m Cody. I build apps.
             </h1>
             <p className="mt-5 text-lg leading-8 text-neutral-800">
@@ -42,7 +42,7 @@ export default function Home() {
               >
                 <div>
                   <div className="flex items-start justify-between gap-4">
-                    <h2 className="font-serif text-4xl leading-none">
+                    <h2 className="card-title font-serif">
                       {project.name}
                     </h2>
                     <span className="whitespace-nowrap bg-black px-3 py-1 font-mono text-xs font-semibold uppercase text-white">
