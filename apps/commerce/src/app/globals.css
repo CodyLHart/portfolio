@@ -232,6 +232,25 @@ a:focus-visible {
   overflow: hidden;
 }
 
+.product-thumbnail {
+  border: 2px solid transparent;
+  cursor: pointer;
+  display: block;
+  height: 100%;
+  padding: 0;
+  width: 100%;
+}
+
+.product-thumbnail[aria-pressed="true"] {
+  border-color: #111827;
+}
+
+.product-thumbnail:focus-visible,
+.option-button:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: 3px;
+}
+
 .product-info {
   display: grid;
   gap: 22px;
@@ -265,6 +284,23 @@ a:focus-visible {
 .product-price {
   font-size: 1.25rem;
   font-weight: 800;
+}
+
+.product-purchase-summary,
+.product-price-group {
+  display: grid;
+  gap: 6px;
+}
+
+.product-compare-price {
+  color: #64748b;
+  text-decoration: line-through;
+}
+
+.sale-context,
+.selected-variant {
+  color: #475569;
+  line-height: 1.6;
 }
 
 .product-description,
@@ -316,6 +352,58 @@ a:focus-visible {
   color: #475569;
   line-height: 1.6;
   margin: 0;
+}
+
+.option-fieldsets {
+  display: grid;
+  gap: 16px;
+}
+
+.option-fieldset {
+  border: 0;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.option-fieldset legend {
+  font-weight: 800;
+  padding: 0;
+}
+
+.option-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.option-button {
+  background: #fff;
+  border: 1px solid #94a3b8;
+  color: #111827;
+  cursor: pointer;
+  display: inline-grid;
+  gap: 2px;
+  min-height: 42px;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.option-button[aria-pressed="true"] {
+  border-color: #111827;
+  box-shadow: inset 0 0 0 1px #111827;
+  font-weight: 800;
+}
+
+.option-button:disabled {
+  color: #64748b;
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.option-status {
+  font-size: 0.75rem;
 }
 
 .product-variants ul {
