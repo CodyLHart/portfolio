@@ -1,0 +1,86 @@
+import "server-only";
+
+type ShopifyGraphQlResponse<TData> = {
+  data?: TData;
+  errors?: Array<{
+    message?: string;
+  }>;
+};
+
+const requiredEnv = {
+  SHOPIFY_STORE_DOMAIN: process.env.SHOPIFY_STORE_DOMAIN,
+  SHOPIFY_STOREFRONT_ACCESS_TOKEN: process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN,
+  SHOPIFY_STOREFRONT_API_VERSION: process.env.SHOPIFY_STOREFRONT_API_VERSION,
+};
+
+const getShopifyConfig = () => {
+  const missingVariables = Object.entries(requiredEnv)
+    .filter(([, value]) => !value)
+    .map(([name]) => name);
+
+  if (missingVariables.length > 0) {
+    throw new Error(
+      `Missing Shopify configuration: ${missingVariables.join(", ")}`,
+    );
+  }
+
+  const domain = requiredEnv.SHOPIFY_STORE_DOMAIN!
+    .replace(/^https?:\/\//i, "")
+    .replace(/\/+$/g, "");
+
+  return {
+    domain,
+    token: requiredEnv.SHOPIFY_STOREFRONT_ACCESS_TOKEN!,
+    version: requiredEnv.SHOPIFY_STOREFRONT_API_VERSION!,
+  };
+};
+
+export const shopifyStorefrontRequest = async <TData>({
+  query,
+  variables,
+}: {
+  query: string;
+  variables?: Record<string, unknown>;
+}) => {
+  const { domain, token, version } = getShopifyConfig();
+
+  const response = await fetch(
+    `https://${domain}/api/${version}/graphql.json`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Shopify-Storefront-Private-Token": token,
+      },
+      body: JSON.stringify({
+        query,
+        variables,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Shopify request failed with status ${response.status}.`);
+  }
+
+  const result = (await response.json()) as ShopifyGraphQlResponse<TData>;
+
+  if (result.errors?.length) {
+    const messages = result.errors
+      .map((error) => error.message)
+      .filter(Boolean)
+      .join("; ");
+
+    throw new Error(
+      messages
+        ? `Shopify GraphQL error: ${messages}`
+        : "Shopify GraphQL returned an error.",
+    );
+  }
+
+  if (!result.data) {
+    throw new Error("Shopify response did not include data.");
+  }
+
+  return result.data;
+};
