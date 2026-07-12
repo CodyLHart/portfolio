@@ -2,7 +2,12 @@
 
 import Image from "next/image";
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
+import { useFormStatus } from "react-dom";
+import {
+  addSelectedVariantToCart,
+  type AddToCartState,
+} from "../../app/cart/actions";
 import { formatShopifyPrice } from "../../lib/shopify/format";
 import type {
   ShopifyImage,
@@ -98,6 +103,27 @@ const optionValueStatus = ({
   };
 };
 
+function AddToCartButton({
+  isAvailable,
+  hasVariant,
+}: {
+  isAvailable: boolean;
+  hasVariant: boolean;
+}) {
+  const { pending } = useFormStatus();
+  const disabled = pending || !isAvailable || !hasVariant;
+
+  return (
+    <button className="add-to-cart-button" type="submit" disabled={disabled}>
+      {pending ? "Adding..." : !isAvailable ? "Sold out" : "Add to cart"}
+    </button>
+  );
+}
+
+const initialAddToCartState: AddToCartState = {
+  error: null,
+};
+
 export function ProductDetails({
   product,
   children,
@@ -114,6 +140,10 @@ export function ProductDetails({
   );
   const [activeImageUrl, setActiveImageUrl] = useState<string | null>(
     initialImage?.url ?? null,
+  );
+  const [addToCartState, addToCartAction] = useActionState(
+    addSelectedVariantToCart,
+    initialAddToCartState,
   );
   const selectedVariant =
     findMatchingVariant(variants, selectedOptions) ?? initialVariant;
@@ -133,6 +163,9 @@ export function ProductDetails({
     : product.availableForSale
       ? "In stock"
       : "Sold out";
+  const canSubmitSelectedVariant = Boolean(
+    selectedVariant?.id && selectedVariant.availableForSale,
+  );
 
   const handleOptionChange = (optionName: string, optionValue: string) => {
     const nextVariant = findFirstCompatibleVariant({
@@ -231,6 +264,19 @@ export function ProductDetails({
             </p>
           ) : null}
         </div>
+
+        <form action={addToCartAction} className="add-to-cart-form">
+          <input type="hidden" name="variantId" value={selectedVariant?.id ?? ""} />
+          <AddToCartButton
+            isAvailable={canSubmitSelectedVariant}
+            hasVariant={Boolean(selectedVariant)}
+          />
+          {addToCartState.error ? (
+            <p className="form-error" role="alert">
+              {addToCartState.error}
+            </p>
+          ) : null}
+        </form>
 
         {displayOptions.length > 0 ? (
           <section className="product-options" aria-labelledby="options-heading">

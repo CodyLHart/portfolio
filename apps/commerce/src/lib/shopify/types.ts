@@ -74,3 +74,74 @@ export type ShopifyProduct = ShopifyProductSummary & {
 export type ProductByHandleQueryResponse = {
   product: ShopifyProduct | null;
 };
+
+export type ShopifyCartLine = {
+  id: string;
+  quantity: number;
+  cost: {
+    totalAmount: ShopifyMoney;
+  };
+  merchandise: {
+    id: string;
+    title: string;
+    availableForSale: boolean;
+    selectedOptions: ShopifySelectedOption[];
+    image: ShopifyImage | null;
+    price: ShopifyMoney;
+    product: {
+      title: string;
+      handle: string;
+    };
+  };
+};
+
+export type ShopifyCart = {
+  id: string;
+  checkoutUrl: string;
+  totalQuantity: number;
+  cost: {
+    subtotalAmount: ShopifyMoney;
+    totalAmount: ShopifyMoney;
+  };
+  lines: {
+    nodes: ShopifyCartLine[];
+  };
+};
+
+export type ShopifyCartUserError = {
+  field: string[] | null;
+  message: string;
+  code?: string | null;
+};
+
+export type CartQueryResponse = {
+  cart: ShopifyCart | null;
+};
+
+export type CartCreateResponse = {
+  cartCreate: {
+    cart: ShopifyCart | null;
+    userErrors: ShopifyCartUserError[];
+  };
+};
+
+export type CartLinesAddResponse = {
+  cartLinesAdd: {
+    cart: ShopifyCart | null;
+    userErrors: ShopifyCartUserError[];
+  };
+};
+
+export type CartLinesUpdateResponse = {
+  cartLinesUpdate: {
+    cart: ShopifyCart | null;
+    userErrors: ShopifyCartUserError[];
+  };
+};
+
+export type CartLinesRemoveResponse = {
+  cartLinesRemove: {
+    cart: ShopifyCart | null;
+    userErrors: ShopifyCartUserError[];
+  };
+};

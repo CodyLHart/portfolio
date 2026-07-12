@@ -38,20 +38,27 @@ const getShopifyConfig = () => {
 export const shopifyStorefrontRequest = async <TData>({
   query,
   variables,
+  buyerIp,
 }: {
   query: string;
   variables?: Record<string, unknown>;
+  buyerIp?: string;
 }) => {
   const { domain, token, version } = getShopifyConfig();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "Shopify-Storefront-Private-Token": token,
+  };
+
+  if (buyerIp) {
+    headers["Shopify-Storefront-Buyer-IP"] = buyerIp;
+  }
 
   const response = await fetch(
     `https://${domain}/api/${version}/graphql.json`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Shopify-Storefront-Private-Token": token,
-      },
+      headers,
       body: JSON.stringify({
         query,
         variables,
