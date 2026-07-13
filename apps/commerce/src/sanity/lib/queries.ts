@@ -9,6 +9,25 @@ export const HOME_PAGE_QUERY = defineQuery(`
     eyebrow,
     heading,
     body,
-    storeLinkLabel
+    storeLinkLabel,
+    heroImage {
+      alt,
+      crop,
+      hotspot,
+      asset->{
+        _id,
+        url,
+        metadata {
+          dimensions {
+            width,
+            height,
+            aspectRatio
+          },
+          lqip
+        }
+      }
+    },
+    featuredCollectionHeading,
+    featuredCollectionHandle
   }
 `);

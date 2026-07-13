@@ -1,28 +1,117 @@
+import Image from "next/image";
 import Link from "next/link";
+import { ProductCard } from "../components/product/ProductCard";
+import { getCollectionByHandle } from "../lib/shopify/collections";
 import { getHomePageContent } from "../sanity/lib/homePage";
+import { urlForSanityImage } from "../sanity/lib/image";
+import type { HomePageContent, SanityHeroImage } from "../sanity/lib/types";
 
-const fallbackHomePage = {
+type RenderableHeroImage = SanityHeroImage & {
+  alt: string;
+  asset: NonNullable<SanityHeroImage["asset"]>;
+};
+
+const fallbackHomePage: HomePageContent = {
   eyebrow: "Headless Commerce",
   heading: "Commerce app initialized",
   body: "Shopify and Sanity will be connected next.",
   storeLinkLabel: "View store",
+  heroImage: null,
+  featuredCollectionHeading: null,
+  featuredCollectionHandle: null,
+};
+
+const getHeroImageDimensions = (heroImage: SanityHeroImage) => {
+  const dimensions = heroImage.asset?.metadata?.dimensions;
+
+  return {
+    width: dimensions?.width && dimensions.width > 0 ? dimensions.width : 1200,
+    height: dimensions?.height && dimensions.height > 0 ? dimensions.height : 900,
+  };
+};
+
+const hasRenderableHeroImage = (
+  heroImage: SanityHeroImage | null,
+): heroImage is RenderableHeroImage => Boolean(heroImage?.asset && heroImage.alt);
+
+const HeroImage = ({ heroImage }: { heroImage: RenderableHeroImage }) => {
+  const { width, height } = getHeroImageDimensions(heroImage);
+  const imageUrl = urlForSanityImage(heroImage)
+    .width(1200)
+    .height(900)
+    .fit("crop")
+    .auto("format")
+    .url();
+  const lqip = heroImage.asset?.metadata?.lqip;
+
+  return (
+    <div className="commerce-hero-image">
+      <Image
+        src={imageUrl}
+        alt={heroImage.alt}
+        width={width}
+        height={height}
+        sizes="(max-width: 900px) 100vw, 44vw"
+        placeholder={lqip ? "blur" : "empty"}
+        blurDataURL={lqip ?? undefined}
+        priority
+      />
+    </div>
+  );
 };
 
 export default async function Page() {
   const homePage = (await getHomePageContent()) ?? fallbackHomePage;
+  const heroImage = hasRenderableHeroImage(homePage.heroImage)
+    ? homePage.heroImage
+    : null;
+  const featuredCollection = await getCollectionByHandle(
+    homePage.featuredCollectionHandle,
+  );
+  const featuredProducts = featuredCollection?.products.nodes ?? [];
+  const shouldRenderFeaturedProducts = featuredProducts.length > 0;
+  const featuredHeading =
+    homePage.featuredCollectionHeading?.trim() ||
+    featuredCollection?.title ||
+    "Featured products";
 
   return (
     <main className="commerce-shell">
-      <section className="commerce-intro" aria-labelledby="commerce-heading">
-        {homePage.eyebrow ? (
-          <p className="commerce-eyebrow">{homePage.eyebrow}</p>
-        ) : null}
-        <h1 id="commerce-heading">{homePage.heading}</h1>
-        <p>{homePage.body}</p>
-        <Link className="commerce-link" href="/store">
-          {homePage.storeLinkLabel}
-        </Link>
+      <section
+        className={heroImage ? "commerce-hero has-image" : "commerce-hero"}
+        aria-labelledby="commerce-heading"
+      >
+        <div className="commerce-intro">
+          {homePage.eyebrow ? (
+            <p className="commerce-eyebrow">{homePage.eyebrow}</p>
+          ) : null}
+          <h1 id="commerce-heading">{homePage.heading}</h1>
+          <p>{homePage.body}</p>
+          <Link className="commerce-link" href="/store">
+            {homePage.storeLinkLabel}
+          </Link>
+        </div>
+        {heroImage ? <HeroImage heroImage={heroImage} /> : null}
       </section>
+
+      {shouldRenderFeaturedProducts ? (
+        <section
+          className="featured-products"
+          aria-labelledby="featured-products-heading"
+        >
+          <div className="featured-products-header">
+            <h2 id="featured-products-heading">{featuredHeading}</h2>
+            <Link className="cart-store-link" href="/store">
+              View all products
+            </Link>
+          </div>
+          <ul className="product-grid">
+            {featuredProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </main>
   );
 }

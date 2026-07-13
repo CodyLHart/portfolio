@@ -9,6 +9,7 @@
     "lint": "tsc --noEmit --pretty false"
   },
   "dependencies": {
+    "@sanity/image-url": "^2.1.1",
     "@sanity/vision": "^6.4.0",
     "next": "16.2.6",
     "next-sanity": "^13.1.1",

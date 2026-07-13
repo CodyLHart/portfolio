@@ -26,6 +26,20 @@ export type ProductsQueryResponse = {
   };
 };
 
+export type ShopifyCollection = {
+  id: string;
+  title: string;
+  handle: string;
+  description: string;
+  products: {
+    nodes: ShopifyProductSummary[];
+  };
+};
+
+export type CollectionByHandleQueryResponse = {
+  collection: ShopifyCollection | null;
+};
+
 export type ShopifySelectedOption = {
   name: string;
   value: string;
