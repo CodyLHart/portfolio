@@ -9,6 +9,7 @@ import {
   sanityProjectId,
 } from "./src/sanity/env";
 import { schemaTypes } from "./src/sanity/schemaTypes";
+import { structure } from "./src/sanity/structure";
 
 export default defineConfig({
   name: "cody-hart-store",
@@ -16,8 +17,19 @@ export default defineConfig({
   basePath: "/studio",
   projectId: sanityProjectId,
   dataset: sanityDataset,
-  plugins: [structureTool(), visionTool({ defaultApiVersion: sanityApiVersion })],
+  plugins: [
+    structureTool({ structure }),
+    visionTool({ defaultApiVersion: sanityApiVersion }),
+  ],
   schema: {
     types: schemaTypes,
+  },
+  document: {
+    actions: (previousActions, context) =>
+      context.schemaType === "homePage"
+        ? previousActions.filter((action) => action.action !== "duplicate")
+        : previousActions,
+    newDocumentOptions: (previousOptions) =>
+      previousOptions.filter((option) => option.templateId !== "homePage"),
   },
 });

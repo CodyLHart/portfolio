@@ -96,6 +96,7 @@ body:has(.studio-route) .site-header {
   font-size: clamp(2rem, 7vw, 4.25rem);
   letter-spacing: 0;
   line-height: 0.95;
+  overflow-wrap: anywhere;
 }
 
 .commerce-intro p {
@@ -103,6 +104,7 @@ body:has(.studio-route) .site-header {
   font-size: clamp(1rem, 2vw, 1.2rem);
   line-height: 1.7;
   max-width: 560px;
+  overflow-wrap: anywhere;
 }
 
 .commerce-link {
