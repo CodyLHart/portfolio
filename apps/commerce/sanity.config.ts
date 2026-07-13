@@ -26,10 +26,14 @@ export default defineConfig({
   },
   document: {
     actions: (previousActions, context) =>
-      context.schemaType === "homePage"
+      context.schemaType === "homePage" || context.schemaType === "siteSettings"
         ? previousActions.filter((action) => action.action !== "duplicate")
         : previousActions,
     newDocumentOptions: (previousOptions) =>
-      previousOptions.filter((option) => option.templateId !== "homePage"),
+      previousOptions.filter(
+        (option) =>
+          option.templateId !== "homePage" &&
+          option.templateId !== "siteSettings",
+      ),
   },
 });

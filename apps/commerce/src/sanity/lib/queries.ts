@@ -91,3 +91,35 @@ export const HOME_PAGE_QUERY = defineQuery(`
     }
   }
 `);
+
+export const SITE_SETTINGS_QUERY = defineQuery(`
+  *[
+    _id == "siteSettings" &&
+    _type == "siteSettings" &&
+    !(_id in path("drafts.**"))
+  ][0]{
+    siteTitle,
+    announcementEnabled,
+    announcementText,
+    announcementLink {
+      label,
+      href,
+      openInNewTab
+    },
+    headerLinks[] {
+      _key,
+      label,
+      href,
+      openInNewTab
+    },
+    footerHeading,
+    footerBody,
+    footerLinks[] {
+      _key,
+      label,
+      href,
+      openInNewTab
+    },
+    copyrightText
+  }
+`);

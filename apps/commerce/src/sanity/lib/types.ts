@@ -29,6 +29,25 @@ export type HomePageContent = {
   sections: HomePageSection[] | null;
 };
 
+export type NavigationItemContent = {
+  _key?: string;
+  label: string | null;
+  href: string | null;
+  openInNewTab: boolean | null;
+};
+
+export type SiteSettingsContent = {
+  siteTitle: string | null;
+  announcementEnabled: boolean | null;
+  announcementText: string | null;
+  announcementLink: NavigationItemContent | null;
+  headerLinks: NavigationItemContent[] | null;
+  footerHeading: string | null;
+  footerBody: string | null;
+  footerLinks: NavigationItemContent[] | null;
+  copyrightText: string | null;
+};
+
 export type HomePageSectionBase = {
   _key: string;
   _type: string;
