@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
+import { PageSections } from "../components/home/PageSections";
 import { ProductCard } from "../components/product/ProductCard";
+import { resolveHomePageSections } from "../lib/homepage";
 import { getCollectionByHandle } from "../lib/shopify/collections";
 import { getHomePageContent } from "../sanity/lib/homePage";
 import { urlForSanityImage } from "../sanity/lib/image";
@@ -19,6 +21,7 @@ const fallbackHomePage: HomePageContent = {
   heroImage: null,
   featuredCollectionHeading: null,
   featuredCollectionHandle: null,
+  sections: null,
 };
 
 const getHeroImageDimensions = (heroImage: SanityHeroImage) => {
@@ -62,6 +65,18 @@ const HeroImage = ({ heroImage }: { heroImage: RenderableHeroImage }) => {
 
 export default async function Page() {
   const homePage = (await getHomePageContent()) ?? fallbackHomePage;
+  const hasPageSections = Boolean(homePage.sections?.length);
+
+  if (hasPageSections) {
+    const sections = await resolveHomePageSections(homePage);
+
+    return (
+      <main className="commerce-shell">
+        <PageSections sections={sections} />
+      </main>
+    );
+  }
+
   const heroImage = hasRenderableHeroImage(homePage.heroImage)
     ? homePage.heroImage
     : null;

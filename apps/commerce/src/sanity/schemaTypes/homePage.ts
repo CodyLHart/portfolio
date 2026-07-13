@@ -1,5 +1,16 @@
 import { defineField, defineType } from "sanity";
 
+type SectionLike = {
+  _type?: string;
+};
+
+const hasSections = (document: unknown) =>
+  typeof document === "object" &&
+  document !== null &&
+  "sections" in document &&
+  Array.isArray(document.sections) &&
+  document.sections.length > 0;
+
 export const homePage = defineType({
   name: "homePage",
   title: "Homepage",
@@ -14,6 +25,7 @@ export const homePage = defineType({
       title: "Eyebrow",
       type: "string",
       description: "Short optional label shown above the homepage heading.",
+      hidden: ({ document }) => hasSections(document),
       validation: (Rule) => Rule.max(60),
     }),
     defineField({
@@ -21,6 +33,7 @@ export const homePage = defineType({
       title: "Heading",
       type: "string",
       description: "The main headline for the commerce homepage.",
+      hidden: ({ document }) => hasSections(document),
       validation: (Rule) => Rule.required().max(120),
     }),
     defineField({
@@ -28,6 +41,7 @@ export const homePage = defineType({
       title: "Body",
       type: "text",
       description: "A short sentence or paragraph below the heading.",
+      hidden: ({ document }) => hasSections(document),
       validation: (Rule) => Rule.required().max(300),
     }),
     defineField({
@@ -35,6 +49,7 @@ export const homePage = defineType({
       title: "Store link label",
       type: "string",
       description: "Text for the homepage link that sends shoppers to the store.",
+      hidden: ({ document }) => hasSections(document),
       validation: (Rule) => Rule.required().max(40),
     }),
     defineField({
@@ -42,6 +57,7 @@ export const homePage = defineType({
       title: "Hero image",
       type: "image",
       description: "Optional image shown in the homepage hero beside the copy.",
+      hidden: ({ document }) => hasSections(document),
       options: {
         hotspot: true,
       },
@@ -63,6 +79,7 @@ export const homePage = defineType({
       title: "Featured collection heading",
       type: "string",
       description: "Heading shown above the Shopify featured products section.",
+      hidden: ({ document }) => hasSections(document),
       validation: (Rule) => Rule.max(80),
     }),
     defineField({
@@ -71,12 +88,54 @@ export const homePage = defineType({
       type: "string",
       description:
         "The Shopify collection URL handle, not the display title. Example: boot-gun",
+      hidden: ({ document }) => hasSections(document),
       validation: (Rule) =>
         Rule.custom((value) =>
           typeof value === "string" && value.trim().length === 0
             ? "Remove this value or enter a Shopify collection handle."
             : true,
         ).max(120),
+    }),
+    defineField({
+      name: "sections",
+      title: "Page sections",
+      type: "array",
+      description:
+        "Add, remove, and drag sections to control the public homepage order.",
+      of: [
+        { type: "heroSection" },
+        { type: "featuredCollectionSection" },
+        { type: "imageTextSection" },
+      ],
+      validation: (Rule) =>
+        Rule.max(12).custom((sections) => {
+          if (!sections) {
+            return true;
+          }
+
+          if (!Array.isArray(sections)) {
+            return "Page sections must be an ordered list.";
+          }
+
+          if (sections.length === 0) {
+            return true;
+          }
+
+          const sectionItems = sections as SectionLike[];
+          const heroSections = sectionItems.filter(
+            (section) => section?._type === "heroSection",
+          );
+
+          if (sectionItems[0]?._type !== "heroSection") {
+            return "The first page section must be a Hero.";
+          }
+
+          if (heroSections.length > 1) {
+            return "Only one Hero section is allowed.";
+          }
+
+          return true;
+        }),
     }),
   ],
   preview: {

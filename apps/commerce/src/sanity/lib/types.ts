@@ -26,4 +26,45 @@ export type HomePageContent = {
   heroImage: SanityHeroImage | null;
   featuredCollectionHeading: string | null;
   featuredCollectionHandle: string | null;
+  sections: HomePageSection[] | null;
 };
+
+export type HomePageSectionBase = {
+  _key: string;
+  _type: string;
+};
+
+export type HeroSectionContent = HomePageSectionBase & {
+  _type: "heroSection";
+  eyebrow: string | null;
+  heading: string;
+  body: string;
+  ctaLabel: string | null;
+  ctaPath: string | null;
+  imagePosition: "left" | "right" | null;
+  image: SanityHeroImage | null;
+};
+
+export type FeaturedCollectionSectionContent = HomePageSectionBase & {
+  _type: "featuredCollectionSection";
+  heading: string | null;
+  collectionHandle: string;
+  productCount: number | null;
+  linkLabel: string | null;
+};
+
+export type ImageTextSectionContent = HomePageSectionBase & {
+  _type: "imageTextSection";
+  eyebrow: string | null;
+  heading: string;
+  body: string;
+  imagePosition: "left" | "right" | null;
+  linkLabel: string | null;
+  linkPath: string | null;
+  image: SanityHeroImage | null;
+};
+
+export type HomePageSection =
+  | HeroSectionContent
+  | FeaturedCollectionSectionContent
+  | ImageTextSectionContent;

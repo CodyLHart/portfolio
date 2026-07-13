@@ -89,7 +89,30 @@ body:has(.studio-route) .site-header {
   gap: 28px;
 }
 
+.home-section {
+  display: grid;
+  gap: 28px;
+}
+
+.home-hero {
+  align-items: center;
+  min-height: min(680px, 72vh);
+}
+
+.image-text {
+  align-items: center;
+  border-top: 1px solid #cbd5e1;
+  padding-top: 42px;
+}
+
 .commerce-intro {
+  display: grid;
+  gap: 16px;
+  max-width: 720px;
+  width: 100%;
+}
+
+.home-section-copy {
   display: grid;
   gap: 16px;
   max-width: 720px;
@@ -104,6 +127,19 @@ body:has(.studio-route) .site-header {
 }
 
 .commerce-hero-image img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.home-section-image {
+  aspect-ratio: 4 / 3;
+  background: #e2e8f0;
+  overflow: hidden;
+  width: 100%;
+}
+
+.home-section-image img {
   height: 100%;
   object-fit: cover;
   width: 100%;
@@ -124,11 +160,36 @@ body:has(.studio-route) .site-header {
   overflow-wrap: anywhere;
 }
 
+.home-section-copy h1,
+.home-section-copy h2 {
+  letter-spacing: 0;
+  line-height: 0.95;
+  overflow-wrap: anywhere;
+}
+
+.home-section-copy h1 {
+  font-size: clamp(2rem, 7vw, 4.25rem);
+}
+
+.home-section-copy h2 {
+  font-size: clamp(1.8rem, 5vw, 3.5rem);
+}
+
 .commerce-intro p {
   color: #475569;
   font-size: clamp(1rem, 2vw, 1.2rem);
   line-height: 1.7;
   max-width: 560px;
+  overflow-wrap: anywhere;
+}
+
+.home-section-body {
+  color: #475569;
+  display: grid;
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  gap: 12px;
+  line-height: 1.7;
+  max-width: 620px;
   overflow-wrap: anywhere;
 }
 
@@ -804,6 +865,14 @@ body:has(.studio-route) .site-header {
 @media (min-width: 900px) {
   .commerce-hero.has-image {
     grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);
+  }
+
+  .home-section {
+    grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);
+  }
+
+  .home-section.image-left .home-section-image {
+    order: -1;
   }
 
   .collection-header.has-image {

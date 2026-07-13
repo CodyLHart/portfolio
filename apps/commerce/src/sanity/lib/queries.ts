@@ -28,6 +28,66 @@ export const HOME_PAGE_QUERY = defineQuery(`
       }
     },
     featuredCollectionHeading,
-    featuredCollectionHandle
+    featuredCollectionHandle,
+    sections[] {
+      _key,
+      _type,
+      _type == "heroSection" => {
+        eyebrow,
+        heading,
+        body,
+        ctaLabel,
+        ctaPath,
+        imagePosition,
+        image {
+          alt,
+          crop,
+          hotspot,
+          asset->{
+            _id,
+            url,
+            metadata {
+              dimensions {
+                width,
+                height,
+                aspectRatio
+              },
+              lqip
+            }
+          }
+        }
+      },
+      _type == "featuredCollectionSection" => {
+        heading,
+        collectionHandle,
+        productCount,
+        linkLabel
+      },
+      _type == "imageTextSection" => {
+        eyebrow,
+        heading,
+        body,
+        imagePosition,
+        linkLabel,
+        linkPath,
+        image {
+          alt,
+          crop,
+          hotspot,
+          asset->{
+            _id,
+            url,
+            metadata {
+              dimensions {
+                width,
+                height,
+                aspectRatio
+              },
+              lqip
+            }
+          }
+        }
+      }
+    }
   }
 `);
