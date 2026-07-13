@@ -62,6 +62,14 @@ a:focus-visible {
   text-decoration: none;
 }
 
+body:has(.studio-route) .site-header {
+  display: none;
+}
+
+.studio-route {
+  min-height: 100vh;
+}
+
 .commerce-shell {
   display: grid;
   place-items: center;
