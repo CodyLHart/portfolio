@@ -31,6 +31,8 @@ export type ShopifyCollection = {
   title: string;
   handle: string;
   description: string;
+  descriptionHtml: string;
+  image: ShopifyImage | null;
   products: {
     nodes: ShopifyProductSummary[];
   };
@@ -38,6 +40,17 @@ export type ShopifyCollection = {
 
 export type CollectionByHandleQueryResponse = {
   collection: ShopifyCollection | null;
+};
+
+export type ShopifyCollectionListItem = {
+  title: string;
+  handle: string;
+};
+
+export type CollectionsQueryResponse = {
+  collections: {
+    nodes: ShopifyCollectionListItem[];
+  };
 };
 
 export type ShopifySelectedOption = {

@@ -179,6 +179,37 @@ body:has(.studio-route) .site-header {
   line-height: 1;
 }
 
+.collection-nav {
+  border-top: 1px solid #cbd5e1;
+  display: grid;
+  gap: 12px;
+  margin-bottom: 28px;
+  padding-top: 18px;
+}
+
+.collection-nav h2 {
+  font-size: 1.1rem;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+.collection-nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.collection-nav a {
+  border: 1px solid #94a3b8;
+  display: inline-flex;
+  font-weight: 700;
+  padding: 8px 12px;
+  text-decoration: none;
+}
+
 .product-grid {
   display: grid;
   gap: 24px;
@@ -247,6 +278,13 @@ body:has(.studio-route) .site-header {
   padding: 24px;
 }
 
+.collection-shell {
+  margin: 0 auto;
+  max-width: 1180px;
+  min-height: 100vh;
+  padding: 24px 24px 56px;
+}
+
 .breadcrumb {
   margin-bottom: 20px;
 }
@@ -260,6 +298,55 @@ body:has(.studio-route) .site-header {
 .product-detail {
   display: grid;
   gap: 28px;
+}
+
+.collection-header {
+  display: grid;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.collection-heading {
+  display: grid;
+  gap: 14px;
+}
+
+.collection-heading h1 {
+  font-size: clamp(2rem, 7vw, 4rem);
+  letter-spacing: 0;
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+
+.collection-heading p,
+.collection-rich-text {
+  color: #475569;
+  line-height: 1.7;
+  max-width: 680px;
+}
+
+.collection-rich-text {
+  display: grid;
+  gap: 12px;
+}
+
+.collection-rich-text p,
+.collection-rich-text ul,
+.collection-rich-text ol {
+  margin: 0;
+}
+
+.collection-image {
+  aspect-ratio: 3 / 2;
+  background: #e2e8f0;
+  overflow: hidden;
+  width: 100%;
+}
+
+.collection-image img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
 }
 
 .product-media {
@@ -716,6 +803,11 @@ body:has(.studio-route) .site-header {
 
 @media (min-width: 900px) {
   .commerce-hero.has-image {
+    grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);
+  }
+
+  .collection-header.has-image {
+    align-items: center;
     grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);
   }
 

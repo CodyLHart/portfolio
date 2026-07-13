@@ -74,6 +74,9 @@ export default async function Page() {
     homePage.featuredCollectionHeading?.trim() ||
     featuredCollection?.title ||
     "Featured products";
+  const featuredCollectionHref = featuredCollection
+    ? `/store/collections/${featuredCollection.handle}`
+    : "/store";
 
   return (
     <main className="commerce-shell">
@@ -101,8 +104,11 @@ export default async function Page() {
         >
           <div className="featured-products-header">
             <h2 id="featured-products-heading">{featuredHeading}</h2>
-            <Link className="cart-store-link" href="/store">
-              View all products
+            <Link
+              className="cart-store-link"
+              href={featuredCollectionHref}
+            >
+              View collection
             </Link>
           </div>
           <ul className="product-grid">
