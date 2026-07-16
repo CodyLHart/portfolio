@@ -97,19 +97,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
       </nav>
 
       <article className="product-detail">
-        <ProductDetails product={product}>
-          <section className="product-description" aria-labelledby="description-heading">
-            <h2 id="description-heading">Description</h2>
-            {product.descriptionHtml ? (
-              <div
-                className="product-rich-text"
-                dangerouslySetInnerHTML={{ __html: product.descriptionHtml }}
-              />
-            ) : (
-              <p>{product.description || "No product description is available."}</p>
-            )}
-          </section>
-        </ProductDetails>
+        <ProductDetails product={product} />
       </article>
     </main>
   );

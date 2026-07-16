@@ -982,7 +982,6 @@ body.cart-drawer-open {
   line-height: 1.6;
 }
 
-.product-description,
 .product-options {
   border-top: 1px solid #cbd5e1;
   display: grid;
@@ -990,11 +989,19 @@ body.cart-drawer-open {
   padding-top: 18px;
 }
 
-.product-description h2,
 .product-options h2 {
   font-size: 1.1rem;
   letter-spacing: 0;
   line-height: 1.2;
+}
+
+.product-description {
+  color: #334155;
+  display: grid;
+  gap: 10px;
+  line-height: 1.65;
+  max-width: var(--width-copy);
+  padding-top: 4px;
 }
 
 .product-rich-text {

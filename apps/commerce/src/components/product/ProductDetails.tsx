@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import type { ReactNode } from "react";
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
@@ -31,6 +30,8 @@ type ProductDetailsProduct = {
   vendor: string;
   productType: string;
   availableForSale: boolean;
+  description: string;
+  descriptionHtml: string;
   featuredImage: ShopifyImage | null;
   images: {
     nodes: ShopifyImage[];
@@ -127,10 +128,8 @@ const initialAddToCartState: AddToCartState = {
 
 export function ProductDetails({
   product,
-  children,
 }: {
   product: ProductDetailsProduct;
-  children: ReactNode;
 }) {
   const { openCart } = useCartDrawer();
   const variants = product.variants.nodes;
@@ -265,21 +264,18 @@ export function ProductDetails({
               <p className="sale-context">Sale price</p>
             ) : null}
           </div>
+          <div className="product-description">
+            {product.descriptionHtml ? (
+              <div
+                className="product-rich-text"
+                dangerouslySetInnerHTML={{ __html: product.descriptionHtml }}
+              />
+            ) : (
+              <p>{product.description || "No product description is available."}</p>
+            )}
+          </div>
           <p className="product-availability">{availabilityText}</p>
         </div>
-
-        <form action={addToCartAction} className="add-to-cart-form">
-          <input type="hidden" name="variantId" value={selectedVariant?.id ?? ""} />
-          <AddToCartButton
-            isAvailable={canSubmitSelectedVariant}
-            hasVariant={Boolean(selectedVariant)}
-          />
-          {addToCartState.error ? (
-            <p className="form-error" role="alert">
-              {addToCartState.error}
-            </p>
-          ) : null}
-        </form>
 
         {displayOptions.length > 0 ? (
           <section className="product-options" aria-labelledby="options-heading">
@@ -322,7 +318,18 @@ export function ProductDetails({
           </section>
         ) : null}
 
-        {children}
+        <form action={addToCartAction} className="add-to-cart-form">
+          <input type="hidden" name="variantId" value={selectedVariant?.id ?? ""} />
+          <AddToCartButton
+            isAvailable={canSubmitSelectedVariant}
+            hasVariant={Boolean(selectedVariant)}
+          />
+          {addToCartState.error ? (
+            <p className="form-error" role="alert">
+              {addToCartState.error}
+            </p>
+          ) : null}
+        </form>
       </section>
     </>
   );
