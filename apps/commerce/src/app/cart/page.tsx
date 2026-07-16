@@ -71,7 +71,7 @@ const CartContents = ({ cart }: { cart: ShopifyCart }) => (
               <Link href={`/store/${line.merchandise.product.handle}`}>
                 {line.merchandise.product.title}
               </Link>
-              {variantLabel ? <p>{variantLabel}</p> : null}
+              {variantLabel ? <p className="cart-line-meta">{variantLabel}</p> : null}
               <CartLineControls
                 lineId={line.id}
                 productTitle={line.merchandise.product.title}

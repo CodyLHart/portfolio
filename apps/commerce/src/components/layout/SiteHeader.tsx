@@ -4,6 +4,7 @@ import type {
   NavigationItemContent,
   SiteSettingsContent,
 } from "../../sanity/lib/types";
+import { CartTrigger } from "../cart/CartTrigger";
 import { CmsLink } from "../content/CmsLink";
 
 const fallbackTitle = "Cody Hart Store";
@@ -51,7 +52,7 @@ export function SiteHeader({
               openInNewTab={link.openInNewTab}
             />
           ))}
-          <Link href={cartHref}>Cart</Link>
+          <CartTrigger />
         </div>
       </nav>
     </header>

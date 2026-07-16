@@ -1,7 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
+import { useActionState, useEffect } from "react";
 import {
   changeCartLineQuantity,
   removeCartLineFromCart,
@@ -22,26 +21,14 @@ function QuantityButton({
   disabled?: boolean;
   label: string;
 }) {
-  const { pending } = useFormStatus();
-
   return (
     <button
       aria-label={label}
       className="cart-quantity-button"
-      disabled={disabled || pending}
+      disabled={disabled}
       type="submit"
     >
-      {pending ? "..." : children}
-    </button>
-  );
-}
-
-function RemoveButton({ label }: { label: string }) {
-  const { pending } = useFormStatus();
-
-  return (
-    <button className="cart-remove-button" disabled={pending} type="submit">
-      {pending ? "Removing..." : label}
+      {children}
     </button>
   );
 }
@@ -56,30 +43,35 @@ function ActionError({ state }: { state: CartLineActionState }) {
 
 export function CartLineControls({
   lineId,
+  onSuccess,
   productTitle,
   quantity,
 }: {
   lineId: string;
+  onSuccess?: () => Promise<void> | void;
   productTitle: string;
   quantity: number;
 }) {
-  const [decrementState, decrementAction] = useActionState(
+  const [decrementState, decrementAction, isDecrementPending] = useActionState(
     quantity === 1 ? removeCartLineFromCart : changeCartLineQuantity,
     initialActionState,
   );
-  const [incrementState, incrementAction] = useActionState(
+  const [incrementState, incrementAction, isIncrementPending] = useActionState(
     changeCartLineQuantity,
-    initialActionState,
-  );
-  const [removeState, removeAction] = useActionState(
-    removeCartLineFromCart,
     initialActionState,
   );
   const nextDecrementQuantity = Math.max(1, quantity - 1);
   const nextIncrementQuantity = Math.min(99, quantity + 1);
+  const isPending = isDecrementPending || isIncrementPending;
+
+  useEffect(() => {
+    if (decrementState.success || incrementState.success) {
+      void onSuccess?.();
+    }
+  }, [decrementState, incrementState, onSuccess]);
 
   return (
-    <div className="cart-line-controls">
+    <div className={`cart-line-controls${isPending ? " is-pending" : ""}`}>
       <div
         className="cart-quantity-controls"
         role="group"
@@ -94,12 +86,21 @@ export function CartLineControls({
               value={String(nextDecrementQuantity)}
             />
           ) : null}
-          <QuantityButton label={`Decrease quantity for ${productTitle}`}>
-            -
+          <QuantityButton
+            disabled={isPending}
+            label={
+              quantity === 1
+                ? `Remove ${productTitle} from cart`
+                : `Decrease quantity for ${productTitle}`
+            }
+          >
+            −
           </QuantityButton>
         </form>
 
-        <span className="cart-quantity-value">Quantity {quantity}</span>
+        <span aria-live="polite" className="cart-quantity-value">
+          {quantity}
+        </span>
 
         <form action={incrementAction}>
           <input name="lineId" type="hidden" value={lineId} />
@@ -109,7 +110,7 @@ export function CartLineControls({
             value={String(nextIncrementQuantity)}
           />
           <QuantityButton
-            disabled={quantity >= 99}
+            disabled={isPending || quantity >= 99}
             label={`Increase quantity for ${productTitle}`}
           >
             +
@@ -117,14 +118,8 @@ export function CartLineControls({
         </form>
       </div>
 
-      <form action={removeAction}>
-        <input name="lineId" type="hidden" value={lineId} />
-        <RemoveButton label={`Remove ${productTitle}`} />
-      </form>
-
       <ActionError state={decrementState} />
       <ActionError state={incrementState} />
-      <ActionError state={removeState} />
     </div>
   );
 }

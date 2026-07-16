@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
+import { CartDrawerProvider } from "../components/cart/CartDrawerProvider";
 import { AnnouncementBar } from "../components/layout/AnnouncementBar";
 import { SiteFooter } from "../components/layout/SiteFooter";
 import { SiteHeader } from "../components/layout/SiteHeader";
@@ -38,10 +39,12 @@ export default async function RootLayout({
   return (
     <html lang="en" className={montserrat.variable}>
       <body className={montserrat.className}>
-        <AnnouncementBar settings={siteSettings} />
-        <SiteHeader settings={siteSettings} />
-        {children}
-        <SiteFooter settings={siteSettings} />
+        <CartDrawerProvider>
+          <AnnouncementBar settings={siteSettings} />
+          <SiteHeader settings={siteSettings} />
+          {children}
+          <SiteFooter settings={siteSettings} />
+        </CartDrawerProvider>
       </body>
     </html>
   );

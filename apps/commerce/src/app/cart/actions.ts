@@ -1,6 +1,5 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import {
   addLineToCart,
@@ -16,6 +15,7 @@ import type { ShopifyCart } from "../../lib/shopify/types";
 
 export type AddToCartState = {
   error: string | null;
+  success: boolean;
 };
 
 export type CartLineActionState = {
@@ -93,12 +93,13 @@ export const addSelectedVariantToCart = async (
   if (!variantId) {
     return {
       error: "Select an available product option before adding it to cart.",
+      success: false,
     };
   }
 
   const buyerIp = await getBuyerIp();
   const cartId = await getCartCookie();
-  let shouldRedirectToCart = false;
+  let didAddToCart = false;
 
   try {
     if (cartId) {
@@ -121,43 +122,50 @@ export const addSelectedVariantToCart = async (
         if (updatedCart.totalQuantity <= existingCart.totalQuantity) {
           return {
             error: "Shopify could not add this item to cart.",
+            success: false,
           };
         }
 
         revalidatePath("/cart");
-        shouldRedirectToCart = true;
+        didAddToCart = true;
       }
     }
 
-    if (!shouldRedirectToCart) {
+    if (!didAddToCart) {
       const cart = await createCartWithLine(variantId, 1, buyerIp);
 
       if (cart.totalQuantity < 1) {
         return {
           error: "Shopify could not add this item to cart.",
+          success: false,
         };
       }
 
       await setCartCookie(cart.id);
       revalidatePath("/cart");
-      shouldRedirectToCart = true;
+      didAddToCart = true;
     }
   } catch (error) {
     if (error instanceof ShopifyCartUserErrorMessage) {
       return {
         error: error.message || "Shopify could not add this item to cart.",
+        success: false,
       };
     }
 
     throw error;
   }
 
-  if (shouldRedirectToCart) {
-    redirect("/cart");
+  if (didAddToCart) {
+    return {
+      error: null,
+      success: true,
+    };
   }
 
   return {
     error: "Shopify could not add this item to cart.",
+    success: false,
   };
 };
 

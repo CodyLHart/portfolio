@@ -2,12 +2,13 @@
 
 import Image from "next/image";
 import type { ReactNode } from "react";
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
   addSelectedVariantToCart,
   type AddToCartState,
 } from "../../app/cart/actions";
+import { useCartDrawer } from "../cart/CartDrawerProvider";
 import { formatShopifyPrice } from "../../lib/shopify/format";
 import type {
   ShopifyImage,
@@ -122,6 +123,7 @@ function AddToCartButton({
 
 const initialAddToCartState: AddToCartState = {
   error: null,
+  success: false,
 };
 
 export function ProductDetails({
@@ -131,6 +133,7 @@ export function ProductDetails({
   product: ProductDetailsProduct;
   children: ReactNode;
 }) {
+  const { openCart } = useCartDrawer();
   const variants = product.variants.nodes;
   const initialVariant = useMemo(() => getInitialVariant(variants), [variants]);
   const images = useMemo(() => getUniqueImages(product), [product]);
@@ -166,6 +169,12 @@ export function ProductDetails({
   const canSubmitSelectedVariant = Boolean(
     selectedVariant?.id && selectedVariant.availableForSale,
   );
+
+  useEffect(() => {
+    if (addToCartState.success) {
+      openCart();
+    }
+  }, [addToCartState, openCart]);
 
   const handleOptionChange = (optionName: string, optionValue: string) => {
     const nextVariant = findFirstCompatibleVariant({
