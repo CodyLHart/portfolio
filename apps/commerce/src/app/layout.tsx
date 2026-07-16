@@ -6,7 +6,19 @@ import { getSiteSettings } from "../sanity/lib/siteSettings";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Commerce",
+  title: {
+    default: "Cody Hart Store",
+    template: "%s | Cody Hart Store",
+  },
+  description:
+    "Shop music, apparel, artwork, and creative projects from Cody Hart and collaborators.",
+  openGraph: {
+    type: "website",
+    siteName: "Cody Hart Store",
+    title: "Cody Hart Store",
+    description:
+      "Shop music, apparel, artwork, and creative projects from Cody Hart and collaborators.",
+  },
 };
 
 export default async function RootLayout({

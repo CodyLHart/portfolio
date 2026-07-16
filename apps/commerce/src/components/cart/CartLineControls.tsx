@@ -80,7 +80,11 @@ export function CartLineControls({
 
   return (
     <div className="cart-line-controls">
-      <div className="cart-quantity-controls" aria-label={`${productTitle} quantity`}>
+      <div
+        className="cart-quantity-controls"
+        role="group"
+        aria-label={`${productTitle} quantity`}
+      >
         <form action={decrementAction}>
           <input name="lineId" type="hidden" value={lineId} />
           {quantity > 1 ? (

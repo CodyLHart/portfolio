@@ -8,7 +8,7 @@ export const getSafeCmsHref = (href: unknown) => {
 
   const value = href.trim();
 
-  if (!value || hasControlCharacters(value)) {
+  if (!value || hasControlCharacters(value) || value.includes("\\")) {
     return null;
   }
 

@@ -789,6 +789,66 @@ body:has(.studio-route) .storefront-chrome {
   line-height: 1.6;
 }
 
+.error-shell {
+  margin: 0 auto;
+  max-width: 1180px;
+  min-height: 100vh;
+  padding: 48px 24px 72px;
+}
+
+.error-state {
+  display: grid;
+  gap: 16px;
+  margin-top: 16vh;
+  max-width: 560px;
+}
+
+.error-state h1 {
+  font-size: clamp(2rem, 7vw, 3.5rem);
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.error-state p {
+  color: #475569;
+  line-height: 1.6;
+}
+
+.error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.error-button,
+.error-link {
+  border: 1px solid #111827;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 14px;
+  text-decoration: none;
+}
+
+.error-button {
+  background: #111827;
+  color: #fff;
+}
+
+.error-link {
+  background: #fff;
+  color: #111827;
+}
+
+.error-button:focus-visible,
+.error-link:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: 4px;
+}
+
 .cart-shell {
   margin: 0 auto;
   max-width: 980px;

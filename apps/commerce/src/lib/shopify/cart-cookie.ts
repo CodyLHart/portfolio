@@ -9,7 +9,19 @@ export const getCartCookie = async () => {
   const cookieStore = await cookies();
   const value = cookieStore.get(CART_COOKIE)?.value;
 
-  return value ? decodeURIComponent(value) : null;
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return decodeURIComponent(value);
+  } catch (error) {
+    if (error instanceof URIError) {
+      return null;
+    }
+
+    throw error;
+  }
 };
 
 export const setCartCookie = async (cartId: string) => {

@@ -14,9 +14,9 @@ type RenderableHeroImage = SanityHeroImage & {
 };
 
 const fallbackHomePage: HomePageContent = {
-  eyebrow: "Headless Commerce",
-  heading: "Commerce app initialized",
-  body: "Shopify and Sanity will be connected next.",
+  eyebrow: "Independent goods and creative work",
+  heading: "Cody Hart Store",
+  body: "Shop music, apparel, artwork, and other projects from Cody Hart and collaborators.",
   storeLinkLabel: "View store",
   heroImage: null,
   featuredCollectionHeading: null,

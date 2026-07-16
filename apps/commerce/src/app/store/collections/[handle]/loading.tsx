@@ -1,3 +1,9 @@
 export default function LoadingCollection() {
-  return <p className="loading-state">Loading collection...</p>;
+  return (
+    <main className="collection-shell">
+      <div className="loading-state" role="status" aria-live="polite">
+        Loading collection...
+      </div>
+    </main>
+  );
 }

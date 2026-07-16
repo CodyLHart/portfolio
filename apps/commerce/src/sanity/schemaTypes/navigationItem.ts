@@ -7,6 +7,10 @@ const isValidNavigationHref = (href: string | undefined) => {
     return false;
   }
 
+  if (value.includes("\\")) {
+    return false;
+  }
+
   if (value.startsWith("/") && !value.startsWith("//")) {
     return !value.includes("://");
   }
@@ -45,7 +49,7 @@ export const navigationItem = defineType({
         Rule.required().custom((value) =>
           isValidNavigationHref(value)
             ? true
-            : "Enter an internal path like /store or a secure URL beginning with https://.",
+            : "Enter an internal path like /store or a secure URL beginning with https://. Backslashes are not allowed.",
         ),
     }),
     defineField({
