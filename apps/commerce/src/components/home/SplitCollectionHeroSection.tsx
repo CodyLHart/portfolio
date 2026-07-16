@@ -30,9 +30,11 @@ const imageDimensions = (image: SanityHeroImage) => {
 };
 
 const SplitCollectionTile = ({
+  align,
   priority,
   tile,
 }: {
+  align: "left" | "right";
   priority: boolean;
   tile: RenderableTile;
 }) => {
@@ -41,7 +43,7 @@ const SplitCollectionTile = ({
 
   return (
     <Link
-      className="split-collection-tile"
+      className={`split-collection-tile split-collection-tile-${align}`}
       href={`/store/collections/${tile.collection.handle}`}
     >
       <span className="split-collection-image">
@@ -84,6 +86,7 @@ export function SplitCollectionHeroSection({
     >
       {tiles.map((tile, index) => (
         <SplitCollectionTile
+          align={index === 1 ? "right" : "left"}
           key={tile._key}
           tile={tile}
           priority={index < 2}

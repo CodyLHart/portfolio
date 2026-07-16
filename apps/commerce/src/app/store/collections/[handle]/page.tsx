@@ -31,7 +31,28 @@ const shortenDescription = (description: string) => {
     : normalized;
 };
 
-const CollectionImage = ({ collection }: { collection: ShopifyCollection }) => {
+const CollectionDescription = ({
+  collection,
+}: {
+  collection: ShopifyCollection;
+}) => {
+  if (collection.descriptionHtml) {
+    return (
+      <div
+        className="collection-rich-text"
+        dangerouslySetInnerHTML={{ __html: collection.descriptionHtml }}
+      />
+    );
+  }
+
+  if (collection.description) {
+    return <p>{collection.description}</p>;
+  }
+
+  return null;
+};
+
+const CollectionHero = ({ collection }: { collection: ShopifyCollection }) => {
   const image = collection.image;
 
   if (!image) {
@@ -39,16 +60,19 @@ const CollectionImage = ({ collection }: { collection: ShopifyCollection }) => {
   }
 
   return (
-    <div className="collection-image">
+    <header className="collection-hero">
       <Image
         src={image.url}
         alt={image.altText ?? collection.title}
         width={isValidImageSize(image) ? image.width! : 1200}
         height={isValidImageSize(image) ? image.height! : 800}
-        sizes="(max-width: 900px) 100vw, 44vw"
-        priority
+        sizes="100vw"
+        preload
       />
-    </div>
+      <div className="collection-hero-content">
+        <h1>{collection.title}</h1>
+      </div>
+    </header>
   );
 };
 
@@ -103,27 +127,34 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
   }
 
   const products = collection.products.nodes;
+  const hasCollectionImage = Boolean(collection.image);
 
   return (
-    <main className="collection-shell">
+    <main
+      className={
+        hasCollectionImage
+          ? "collection-shell collection-shell-has-hero"
+          : "collection-shell"
+      }
+    >
+      {hasCollectionImage ? <CollectionHero collection={collection} /> : null}
+
       <nav className="breadcrumb" aria-label="Breadcrumb">
         <Link href="/store">Back to store</Link>
       </nav>
 
-      <header className={collection.image ? "collection-header has-image" : "collection-header"}>
+      {!hasCollectionImage ? (
+        <header className="collection-header">
+          <div className="collection-heading">
+            <h1>{collection.title}</h1>
+            <CollectionDescription collection={collection} />
+          </div>
+        </header>
+      ) : collection.descriptionHtml || collection.description ? (
         <div className="collection-heading">
-          <h1>{collection.title}</h1>
-          {collection.descriptionHtml ? (
-            <div
-              className="collection-rich-text"
-              dangerouslySetInnerHTML={{ __html: collection.descriptionHtml }}
-            />
-          ) : collection.description ? (
-            <p>{collection.description}</p>
-          ) : null}
+          <CollectionDescription collection={collection} />
         </div>
-        <CollectionImage collection={collection} />
-      </header>
+      ) : null}
 
       {products.length > 0 ? (
         <section aria-label={`${collection.title} products`}>

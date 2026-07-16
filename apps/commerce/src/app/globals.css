@@ -9,6 +9,12 @@
   --width-page: 100%;
   --width-cart: min(100%, 1120px);
   --width-copy: 680px;
+  --hero-bottom-scrim: linear-gradient(
+    to bottom,
+    rgb(17 24 39 / 0) 0%,
+    rgb(17 24 39 / 0.2) 45%,
+    rgb(17 24 39 / 0.78) 100%
+  );
   background: #f8fafc;
   color: #111827;
   font-family:
@@ -332,8 +338,20 @@ body:has(.studio-route) .storefront-chrome {
 .split-collection-tile {
   display: grid;
   gap: 0;
+  overflow: hidden;
+  position: relative;
   text-decoration: none;
   transition: opacity 160ms ease;
+}
+
+.split-collection-tile::after {
+  background: var(--hero-bottom-scrim);
+  content: "";
+  inset: auto 0 0;
+  min-height: 44%;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
 }
 
 .split-collection-tile:focus-visible {
@@ -363,7 +381,6 @@ body:has(.studio-route) .storefront-chrome {
 
 .split-collection-label {
   align-items: center;
-  background: #111827;
   color: #fff;
   display: flex;
   font-size: clamp(1.1rem, 3vw, 1.75rem);
@@ -371,12 +388,17 @@ body:has(.studio-route) .storefront-chrome {
   justify-content: flex-start;
   letter-spacing: 0;
   line-height: 1.1;
-  min-height: 64px;
   overflow-wrap: anywhere;
-  padding: 16px;
+  padding: clamp(16px, 3vw, 28px) clamp(16px, 3vw, 28px)
+    clamp(12px, 2.2vw, 20px);
+  pointer-events: none;
+  position: absolute;
+  inset: auto 0 0;
+  text-shadow: 0 1px 12px rgb(0 0 0 / 0.45);
+  z-index: 2;
 }
 
-.split-collection-tile:nth-child(2) .split-collection-label {
+.split-collection-tile-right .split-collection-label {
   justify-content: flex-end;
   text-align: right;
 }
@@ -395,10 +417,9 @@ body:has(.studio-route) .storefront-chrome {
 
 .external-carousel-header {
   align-items: center;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
   gap: 12px;
-  justify-content: space-between;
 }
 
 .external-carousel-header h2 {
@@ -407,54 +428,82 @@ body:has(.studio-route) .storefront-chrome {
   line-height: 1.15;
   margin: 0;
   overflow-wrap: anywhere;
+  text-align: center;
 }
 
-.external-carousel-controls {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-}
-
-.external-carousel-controls button {
-  background: #fff;
-  border: 1px solid #94a3b8;
+.external-carousel-header button {
+  align-items: center;
+  background: transparent;
+  border: 0;
   color: #111827;
   cursor: pointer;
+  display: inline-flex;
   font: inherit;
+  font-size: 1.35rem;
   font-weight: 800;
-  min-height: 40px;
-  padding: 8px 12px;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0;
+  transition:
+    background-color 160ms ease,
+    opacity 160ms ease;
 }
 
-.external-carousel-controls button:disabled {
+.external-carousel-header button:hover:not(:disabled) {
+  background: rgb(17 24 39 / 0.06);
+}
+
+.external-carousel-header button:disabled {
   color: #64748b;
   cursor: not-allowed;
   opacity: 0.62;
 }
 
-.external-carousel-controls button:focus-visible {
+.external-carousel-header button:focus-visible {
   outline: 2px solid #111827;
   outline-offset: 3px;
 }
 
+.external-carousel-status {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.external-carousel-viewport {
+  --carousel-gap: 16px;
+  --carousel-item-basis: calc((100% - 64px) / 5);
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 0 8px;
+  touch-action: pan-y;
+  width: 100%;
+}
+
 .external-carousel-track {
-  display: grid;
-  gap: 16px;
-  grid-auto-columns: minmax(180px, calc((100% - 64px) / 5));
-  grid-auto-flow: column;
+  display: flex;
+  gap: var(--carousel-gap);
   list-style: none;
   margin: 0;
-  overflow-x: auto;
-  overscroll-behavior-inline: contain;
-  padding: 0 0 8px;
-  scroll-padding-inline: 2px;
-  scroll-snap-type: inline mandatory;
-  scrollbar-width: thin;
+  min-width: 100%;
+  padding: 0;
+}
+
+.external-carousel-track.is-transitioning {
+  transition: transform 240ms ease;
+  will-change: transform;
 }
 
 .external-carousel-item {
+  flex: 0 0 var(--carousel-item-basis);
   min-width: 0;
-  scroll-snap-align: start;
 }
 
 .external-carousel-item a {
@@ -636,11 +685,16 @@ body:has(.studio-route) .storefront-chrome {
 }
 
 .collection-shell {
+  --collection-shell-padding-top: 24px;
   margin: 0 auto;
   max-width: var(--width-page);
   min-height: 100vh;
-  padding: 24px var(--page-gutter) 56px;
+  padding: var(--collection-shell-padding-top) var(--page-gutter) 56px;
   width: 100%;
+}
+
+.collection-shell-has-hero .breadcrumb {
+  margin-top: 32px;
 }
 
 .breadcrumb {
@@ -664,9 +718,58 @@ body:has(.studio-route) .storefront-chrome {
   margin-bottom: 32px;
 }
 
+.collection-hero {
+  background: #e2e8f0;
+  height: clamp(380px, 60vh, 720px);
+  margin-block-start: calc(-1 * var(--collection-shell-padding-top));
+  margin-inline: calc(-1 * var(--page-gutter));
+  overflow: hidden;
+  position: relative;
+}
+
+.collection-hero::after {
+  background: var(--hero-bottom-scrim);
+  content: "";
+  inset: auto 0 0;
+  min-height: 48%;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.collection-hero img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  width: 100%;
+}
+
+.collection-hero-content {
+  inset: auto 0 0;
+  padding: clamp(20px, 4vw, 56px) var(--page-gutter)
+    clamp(18px, 3.5vw, 48px);
+  position: absolute;
+  z-index: 2;
+}
+
+.collection-hero-content h1 {
+  color: #fff;
+  font-size: clamp(2rem, 7vw, 5rem);
+  letter-spacing: 0;
+  line-height: 0.95;
+  max-width: 12ch;
+  overflow-wrap: anywhere;
+  text-shadow: 0 1px 12px rgb(0 0 0 / 0.45);
+}
+
 .collection-heading {
   display: grid;
   gap: 14px;
+}
+
+.collection-shell > .collection-heading {
+  margin-bottom: 32px;
 }
 
 .collection-heading h1 {
@@ -692,19 +795,6 @@ body:has(.studio-route) .storefront-chrome {
 .collection-rich-text ul,
 .collection-rich-text ol {
   margin: 0;
-}
-
-.collection-image {
-  aspect-ratio: 3 / 2;
-  background: #e2e8f0;
-  overflow: hidden;
-  width: 100%;
-}
-
-.collection-image img {
-  height: 100%;
-  object-fit: cover;
-  width: 100%;
 }
 
 .product-media {
@@ -1248,11 +1338,6 @@ body:has(.studio-route) .storefront-chrome {
     order: -1;
   }
 
-  .collection-header.has-image {
-    align-items: center;
-    grid-template-columns: minmax(0, 0.82fr) minmax(420px, 1.18fr);
-  }
-
   .product-detail {
     align-items: start;
     grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.65fr);
@@ -1278,29 +1363,47 @@ body:has(.studio-route) .storefront-chrome {
     padding-block: 40px;
   }
 
-  .external-carousel-controls {
-    justify-content: flex-start;
+  .collection-hero {
+    height: clamp(300px, 100vw, 430px);
   }
 
-  .external-carousel-track {
-    grid-auto-columns: minmax(220px, 78%);
+  .external-carousel-header {
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    gap: 8px;
+  }
+
+  .external-carousel-viewport {
+    --carousel-item-basis: calc((100% - 16px) / 2);
   }
 }
 
 @media (max-width: 900px) and (min-width: 641px) {
-  .external-carousel-track {
-    grid-auto-columns: minmax(220px, calc((100% - 16px) / 2));
+  .external-carousel-viewport {
+    --carousel-item-basis: calc((100% - 32px) / 3);
+  }
+}
+
+@media (max-width: 1199px) and (min-width: 901px) {
+  .external-carousel-viewport {
+    --carousel-item-basis: calc((100% - 48px) / 4);
+  }
+}
+
+@media (max-width: 360px) {
+  .external-carousel-viewport {
+    --carousel-item-basis: 100%;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .split-collection-tile,
   .external-carousel-item a,
-  .product-card-link {
+  .product-card-link,
+  .external-carousel-header button {
     transition: none;
   }
 
   .external-carousel-track {
-    scroll-behavior: auto;
+    transition: none;
   }
 }
