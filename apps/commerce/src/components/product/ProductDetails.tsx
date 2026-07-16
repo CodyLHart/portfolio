@@ -202,7 +202,7 @@ export function ProductDetails({
               alt={activeImage.altText ?? product.title}
               width={isValidImageSize(activeImage) ? activeImage.width! : 1200}
               height={isValidImageSize(activeImage) ? activeImage.height! : 1200}
-              sizes="(max-width: 900px) 100vw, 55vw"
+              sizes="(max-width: 640px) 100vw, (max-width: 900px) 82vw, 62vw"
               priority
             />
           </div>
