@@ -4,6 +4,8 @@ type SectionLike = {
   _type?: string;
 };
 
+const heroSectionTypes = new Set(["heroSection", "splitCollectionHeroSection"]);
+
 const hasSections = (document: unknown) =>
   typeof document === "object" &&
   document !== null &&
@@ -104,8 +106,10 @@ export const homePage = defineType({
         "Add, remove, and drag sections to control the public homepage order.",
       of: [
         { type: "heroSection" },
+        { type: "splitCollectionHeroSection" },
         { type: "featuredCollectionSection" },
         { type: "imageTextSection" },
+        { type: "externalCarouselSection" },
       ],
       validation: (Rule) =>
         Rule.max(12).custom((sections) => {
@@ -122,16 +126,19 @@ export const homePage = defineType({
           }
 
           const sectionItems = sections as SectionLike[];
-          const heroSections = sectionItems.filter(
-            (section) => section?._type === "heroSection",
+          const heroSections = sectionItems.filter((section) =>
+            section?._type ? heroSectionTypes.has(section._type) : false,
           );
 
-          if (sectionItems[0]?._type !== "heroSection") {
-            return "The first page section must be a Hero.";
+          if (
+            !sectionItems[0]?._type ||
+            !heroSectionTypes.has(sectionItems[0]._type)
+          ) {
+            return "The first page section must be a Hero or Split collection hero.";
           }
 
           if (heroSections.length > 1) {
-            return "Only one Hero section is allowed.";
+            return "Only one hero-style section is allowed.";
           }
 
           return true;

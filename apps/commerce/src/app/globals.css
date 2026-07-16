@@ -287,11 +287,11 @@ body:has(.studio-route) .storefront-chrome {
 
 .featured-products {
   display: grid;
-  gap: 22px;
+  gap: 16px;
 }
 
 .featured-products-header {
-  align-items: end;
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
@@ -299,9 +299,173 @@ body:has(.studio-route) .storefront-chrome {
 }
 
 .featured-products-header h2 {
-  font-size: clamp(1.6rem, 4vw, 2.6rem);
+  font-size: clamp(1.25rem, 2vw, 2rem);
   letter-spacing: 0;
-  line-height: 1;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.split-collection-hero {
+  display: grid;
+  gap: 18px;
+}
+
+.split-collection-tile {
+  border: 1px solid #cbd5e1;
+  display: grid;
+  text-decoration: none;
+}
+
+.split-collection-tile:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: 4px;
+}
+
+.split-collection-image {
+  aspect-ratio: 4 / 3;
+  background: #e2e8f0;
+  display: block;
+  overflow: hidden;
+}
+
+.split-collection-image img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.split-collection-label {
+  align-items: center;
+  background: #fff;
+  color: #111827;
+  display: flex;
+  font-size: clamp(1.1rem, 3vw, 1.75rem);
+  font-weight: 800;
+  justify-content: space-between;
+  letter-spacing: 0;
+  line-height: 1.1;
+  min-height: 64px;
+  overflow-wrap: anywhere;
+  padding: 16px;
+}
+
+.external-carousel-section {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.external-carousel {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.external-carousel-header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.external-carousel-header h2 {
+  font-size: clamp(1.25rem, 2vw, 2rem);
+  letter-spacing: 0;
+  line-height: 1.15;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.external-carousel-controls {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.external-carousel-controls button {
+  background: #fff;
+  border: 1px solid #94a3b8;
+  color: #111827;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  min-height: 40px;
+  padding: 8px 12px;
+}
+
+.external-carousel-controls button:disabled {
+  color: #64748b;
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.external-carousel-controls button:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: 3px;
+}
+
+.external-carousel-track {
+  display: grid;
+  gap: 16px;
+  grid-auto-columns: minmax(180px, calc((100% - 64px) / 5));
+  grid-auto-flow: column;
+  list-style: none;
+  margin: 0;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  padding: 0 0 8px;
+  scroll-padding-inline: 2px;
+  scroll-snap-type: inline mandatory;
+  scrollbar-width: thin;
+}
+
+.external-carousel-item {
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+.external-carousel-item a {
+  border: 1px solid #cbd5e1;
+  display: grid;
+  gap: 12px;
+  height: 100%;
+  text-decoration: none;
+}
+
+.external-carousel-item a:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: 4px;
+}
+
+.external-carousel-image {
+  aspect-ratio: 4 / 5;
+  background: #e2e8f0;
+  display: block;
+  overflow: hidden;
+}
+
+.external-carousel-image img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.external-carousel-copy {
+  display: grid;
+  gap: 4px;
+  padding: 0 12px 14px;
+}
+
+.external-carousel-title {
+  font-weight: 800;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.external-carousel-subtitle {
+  color: #475569;
+  line-height: 1.5;
   overflow-wrap: anywhere;
 }
 
@@ -1005,6 +1169,15 @@ body:has(.studio-route) .storefront-chrome {
 }
 
 @media (min-width: 900px) {
+  .split-collection-hero {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-section.featured-products,
+  .home-section.external-carousel-section {
+    grid-template-columns: 1fr;
+  }
+
   .commerce-hero.has-image {
     grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);
   }
@@ -1038,5 +1211,25 @@ body:has(.studio-route) .storefront-chrome {
 @media (max-width: 640px) {
   .commerce-shell {
     padding: 40px 20px;
+  }
+
+  .external-carousel-controls {
+    justify-content: flex-start;
+  }
+
+  .external-carousel-track {
+    grid-auto-columns: minmax(220px, 78%);
+  }
+}
+
+@media (max-width: 900px) and (min-width: 641px) {
+  .external-carousel-track {
+    grid-auto-columns: minmax(220px, calc((100% - 16px) / 2));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .external-carousel-track {
+    scroll-behavior: auto;
   }
 }

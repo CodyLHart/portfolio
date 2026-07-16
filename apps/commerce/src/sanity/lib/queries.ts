@@ -57,6 +57,30 @@ export const HOME_PAGE_QUERY = defineQuery(`
           }
         }
       },
+      _type == "splitCollectionHeroSection" => {
+        tiles[] {
+          _key,
+          label,
+          collectionHandle,
+          image {
+            alt,
+            crop,
+            hotspot,
+            asset->{
+              _id,
+              url,
+              metadata {
+                dimensions {
+                  width,
+                  height,
+                  aspectRatio
+                },
+                lqip
+              }
+            }
+          }
+        }
+      },
       _type == "featuredCollectionSection" => {
         heading,
         collectionHandle,
@@ -84,6 +108,33 @@ export const HOME_PAGE_QUERY = defineQuery(`
                 aspectRatio
               },
               lqip
+            }
+          }
+        }
+      },
+      _type == "externalCarouselSection" => {
+        heading,
+        items[] {
+          _key,
+          title,
+          subtitle,
+          href,
+          openInNewTab,
+          image {
+            alt,
+            crop,
+            hotspot,
+            asset->{
+              _id,
+              url,
+              metadata {
+                dimensions {
+                  width,
+                  height,
+                  aspectRatio
+                },
+                lqip
+              }
             }
           }
         }

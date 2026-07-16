@@ -64,6 +64,18 @@ export type HeroSectionContent = HomePageSectionBase & {
   image: SanityHeroImage | null;
 };
 
+export type PromoCollectionTileContent = {
+  _key: string;
+  label: string;
+  collectionHandle: string;
+  image: SanityHeroImage | null;
+};
+
+export type SplitCollectionHeroSectionContent = HomePageSectionBase & {
+  _type: "splitCollectionHeroSection";
+  tiles: PromoCollectionTileContent[] | null;
+};
+
 export type FeaturedCollectionSectionContent = HomePageSectionBase & {
   _type: "featuredCollectionSection";
   heading: string | null;
@@ -83,7 +95,24 @@ export type ImageTextSectionContent = HomePageSectionBase & {
   image: SanityHeroImage | null;
 };
 
+export type ExternalCarouselItemContent = {
+  _key: string;
+  title: string;
+  subtitle: string | null;
+  href: string;
+  openInNewTab: boolean | null;
+  image: SanityHeroImage | null;
+};
+
+export type ExternalCarouselSectionContent = HomePageSectionBase & {
+  _type: "externalCarouselSection";
+  heading: string;
+  items: ExternalCarouselItemContent[] | null;
+};
+
 export type HomePageSection =
   | HeroSectionContent
+  | SplitCollectionHeroSectionContent
   | FeaturedCollectionSectionContent
-  | ImageTextSectionContent;
+  | ImageTextSectionContent
+  | ExternalCarouselSectionContent;
