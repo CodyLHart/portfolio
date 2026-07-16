@@ -22,7 +22,6 @@ import {
   getInitialVariant,
   getMeaningfulOptions,
   normalizeOptionName,
-  optionSelectionLabel,
   selectedOptionsFromVariant,
   type SelectedOptions,
 } from "../../lib/shopify/variants";
@@ -267,11 +266,6 @@ export function ProductDetails({
             ) : null}
           </div>
           <p className="product-availability">{availabilityText}</p>
-          {selectedVariant && selectedVariant.title.toLowerCase() !== "default title" ? (
-            <p className="selected-variant">
-              Selected variant: {selectedVariant.title}
-            </p>
-          ) : null}
         </div>
 
         <form action={addToCartAction} className="add-to-cart-form">
@@ -325,22 +319,6 @@ export function ProductDetails({
                 </fieldset>
               ))}
             </div>
-          </section>
-        ) : null}
-
-        {hasMeaningfulVariants && variants.length > 0 ? (
-          <section className="product-variants" aria-labelledby="variants-heading">
-            <h2 id="variants-heading">Variants</h2>
-            <ul>
-              {variants.map((variant) => (
-                <li key={variant.id}>
-                  <span>{variant.title}</span>
-                  <span>{optionSelectionLabel(variant.selectedOptions)}</span>
-                  <span>{formatShopifyPrice(variant.price)}</span>
-                  <span>{variant.availableForSale ? "Available" : "Sold out"}</span>
-                </li>
-              ))}
-            </ul>
           </section>
         ) : null}
 

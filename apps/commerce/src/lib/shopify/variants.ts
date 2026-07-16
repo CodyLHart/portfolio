@@ -1,7 +1,6 @@
 import type {
   ShopifyProductOption,
   ShopifyProductVariant,
-  ShopifySelectedOption,
 } from "./types";
 
 export type SelectedOptions = Record<string, string>;
@@ -105,6 +104,3 @@ export const findFirstCompatibleVariant = ({
     null
   );
 };
-
-export const optionSelectionLabel = (options: ShopifySelectedOption[]) =>
-  options.map((option) => `${option.name}: ${option.value}`).join(", ");
