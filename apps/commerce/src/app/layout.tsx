@@ -1,9 +1,16 @@
 import type { Metadata } from "next";
+import { Montserrat } from "next/font/google";
 import { AnnouncementBar } from "../components/layout/AnnouncementBar";
 import { SiteFooter } from "../components/layout/SiteFooter";
 import { SiteHeader } from "../components/layout/SiteHeader";
 import { getSiteSettings } from "../sanity/lib/siteSettings";
 import "./globals.css";
+
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  variable: "--font-montserrat",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -29,8 +36,8 @@ export default async function RootLayout({
   const siteSettings = await getSiteSettings();
 
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" className={montserrat.variable}>
+      <body className={montserrat.className}>
         <AnnouncementBar settings={siteSettings} />
         <SiteHeader settings={siteSettings} />
         {children}

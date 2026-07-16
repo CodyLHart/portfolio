@@ -29,7 +29,7 @@ export default function GlobalError({
           :root {
             background: #f8fafc;
             color: #111827;
-            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
           }
 
           * {
