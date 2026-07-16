@@ -150,6 +150,23 @@ export const SITE_SETTINGS_QUERY = defineQuery(`
     !(_id in path("drafts.**"))
   ][0]{
     siteTitle,
+    logo {
+      alt,
+      crop,
+      hotspot,
+      asset-> {
+        _id,
+        url,
+        metadata {
+          dimensions {
+            width,
+            height,
+            aspectRatio
+          },
+          lqip
+        }
+      }
+    },
     announcementEnabled,
     announcementText,
     announcementLink {

@@ -38,6 +38,7 @@ export type NavigationItemContent = {
 
 export type SiteSettingsContent = {
   siteTitle: string | null;
+  logo: SanityHeroImage | null;
   announcementEnabled: boolean | null;
   announcementText: string | null;
   announcementLink: NavigationItemContent | null;

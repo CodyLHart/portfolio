@@ -55,7 +55,12 @@ a:focus-visible {
 }
 
 .site-header {
-  padding: 12px var(--page-gutter);
+  background: #f8fafc;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 0.08);
+  padding: 4px var(--page-gutter);
+  position: sticky;
+  top: 0;
+  z-index: 40;
 }
 
 .announcement-bar {
@@ -130,6 +135,18 @@ a:focus-visible {
 .site-title {
   color: #111827;
   font-weight: 800;
+}
+
+.site-logo-link {
+  flex: 0 0 auto;
+}
+
+.site-logo-image {
+  display: block;
+  height: 48px;
+  object-fit: cover;
+  object-position: center center;
+  width: 48px;
 }
 
 .site-nav-links {
@@ -1680,6 +1697,10 @@ body.cart-drawer-open {
   .commerce-shell {
     --commerce-shell-padding-top: 40px;
     padding-block: 40px;
+  }
+
+  .site-logo-image {
+    max-height: 42px;
   }
 
   .product-media,

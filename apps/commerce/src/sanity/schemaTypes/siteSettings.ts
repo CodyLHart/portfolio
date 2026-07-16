@@ -34,6 +34,26 @@ export const siteSettings = defineType({
       validation: (Rule) => Rule.required().max(80),
     }),
     defineField({
+      name: "logo",
+      title: "Header logo",
+      type: "image",
+      description:
+        "Optional logo that replaces the visible site title in the storefront header. Site title is used when no logo is published.",
+      options: {
+        hotspot: true,
+      },
+      fields: [
+        defineField({
+          name: "alt",
+          title: "Alt text",
+          type: "string",
+          description:
+            "Optional logo description. Site title will be used when left blank.",
+          validation: (Rule) => Rule.max(120),
+        }),
+      ],
+    }),
+    defineField({
       name: "announcementEnabled",
       title: "Announcement enabled",
       type: "boolean",
