@@ -46,7 +46,7 @@ const toTrackItem = (
       alt: item.image.alt,
       src: urlForSanityImage(item.image)
         .width(800)
-        .height(1000)
+        .height(800)
         .fit("crop")
         .auto("format")
         .url(),

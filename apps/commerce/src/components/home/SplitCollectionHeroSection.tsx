@@ -78,7 +78,10 @@ export function SplitCollectionHeroSection({
   }
 
   return (
-    <section className="split-collection-hero" aria-label="Featured collections">
+    <section
+      className="split-collection-hero split-collection-hero-full-bleed"
+      aria-label="Featured collections"
+    >
       {tiles.map((tile, index) => (
         <SplitCollectionTile
           key={tile._key}
