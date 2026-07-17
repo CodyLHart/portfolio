@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { BackButton } from "../../../components/navigation/BackButton";
 
 export default function ProductNotFound() {
   return (
@@ -6,9 +6,7 @@ export default function ProductNotFound() {
       <section className="not-found-state" aria-labelledby="not-found-heading">
         <h1 id="not-found-heading">Product not found</h1>
         <p>The product could not be found.</p>
-        <Link className="commerce-link" href="/store">
-          Back to store
-        </Link>
+        <BackButton />
       </section>
     </main>
   );

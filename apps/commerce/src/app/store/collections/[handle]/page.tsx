@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BackButton } from "../../../../components/navigation/BackButton";
 import { ProductCard } from "../../../../components/product/ProductCard";
 import {
   getCollectionByHandle,
@@ -140,7 +140,7 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
       {hasCollectionImage ? <CollectionHero collection={collection} /> : null}
 
       <nav className="breadcrumb" aria-label="Breadcrumb">
-        <Link href="/store">Back to store</Link>
+        <BackButton />
       </nav>
 
       {!hasCollectionImage ? (

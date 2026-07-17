@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BackButton } from "../../../components/navigation/BackButton";
 import { ProductDetails } from "../../../components/product/ProductDetails";
 import { getProductByHandle, getProducts } from "../../../lib/shopify/products";
 import type {
@@ -93,7 +93,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   return (
     <main className="product-detail-shell">
       <nav className="breadcrumb" aria-label="Breadcrumb">
-        <Link href="/store">Back to store</Link>
+        <BackButton />
       </nav>
 
       <article className="product-detail">
