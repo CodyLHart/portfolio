@@ -6,6 +6,7 @@
 
 :root {
   --page-gutter: clamp(1rem, 2.5vw, 2.5rem);
+  --site-header-height: 56px;
   --width-page: 100%;
   --width-cart: min(100%, 1120px);
   --width-copy: 680px;
@@ -910,6 +911,34 @@ body.cart-drawer-open {
   min-height: 100vh;
   padding: var(--collection-shell-padding-top) var(--page-gutter) 56px;
   width: 100%;
+}
+
+.collection-shell-loading {
+  min-height: calc(100svh - var(--site-header-height));
+  padding-block: 0;
+}
+
+.collection-loading {
+  color: #111827;
+  display: grid;
+  min-height: calc(100svh - var(--site-header-height));
+  place-items: center;
+}
+
+.collection-loading-spinner {
+  animation: collection-spinner 700ms linear infinite;
+  border: 2px solid rgb(17 24 39 / 0.16);
+  border-radius: 50%;
+  border-top-color: currentColor;
+  display: block;
+  height: 28px;
+  width: 28px;
+}
+
+@keyframes collection-spinner {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .collection-shell-has-hero .breadcrumb {
@@ -2081,5 +2110,10 @@ body.cart-drawer-open {
   .cart-drawer-panel,
   .cart-drawer-dialog::backdrop {
     transition: none;
+  }
+
+  .collection-loading-spinner {
+    animation: none;
+    border-right-color: currentColor;
   }
 }
