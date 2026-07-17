@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { useCartDrawer } from "./CartDrawerProvider";
 
-export function CartTrigger() {
+export function CartTrigger({ onBeforeOpen }: { onBeforeOpen?: () => void }) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const { cart, error, isOpen, openCart } = useCartDrawer();
   const totalQuantity =
@@ -20,7 +20,10 @@ export function CartTrigger() {
       aria-haspopup="dialog"
       className="cart-trigger"
       type="button"
-      onClick={() => openCart(buttonRef.current)}
+      onClick={() => {
+        onBeforeOpen?.();
+        openCart(buttonRef.current);
+      }}
     >
       <span>Cart</span>
       {totalQuantity ? (

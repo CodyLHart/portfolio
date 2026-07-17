@@ -9,6 +9,7 @@ import type {
 } from "../../sanity/lib/types";
 import { CartTrigger } from "../cart/CartTrigger";
 import { CmsLink } from "../content/CmsLink";
+import { MobileHeaderNav } from "./MobileHeaderNav";
 
 const fallbackTitle = "Cody Hart Store";
 const cartHref = "/cart";
@@ -38,6 +39,15 @@ export function SiteHeader({
 }) {
   const title = settings?.siteTitle?.trim() || fallbackTitle;
   const logo = hasHeaderLogo(settings?.logo) ? settings.logo : null;
+  const logoSrc = logo
+    ? urlForSanityImage(logo)
+        .width(160)
+        .height(160)
+        .fit("crop")
+        .auto("format")
+        .url()
+    : null;
+  const logoAlt = logo?.alt?.trim() || title;
   const headerLinks = getValidLinks(settings?.headerLinks);
   const links =
     headerLinks.length > 0
@@ -53,18 +63,13 @@ export function SiteHeader({
 
   return (
     <header className="site-header storefront-chrome">
-      <nav className="site-nav" aria-label="Main navigation">
-        {logo ? (
+      <nav className="site-nav site-nav-desktop" aria-label="Main navigation">
+        {logo && logoSrc ? (
           <Link className="site-logo-link" href="/" aria-label={title}>
             <Image
               className="site-logo-image"
-              src={urlForSanityImage(logo)
-                .width(160)
-                .height(160)
-                .fit("crop")
-                .auto("format")
-                .url()}
-              alt={logo.alt?.trim() || title}
+              src={logoSrc}
+              alt={logoAlt}
               width={160}
               height={160}
               sizes="48px"
@@ -88,6 +93,11 @@ export function SiteHeader({
           <CartTrigger />
         </div>
       </nav>
+      <MobileHeaderNav
+        title={title}
+        logo={logoSrc ? { src: logoSrc, alt: logoAlt } : null}
+        links={links}
+      />
     </header>
   );
 }

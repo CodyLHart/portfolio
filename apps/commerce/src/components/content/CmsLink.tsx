@@ -6,6 +6,7 @@ type CmsLinkProps = {
   href: unknown;
   openInNewTab?: boolean | null;
   className?: string;
+  onClick?: () => void;
 };
 
 export function CmsLink({
@@ -13,6 +14,7 @@ export function CmsLink({
   href,
   openInNewTab,
   className,
+  onClick,
 }: CmsLinkProps) {
   const safeHref = getSafeCmsHref(href);
   const text = label?.trim();
@@ -27,14 +29,14 @@ export function CmsLink({
 
   if (isExternalHref(safeHref)) {
     return (
-      <a className={className} href={safeHref} {...newTabProps}>
+      <a className={className} href={safeHref} onClick={onClick} {...newTabProps}>
         {text}
       </a>
     );
   }
 
   return (
-    <Link className={className} href={safeHref} {...newTabProps}>
+    <Link className={className} href={safeHref} onClick={onClick} {...newTabProps}>
       {text}
     </Link>
   );
