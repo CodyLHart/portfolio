@@ -5,7 +5,6 @@ import {
   type DragEvent as ReactDragEvent,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
-  type TransitionEvent as ReactTransitionEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -73,10 +72,12 @@ const getMotionBehavior = () =>
     ? "instant"
     : "smooth";
 
-const touchDragIntentThreshold = 5;
 const mouseDragIntentThreshold = 10;
+const mouseClickSuppressionThreshold = 10;
 const arrowBoundaryToleranceRatio = 0.15;
-const transitionFallbackMs = 320;
+
+const getPositiveModulo = (value: number, modulus: number) =>
+  ((value % modulus) + modulus) % modulus;
 
 export function ExternalCarouselTrack({
   heading,
@@ -89,29 +90,26 @@ export function ExternalCarouselTrack({
 }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLUListElement>(null);
+  const activePointerIdRef = useRef<number | null>(null);
   const dragStartXRef = useRef<number | null>(null);
   const dragStartYRef = useRef<number | null>(null);
-  const dragStartTranslateRef = useRef(0);
-  const currentTranslateRef = useRef(0);
-  const activePointerIdRef = useRef<number | null>(null);
-  const activePointerTypeRef = useRef<string | null>(null);
+  const dragStartScrollLeftRef = useRef(0);
   const hasDraggedRef = useRef(false);
   const suppressClickRef = useRef(false);
-  const isTransitioningRef = useRef(false);
   const isDraggingRef = useRef(false);
-  const transitionFallbackRef = useRef<number | null>(null);
+  const normalizeScrollFrameRef = useRef<number | null>(null);
   const realIndexRef = useRef(0);
   const itemStepRef = useRef(0);
   const [visibleItemCount, setVisibleItemCount] = useState(5);
   const [itemStep, setItemStep] = useState(0);
   const [realIndex, setRealIndex] = useState(0);
-  const [trackTranslate, setTrackTranslate] = useState(0);
-  const [isTransitionEnabled, setIsTransitionEnabled] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const validatedItems = getValidatedItems(items);
   const itemCount = validatedItems.length;
   const cloneCount =
-    itemCount > visibleItemCount ? Math.min(visibleItemCount, itemCount) : 0;
+    itemCount > visibleItemCount
+      ? Math.min(visibleItemCount + 1, itemCount)
+      : 0;
   const shouldLoop = cloneCount > 0;
   const shouldRenderLoop = shouldLoop && itemStep > 0;
   const shouldShowControls = itemCount > visibleItemCount;
@@ -124,13 +122,11 @@ export function ExternalCarouselTrack({
       }));
     }
 
-    const beforeClones = validatedItems
-      .slice(-cloneCount)
-      .map((item) => ({
-        ...item,
-        renderKey: `before-${item._key}`,
-        isClone: true,
-      }));
+    const beforeClones = validatedItems.slice(-cloneCount).map((item) => ({
+      ...item,
+      renderKey: `before-${item._key}`,
+      isClone: true,
+    }));
     const realItems = validatedItems.map((item) => ({
       ...item,
       renderKey: `real-${item._key}`,
@@ -145,111 +141,110 @@ export function ExternalCarouselTrack({
     return [...beforeClones, ...realItems, ...afterClones];
   }, [cloneCount, shouldRenderLoop, validatedItems]);
 
-  const setTrackTranslateValue = useCallback((nextTranslate: number) => {
-    currentTranslateRef.current = nextTranslate;
-    setTrackTranslate(nextTranslate);
-  }, []);
-
-  const applyDragTranslate = useCallback((nextTranslate: number) => {
-    currentTranslateRef.current = nextTranslate;
-
-    if (trackRef.current) {
-      trackRef.current.style.transform = `translate3d(${nextTranslate}px, 0, 0)`;
-    }
-  }, []);
-
-  const clearTransitionFallback = useCallback(() => {
-    if (transitionFallbackRef.current === null) {
-      return;
-    }
-
-    window.clearTimeout(transitionFallbackRef.current);
-    transitionFallbackRef.current = null;
-  }, []);
-
-  const getMaxRenderedIndex = useCallback(
-    () => Math.max(renderedItems.length - visibleItemCount, 0),
-    [renderedItems.length, visibleItemCount],
+  const getRealContentWidth = useCallback(
+    (step = itemStepRef.current) => itemCount * step,
+    [itemCount],
   );
 
-  const getBoundedTranslate = useCallback(
-    (translate: number, step = itemStepRef.current) => {
-      if (step <= 0) {
-        return translate;
-      }
-
-      const minTranslate = -getMaxRenderedIndex() * step;
-
-      return Math.min(0, Math.max(minTranslate, translate));
-    },
-    [getMaxRenderedIndex],
+  const getRealRegionStart = useCallback(
+    (step = itemStepRef.current) => cloneCount * step,
+    [cloneCount],
   );
 
-  const getRealIndexForRenderedIndex = useCallback(
-    (nextRenderedIndex: number) => {
-      if (!shouldRenderLoop || itemCount === 0) {
-        return Math.min(nextRenderedIndex, Math.max(itemCount - 1, 0));
-      }
-
-      return (nextRenderedIndex - cloneCount + itemCount) % itemCount;
-    },
-    [cloneCount, itemCount, shouldRenderLoop],
-  );
-
-  const updateRealIndexFromTranslate = useCallback(
-    (translate: number, step = itemStepRef.current) => {
+  const updateRealIndexFromScroll = useCallback(
+    (scrollLeft: number, step = itemStepRef.current) => {
       if (itemCount === 0 || step <= 0) {
         realIndexRef.current = 0;
         setRealIndex(0);
         return;
       }
 
-      const nextRenderedIndex = Math.floor(-translate / step + 0.0001);
-      const nextRealIndex = getRealIndexForRenderedIndex(nextRenderedIndex);
+      const logicalScroll = shouldRenderLoop
+        ? getPositiveModulo(
+            scrollLeft - getRealRegionStart(step),
+            itemCount * step,
+          )
+        : Math.max(0, scrollLeft);
+      const nextRealIndex = Math.min(
+        Math.floor(logicalScroll / step + 0.0001),
+        itemCount - 1,
+      );
 
       realIndexRef.current = nextRealIndex;
       setRealIndex(nextRealIndex);
     },
-    [getRealIndexForRenderedIndex, itemCount],
+    [getRealRegionStart, itemCount, shouldRenderLoop],
   );
 
-  const getNormalizedLoopTranslate = useCallback(
-    (translate: number, step = itemStepRef.current) => {
-      if (!shouldRenderLoop || itemCount === 0 || step <= 0) {
-        return getBoundedTranslate(translate, step);
+  const normalizeScrollLeft = useCallback(() => {
+    const viewport = viewportRef.current;
+    const step = itemStepRef.current;
+    const realContentWidth = getRealContentWidth(step);
+
+    if (
+      !viewport ||
+      !shouldRenderLoop ||
+      itemCount === 0 ||
+      step <= 0 ||
+      realContentWidth <= 0
+    ) {
+      if (viewport) {
+        updateRealIndexFromScroll(viewport.scrollLeft, step);
       }
-
-      let floatingIndex = -translate / step;
-      const realRegionStart = cloneCount;
-      const realRegionEnd = cloneCount + itemCount;
-
-      while (floatingIndex < realRegionStart) {
-        floatingIndex += itemCount;
-      }
-
-      while (floatingIndex >= realRegionEnd) {
-        floatingIndex -= itemCount;
-      }
-
-      return getBoundedTranslate(-floatingIndex * step, step);
-    },
-    [cloneCount, getBoundedTranslate, itemCount, shouldRenderLoop],
-  );
-
-  const normalizeToRealRegion = useCallback(() => {
-    const nextTranslate = getNormalizedLoopTranslate(currentTranslateRef.current);
-
-    if (nextTranslate !== currentTranslateRef.current) {
-      setIsTransitionEnabled(false);
-      setTrackTranslateValue(nextTranslate);
+      return 0;
     }
 
-    updateRealIndexFromTranslate(nextTranslate);
+    const realRegionStart = getRealRegionStart(step);
+    const realRegionEnd = realRegionStart + realContentWidth;
+    const cloneRunwayBeyondViewport = Math.max(
+      0,
+      cloneCount * step - viewport.clientWidth,
+    );
+    const normalizationThreshold = Math.max(
+      1,
+      Math.min(step * 0.25, cloneRunwayBeyondViewport || step * 0.25),
+    );
+    let nextScrollLeft = viewport.scrollLeft;
+
+    while (nextScrollLeft <= realRegionStart - normalizationThreshold) {
+      nextScrollLeft += realContentWidth;
+    }
+
+    while (nextScrollLeft >= realRegionEnd + normalizationThreshold) {
+      nextScrollLeft -= realContentWidth;
+    }
+
+    const scrollAdjustment = nextScrollLeft - viewport.scrollLeft;
+
+    if (nextScrollLeft !== viewport.scrollLeft) {
+      viewport.scrollLeft = nextScrollLeft;
+    }
+
+    if (scrollAdjustment !== 0 && isDraggingRef.current) {
+      dragStartScrollLeftRef.current += scrollAdjustment;
+    }
+
+    updateRealIndexFromScroll(nextScrollLeft, step);
+    return scrollAdjustment;
   }, [
-    getNormalizedLoopTranslate,
-    setTrackTranslateValue,
-    updateRealIndexFromTranslate,
+    getRealContentWidth,
+    getRealRegionStart,
+    cloneCount,
+    itemCount,
+    shouldRenderLoop,
+    updateRealIndexFromScroll,
   ]);
+
+  const scheduleScrollNormalization = useCallback(() => {
+    if (normalizeScrollFrameRef.current !== null) {
+      return;
+    }
+
+    normalizeScrollFrameRef.current = window.requestAnimationFrame(() => {
+      normalizeScrollFrameRef.current = null;
+      normalizeScrollLeft();
+    });
+  }, [normalizeScrollLeft]);
 
   const measureCarousel = useCallback(() => {
     const viewport = viewportRef.current;
@@ -264,61 +259,44 @@ export function ExternalCarouselTrack({
       ".external-carousel-item",
     );
     const trackStyles = window.getComputedStyle(track);
-    const gap = Number.parseFloat(trackStyles.columnGap || trackStyles.gap) || 0;
+    const gap =
+      Number.parseFloat(trackStyles.columnGap || trackStyles.gap) || 0;
 
     if (firstItem) {
       const nextItemStep = firstItem.getBoundingClientRect().width + gap;
       const nextCloneCount =
         itemCount > nextVisibleItemCount
-          ? Math.min(nextVisibleItemCount, itemCount)
+          ? Math.min(nextVisibleItemCount + 1, itemCount)
           : 0;
       const previousItemStep = itemStepRef.current;
       const previousCloneCount = cloneCount;
-      const previousTranslate = currentTranslateRef.current;
+      const previousScrollLeft = viewport.scrollLeft;
 
       itemStepRef.current = nextItemStep;
       setItemStep(nextItemStep);
 
       if (nextItemStep > 0) {
-        const nextMaxRenderedIndex =
-          nextCloneCount > 0
-            ? itemCount + nextCloneCount
-            : Math.max(itemCount - nextVisibleItemCount, 0);
-        const nextFloatingIndex =
+        const previousLogicalIndex =
           previousItemStep > 0
-            ? nextCloneCount +
-              (-previousTranslate / previousItemStep - previousCloneCount)
-            : nextCloneCount + realIndexRef.current;
-        const minTranslate = -nextMaxRenderedIndex * nextItemStep;
-        const nextTranslate = Math.min(
-          0,
-          Math.max(minTranslate, -nextFloatingIndex * nextItemStep),
-        );
+            ? (previousScrollLeft - previousCloneCount * previousItemStep) /
+              previousItemStep
+            : realIndexRef.current;
+        const nextScrollLeft =
+          nextCloneCount * nextItemStep +
+          Math.max(0, previousLogicalIndex) * nextItemStep;
 
-        currentTranslateRef.current = nextTranslate;
-        setTrackTranslate(nextTranslate);
-        updateRealIndexFromTranslate(nextTranslate, nextItemStep);
+        viewport.scrollLeft = Math.max(0, nextScrollLeft);
+        updateRealIndexFromScroll(viewport.scrollLeft, nextItemStep);
       }
     }
 
     setVisibleItemCount(nextVisibleItemCount);
-  }, [cloneCount, itemCount, updateRealIndexFromTranslate]);
-
-  const completeTrackAnimation = useCallback(() => {
-    clearTransitionFallback();
-    isTransitioningRef.current = false;
-    normalizeToRealRegion();
-  }, [clearTransitionFallback, normalizeToRealRegion]);
-
-  const startTransitionFallback = useCallback(() => {
-    clearTransitionFallback();
-    transitionFallbackRef.current = window.setTimeout(() => {
-      completeTrackAnimation();
-    }, transitionFallbackMs);
-  }, [clearTransitionFallback, completeTrackAnimation]);
+  }, [cloneCount, itemCount, updateRealIndexFromScroll]);
 
   const moveByItem = (direction: "backward" | "forward") => {
-    if (!shouldShowControls || isTransitioningRef.current || isDraggingRef.current) {
+    const viewport = viewportRef.current;
+
+    if (!viewport || !shouldShowControls || isDraggingRef.current) {
       return;
     }
 
@@ -328,39 +306,43 @@ export function ExternalCarouselTrack({
       return;
     }
 
-    const currentTranslate = currentTranslateRef.current;
+    normalizeScrollLeft();
+
+    const currentScrollLeft = viewport.scrollLeft;
     const boundaryTolerance = step * arrowBoundaryToleranceRatio;
-    const floatingIndex = -currentTranslate / step;
+    const floatingIndex = currentScrollLeft / step;
     let targetRenderedIndex =
-      direction === "forward" ? Math.ceil(floatingIndex) : Math.floor(floatingIndex);
-    const candidateTranslate = -targetRenderedIndex * step;
-    const distanceToCandidate = Math.abs(currentTranslate - candidateTranslate);
+      direction === "forward"
+        ? Math.ceil(floatingIndex)
+        : Math.floor(floatingIndex);
+    const candidateScrollLeft = targetRenderedIndex * step;
+    const distanceToCandidate = Math.abs(
+      currentScrollLeft - candidateScrollLeft,
+    );
 
     if (distanceToCandidate <= boundaryTolerance) {
       targetRenderedIndex += direction === "forward" ? 1 : -1;
     }
 
-    targetRenderedIndex = Math.max(
-      0,
-      Math.min(targetRenderedIndex, getMaxRenderedIndex()),
-    );
+    let targetScrollLeft = Math.max(0, targetRenderedIndex * step);
 
-    const nextTranslate = -targetRenderedIndex * step;
-    const shouldAnimate = getMotionBehavior() === "smooth";
+    if (shouldRenderLoop) {
+      const realRegionStart = getRealRegionStart(step);
+      const realRegionEnd = realRegionStart + getRealContentWidth(step);
 
-    updateRealIndexFromTranslate(nextTranslate, step);
-
-    if (shouldAnimate && nextTranslate !== currentTranslate) {
-      isTransitioningRef.current = true;
-      setIsTransitionEnabled(true);
-      setTrackTranslateValue(nextTranslate);
-      startTransitionFallback();
-      return;
+      if (targetScrollLeft >= realRegionEnd) {
+        viewport.scrollLeft = currentScrollLeft - getRealContentWidth(step);
+        targetScrollLeft -= getRealContentWidth(step);
+      } else if (targetScrollLeft < realRegionStart) {
+        viewport.scrollLeft = currentScrollLeft + getRealContentWidth(step);
+        targetScrollLeft += getRealContentWidth(step);
+      }
     }
 
-    setIsTransitionEnabled(false);
-    setTrackTranslateValue(nextTranslate);
-    normalizeToRealRegion();
+    viewport.scrollTo({
+      left: targetScrollLeft,
+      behavior: getMotionBehavior() === "smooth" ? "smooth" : "auto",
+    });
   };
 
   useEffect(() => {
@@ -390,30 +372,20 @@ export function ExternalCarouselTrack({
     });
   }, [itemCount]);
 
-  useEffect(() => {
-    isTransitioningRef.current = false;
-  }, [itemCount, visibleItemCount]);
-
   useEffect(
     () => () => {
-      clearTransitionFallback();
+      if (normalizeScrollFrameRef.current !== null) {
+        window.cancelAnimationFrame(normalizeScrollFrameRef.current);
+        normalizeScrollFrameRef.current = null;
+      }
       activePointerIdRef.current = null;
-      activePointerTypeRef.current = null;
       dragStartXRef.current = null;
       dragStartYRef.current = null;
       hasDraggedRef.current = false;
       isDraggingRef.current = false;
     },
-    [clearTransitionFallback],
+    [],
   );
-
-  const handleTransitionEnd = (event: ReactTransitionEvent<HTMLUListElement>) => {
-    if (event.target !== event.currentTarget || event.propertyName !== "transform") {
-      return;
-    }
-
-    completeTrackAnimation();
-  };
 
   const cleanupPointerInteraction = (
     event?: ReactPointerEvent<HTMLDivElement>,
@@ -431,7 +403,6 @@ export function ExternalCarouselTrack({
     }
 
     activePointerIdRef.current = null;
-    activePointerTypeRef.current = null;
     dragStartXRef.current = null;
     dragStartYRef.current = null;
     isDraggingRef.current = false;
@@ -439,18 +410,21 @@ export function ExternalCarouselTrack({
   };
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!shouldShowControls || isTransitioningRef.current || event.button !== 0) {
+    if (
+      !event.isPrimary ||
+      event.pointerType !== "mouse" ||
+      !shouldShowControls ||
+      event.button !== 0
+    ) {
       return;
     }
 
     activePointerIdRef.current = event.pointerId;
-    activePointerTypeRef.current = event.pointerType;
     dragStartXRef.current = event.clientX;
     dragStartYRef.current = event.clientY;
-    dragStartTranslateRef.current = currentTranslateRef.current;
+    dragStartScrollLeftRef.current = event.currentTarget.scrollLeft;
     hasDraggedRef.current = false;
     suppressClickRef.current = false;
-    setIsTransitionEnabled(false);
     isDraggingRef.current = false;
     setIsDragging(false);
   };
@@ -460,6 +434,7 @@ export function ExternalCarouselTrack({
       activePointerIdRef.current !== event.pointerId ||
       dragStartXRef.current === null ||
       dragStartYRef.current === null ||
+      event.pointerType !== "mouse" ||
       !shouldShowControls
     ) {
       return;
@@ -467,13 +442,9 @@ export function ExternalCarouselTrack({
 
     const deltaX = event.clientX - dragStartXRef.current;
     const deltaY = event.clientY - dragStartYRef.current;
-    const intentThreshold =
-      activePointerTypeRef.current === "touch" ||
-      activePointerTypeRef.current === "pen"
-        ? touchDragIntentThreshold
-        : mouseDragIntentThreshold;
     const hasHorizontalDragIntent =
-      Math.abs(deltaX) >= intentThreshold && Math.abs(deltaX) > Math.abs(deltaY);
+      Math.abs(deltaX) >= mouseDragIntentThreshold &&
+      Math.abs(deltaX) > Math.abs(deltaY);
 
     if (!hasDraggedRef.current && !hasHorizontalDragIntent) {
       return;
@@ -483,60 +454,41 @@ export function ExternalCarouselTrack({
       try {
         event.currentTarget.setPointerCapture(event.pointerId);
       } catch {
-        // Pointer capture is only needed after a real drag starts.
+        // Pointer capture is only needed for mouse drag scrolling.
       }
 
-      trackRef.current?.style.setProperty("transition", "none");
       hasDraggedRef.current = true;
-      suppressClickRef.current = true;
       isDraggingRef.current = true;
       setIsDragging(true);
     }
 
-    const nextTranslate = getBoundedTranslate(
-      dragStartTranslateRef.current + deltaX,
-    );
-
     event.preventDefault();
-
-    applyDragTranslate(nextTranslate);
+    event.currentTarget.scrollLeft = dragStartScrollLeftRef.current - deltaX;
+    normalizeScrollLeft();
   };
 
   const finishPointerDrag = (
     event: ReactPointerEvent<HTMLDivElement>,
-    shouldSnap: boolean,
+    shouldSuppressClick: boolean,
   ) => {
-    const dragStartX = dragStartXRef.current;
-
-    if (
-      activePointerIdRef.current !== event.pointerId ||
-      dragStartX === null ||
-      !shouldShowControls
-    ) {
+    if (activePointerIdRef.current !== event.pointerId) {
       return;
     }
+
+    const completedDrag = hasDraggedRef.current;
+    const dragDistance =
+      dragStartXRef.current === null
+        ? 0
+        : Math.abs(event.clientX - dragStartXRef.current);
 
     cleanupPointerInteraction(event);
-    const shouldAnimate = getMotionBehavior() === "smooth";
-    const completedDrag = hasDraggedRef.current;
 
-    if (completedDrag) {
-      trackRef.current?.style.removeProperty("transition");
-      setTrackTranslate(currentTranslateRef.current);
-    }
-
-    if (!shouldSnap || !completedDrag) {
-      setIsTransitionEnabled(shouldAnimate);
-      hasDraggedRef.current = false;
-      suppressClickRef.current = false;
-      return;
-    }
-
-    setIsTransitionEnabled(false);
-    setTrackTranslate(currentTranslateRef.current);
-    suppressClickRef.current = true;
+    suppressClickRef.current =
+      shouldSuppressClick &&
+      completedDrag &&
+      dragDistance >= mouseClickSuppressionThreshold;
     hasDraggedRef.current = false;
-    normalizeToRealRegion();
+    scheduleScrollNormalization();
   };
 
   const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -603,6 +555,7 @@ export function ExternalCarouselTrack({
         ]
           .filter(Boolean)
           .join(" ")}
+        onScroll={scheduleScrollNormalization}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -611,18 +564,8 @@ export function ExternalCarouselTrack({
       >
         <ul
           ref={trackRef}
-          className={[
-            "external-carousel-track",
-            isTransitionEnabled ? "is-transitioning" : "",
-            isDragging ? "is-dragging" : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
+          className="external-carousel-track"
           aria-labelledby={headingId}
-          onTransitionEnd={handleTransitionEnd}
-          style={{
-            transform: `translate3d(${trackTranslate}px, 0, 0)`,
-          }}
         >
           {renderedItems.map((item) => {
             const newTabProps = item.openInNewTab
@@ -656,7 +599,9 @@ export function ExternalCarouselTrack({
                     />
                   </span>
                   <span className="external-carousel-copy">
-                    <span className="external-carousel-title">{item.title}</span>
+                    <span className="external-carousel-title">
+                      {item.title}
+                    </span>
                     {item.subtitle ? (
                       <span className="external-carousel-subtitle">
                         {item.subtitle}

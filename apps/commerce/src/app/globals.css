@@ -627,10 +627,17 @@ body.cart-drawer-open {
   --carousel-gap: 16px;
   --carousel-item-basis: calc((100% - 64px) / 5);
   min-width: 0;
-  overflow: hidden;
+  -ms-overflow-style: none;
+  overflow-x: auto;
+  overflow-y: hidden;
   padding: 0 0 8px;
-  touch-action: pan-y;
+  scrollbar-width: none;
+  touch-action: pan-x pan-y;
   width: 100%;
+}
+
+.external-carousel-viewport::-webkit-scrollbar {
+  display: none;
 }
 
 .external-carousel-viewport.is-draggable {
@@ -657,16 +664,6 @@ body.cart-drawer-open {
   margin: 0;
   min-width: 100%;
   padding: 0;
-}
-
-.external-carousel-track.is-transitioning {
-  transition: transform 240ms ease;
-  will-change: transform;
-}
-
-.external-carousel-track.is-dragging {
-  transition: none;
-  will-change: transform;
 }
 
 .external-carousel-item {
@@ -1940,9 +1937,5 @@ body.cart-drawer-open {
   .cart-drawer-dialog[open] .cart-drawer-panel,
   .cart-drawer-dialog[open]::backdrop {
     animation: none;
-  }
-
-  .external-carousel-track {
-    transition: none;
   }
 }
