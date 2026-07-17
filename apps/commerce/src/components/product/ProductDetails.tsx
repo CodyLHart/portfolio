@@ -194,6 +194,103 @@ export function ProductDetails({
 
   return (
     <>
+      <div className="product-copy">
+        <section className="product-info" aria-labelledby="product-heading">
+          <div className="product-heading-group">
+            {product.vendor ? <p className="product-vendor">{product.vendor}</p> : null}
+            <h1 id="product-heading">{product.title}</h1>
+            {product.productType ? (
+              <p className="product-type">{product.productType}</p>
+            ) : null}
+          </div>
+        </section>
+
+        <section className="product-details-panel" aria-label="Product details">
+          <div className="product-purchase-summary">
+            <div className="product-price-group">
+              {compareAtPriceVisible && selectedVariant?.compareAtPrice ? (
+                <span className="product-compare-price">
+                  {formatShopifyPrice(selectedVariant.compareAtPrice)}
+                </span>
+              ) : null}
+              <p className="product-price">
+                {selectedVariant
+                  ? formatShopifyPrice(selectedVariant.price)
+                  : "Price unavailable"}
+              </p>
+              {compareAtPriceVisible ? (
+                <p className="sale-context">Sale price</p>
+              ) : null}
+            </div>
+            <div className="product-description">
+              {product.descriptionHtml ? (
+                <div
+                  className="product-rich-text"
+                  dangerouslySetInnerHTML={{ __html: product.descriptionHtml }}
+                />
+              ) : (
+                <p>{product.description || "No product description is available."}</p>
+              )}
+            </div>
+            <p className="product-availability">{availabilityText}</p>
+          </div>
+
+          {displayOptions.length > 0 ? (
+            <section className="product-options" aria-labelledby="options-heading">
+              <h2 id="options-heading">Options</h2>
+              <div className="option-fieldsets">
+                {displayOptions.map((option) => (
+                  <fieldset className="option-fieldset" key={option.id}>
+                    <legend>{option.name}</legend>
+                    <div className="option-values">
+                      {option.values.map((value) => {
+                        const normalizedName = normalizeOptionName(option.name);
+                        const isSelected = selectedOptions[normalizedName] === value;
+                        const status = optionValueStatus({
+                          variants,
+                          selectedOptions,
+                          optionName: option.name,
+                          optionValue: value,
+                        });
+
+                        return (
+                          <button
+                            type="button"
+                            key={value}
+                            className="option-button"
+                            aria-pressed={isSelected}
+                            disabled={status.disabled}
+                            onClick={() => handleOptionChange(option.name, value)}
+                          >
+                            <span>{value}</span>
+                            {status.soldOut ? (
+                              <span className="option-status">Sold out</span>
+                            ) : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          <form action={addToCartAction} className="add-to-cart-form">
+            <input type="hidden" name="variantId" value={selectedVariant?.id ?? ""} />
+            <AddToCartButton
+              isAvailable={canSubmitSelectedVariant}
+              hasVariant={Boolean(selectedVariant)}
+            />
+            {addToCartState.error ? (
+              <p className="form-error" role="alert">
+                {addToCartState.error}
+              </p>
+            ) : null}
+          </form>
+        </section>
+      </div>
+
       <section className="product-media" aria-label={`${product.title} images`}>
         {activeImage ? (
           <div className="product-primary-image">
@@ -237,99 +334,6 @@ export function ProductDetails({
             })}
           </ul>
         ) : null}
-      </section>
-
-      <section className="product-info" aria-labelledby="product-heading">
-        <div className="product-heading-group">
-          {product.vendor ? <p className="product-vendor">{product.vendor}</p> : null}
-          <h1 id="product-heading">{product.title}</h1>
-          {product.productType ? (
-            <p className="product-type">{product.productType}</p>
-          ) : null}
-        </div>
-
-        <div className="product-purchase-summary">
-          <div className="product-price-group">
-            {compareAtPriceVisible && selectedVariant?.compareAtPrice ? (
-              <span className="product-compare-price">
-                {formatShopifyPrice(selectedVariant.compareAtPrice)}
-              </span>
-            ) : null}
-            <p className="product-price">
-              {selectedVariant
-                ? formatShopifyPrice(selectedVariant.price)
-                : "Price unavailable"}
-            </p>
-            {compareAtPriceVisible ? (
-              <p className="sale-context">Sale price</p>
-            ) : null}
-          </div>
-          <div className="product-description">
-            {product.descriptionHtml ? (
-              <div
-                className="product-rich-text"
-                dangerouslySetInnerHTML={{ __html: product.descriptionHtml }}
-              />
-            ) : (
-              <p>{product.description || "No product description is available."}</p>
-            )}
-          </div>
-          <p className="product-availability">{availabilityText}</p>
-        </div>
-
-        {displayOptions.length > 0 ? (
-          <section className="product-options" aria-labelledby="options-heading">
-            <h2 id="options-heading">Options</h2>
-            <div className="option-fieldsets">
-              {displayOptions.map((option) => (
-                <fieldset className="option-fieldset" key={option.id}>
-                  <legend>{option.name}</legend>
-                  <div className="option-values">
-                    {option.values.map((value) => {
-                      const normalizedName = normalizeOptionName(option.name);
-                      const isSelected = selectedOptions[normalizedName] === value;
-                      const status = optionValueStatus({
-                        variants,
-                        selectedOptions,
-                        optionName: option.name,
-                        optionValue: value,
-                      });
-
-                      return (
-                        <button
-                          type="button"
-                          key={value}
-                          className="option-button"
-                          aria-pressed={isSelected}
-                          disabled={status.disabled}
-                          onClick={() => handleOptionChange(option.name, value)}
-                        >
-                          <span>{value}</span>
-                          {status.soldOut ? (
-                            <span className="option-status">Sold out</span>
-                          ) : null}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </fieldset>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        <form action={addToCartAction} className="add-to-cart-form">
-          <input type="hidden" name="variantId" value={selectedVariant?.id ?? ""} />
-          <AddToCartButton
-            isAvailable={canSubmitSelectedVariant}
-            hasVariant={Boolean(selectedVariant)}
-          />
-          {addToCartState.error ? (
-            <p className="form-error" role="alert">
-              {addToCartState.error}
-            </p>
-          ) : null}
-        </form>
       </section>
     </>
   );
