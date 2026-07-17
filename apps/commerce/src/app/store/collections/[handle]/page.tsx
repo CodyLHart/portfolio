@@ -134,7 +134,11 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
         <section aria-label={`${collection.title} products`}>
           <ul className="product-grid">
             {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard
+                key={product.id}
+                product={product}
+                showProductType
+              />
             ))}
           </ul>
         </section>

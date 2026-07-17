@@ -14,6 +14,7 @@ export type ShopifyProductSummary = {
   id: string;
   title: string;
   handle: string;
+  productType: string;
   availableForSale: boolean;
   featuredImage: ShopifyImage | null;
   priceRange: {

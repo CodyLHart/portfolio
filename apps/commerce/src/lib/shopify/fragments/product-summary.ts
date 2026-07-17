@@ -3,6 +3,7 @@ export const PRODUCT_SUMMARY_FRAGMENT = `#graphql
     id
     title
     handle
+    productType
     availableForSale
     featuredImage {
       url
