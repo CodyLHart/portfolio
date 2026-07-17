@@ -73,7 +73,8 @@ const getMotionBehavior = () =>
     ? "instant"
     : "smooth";
 
-const dragClickThreshold = 12;
+const touchDragIntentThreshold = 5;
+const mouseDragIntentThreshold = 10;
 const arrowBoundaryToleranceRatio = 0.15;
 const transitionFallbackMs = 320;
 
@@ -93,6 +94,7 @@ export function ExternalCarouselTrack({
   const dragStartTranslateRef = useRef(0);
   const currentTranslateRef = useRef(0);
   const activePointerIdRef = useRef<number | null>(null);
+  const activePointerTypeRef = useRef<string | null>(null);
   const hasDraggedRef = useRef(false);
   const suppressClickRef = useRef(false);
   const isTransitioningRef = useRef(false);
@@ -146,6 +148,14 @@ export function ExternalCarouselTrack({
   const setTrackTranslateValue = useCallback((nextTranslate: number) => {
     currentTranslateRef.current = nextTranslate;
     setTrackTranslate(nextTranslate);
+  }, []);
+
+  const applyDragTranslate = useCallback((nextTranslate: number) => {
+    currentTranslateRef.current = nextTranslate;
+
+    if (trackRef.current) {
+      trackRef.current.style.transform = `translate3d(${nextTranslate}px, 0, 0)`;
+    }
   }, []);
 
   const clearTransitionFallback = useCallback(() => {
@@ -388,6 +398,7 @@ export function ExternalCarouselTrack({
     () => () => {
       clearTransitionFallback();
       activePointerIdRef.current = null;
+      activePointerTypeRef.current = null;
       dragStartXRef.current = null;
       dragStartYRef.current = null;
       hasDraggedRef.current = false;
@@ -420,6 +431,7 @@ export function ExternalCarouselTrack({
     }
 
     activePointerIdRef.current = null;
+    activePointerTypeRef.current = null;
     dragStartXRef.current = null;
     dragStartYRef.current = null;
     isDraggingRef.current = false;
@@ -432,6 +444,7 @@ export function ExternalCarouselTrack({
     }
 
     activePointerIdRef.current = event.pointerId;
+    activePointerTypeRef.current = event.pointerType;
     dragStartXRef.current = event.clientX;
     dragStartYRef.current = event.clientY;
     dragStartTranslateRef.current = currentTranslateRef.current;
@@ -454,8 +467,13 @@ export function ExternalCarouselTrack({
 
     const deltaX = event.clientX - dragStartXRef.current;
     const deltaY = event.clientY - dragStartYRef.current;
+    const intentThreshold =
+      activePointerTypeRef.current === "touch" ||
+      activePointerTypeRef.current === "pen"
+        ? touchDragIntentThreshold
+        : mouseDragIntentThreshold;
     const hasHorizontalDragIntent =
-      Math.abs(deltaX) >= dragClickThreshold && Math.abs(deltaX) > Math.abs(deltaY);
+      Math.abs(deltaX) >= intentThreshold && Math.abs(deltaX) > Math.abs(deltaY);
 
     if (!hasDraggedRef.current && !hasHorizontalDragIntent) {
       return;
@@ -468,6 +486,7 @@ export function ExternalCarouselTrack({
         // Pointer capture is only needed after a real drag starts.
       }
 
+      trackRef.current?.style.setProperty("transition", "none");
       hasDraggedRef.current = true;
       suppressClickRef.current = true;
       isDraggingRef.current = true;
@@ -480,8 +499,7 @@ export function ExternalCarouselTrack({
 
     event.preventDefault();
 
-    setTrackTranslateValue(nextTranslate);
-    updateRealIndexFromTranslate(nextTranslate);
+    applyDragTranslate(nextTranslate);
   };
 
   const finishPointerDrag = (
@@ -500,8 +518,14 @@ export function ExternalCarouselTrack({
 
     cleanupPointerInteraction(event);
     const shouldAnimate = getMotionBehavior() === "smooth";
+    const completedDrag = hasDraggedRef.current;
 
-    if (!shouldSnap || !hasDraggedRef.current) {
+    if (completedDrag) {
+      trackRef.current?.style.removeProperty("transition");
+      setTrackTranslate(currentTranslateRef.current);
+    }
+
+    if (!shouldSnap || !completedDrag) {
       setIsTransitionEnabled(shouldAnimate);
       hasDraggedRef.current = false;
       suppressClickRef.current = false;
@@ -509,6 +533,7 @@ export function ExternalCarouselTrack({
     }
 
     setIsTransitionEnabled(false);
+    setTrackTranslate(currentTranslateRef.current);
     suppressClickRef.current = true;
     hasDraggedRef.current = false;
     normalizeToRealRegion();
