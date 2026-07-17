@@ -43,6 +43,7 @@ export function useCartDrawer() {
 
 export function CartDrawerProvider({ children }: { children: ReactNode }) {
   const abortControllerRef = useRef<AbortController | null>(null);
+  const focusRestoreTimeoutRef = useRef<number | null>(null);
   const requestIdRef = useRef(0);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const statusRef = useRef<CartLoadStatus>("idle");
@@ -132,6 +133,11 @@ export function CartDrawerProvider({ children }: { children: ReactNode }) {
       returnFocusElement?: HTMLElement | null,
       options?: { refresh?: boolean },
     ) => {
+      if (focusRestoreTimeoutRef.current !== null) {
+        window.clearTimeout(focusRestoreTimeoutRef.current);
+        focusRestoreTimeoutRef.current = null;
+      }
+
       returnFocusRef.current =
         returnFocusElement ?? (document.activeElement as HTMLElement);
       setIsOpen(true);
@@ -149,10 +155,29 @@ export function CartDrawerProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    window.requestAnimationFrame(() => {
+    if (focusRestoreTimeoutRef.current !== null) {
+      window.clearTimeout(focusRestoreTimeoutRef.current);
+    }
+
+    const focusDelay = window.matchMedia("(prefers-reduced-motion: reduce)")
+      .matches
+      ? 0
+      : 240;
+
+    focusRestoreTimeoutRef.current = window.setTimeout(() => {
+      focusRestoreTimeoutRef.current = null;
       returnFocusRef.current?.focus();
-    });
+    }, focusDelay);
   }, []);
+
+  useEffect(
+    () => () => {
+      if (focusRestoreTimeoutRef.current !== null) {
+        window.clearTimeout(focusRestoreTimeoutRef.current);
+      }
+    },
+    [],
+  );
 
   const value = useMemo<CartDrawerContextValue>(
     () => ({

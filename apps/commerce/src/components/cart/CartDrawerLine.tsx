@@ -52,10 +52,14 @@ export function CartDrawerLine({
       <div className="cart-line-details">
         <div className="cart-line-top">
           <Link
+            aria-label={`${productTitle}, quantity ${line.quantity}`}
             href={`/store/${line.merchandise.product.handle}`}
             title={productTitle}
           >
             {productTitle}
+            <span aria-hidden="true" className="cart-line-quantity">
+              ({line.quantity})
+            </span>
           </Link>
           <p className="cart-line-total">
             {formatShopifyPrice(line.cost.totalAmount)}

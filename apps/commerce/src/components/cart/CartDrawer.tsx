@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import {
+  type TransitionEvent,
   type KeyboardEvent,
   type MouseEvent,
+  useCallback,
   useEffect,
   useRef,
+  useState,
 } from "react";
 import { CartDrawerLine } from "./CartDrawerLine";
 import { useCartDrawer } from "./CartDrawerProvider";
@@ -14,6 +17,9 @@ import { formatShopifyPrice } from "../../lib/shopify/format";
 export function CartDrawer() {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const closeTimeoutRef = useRef<number | null>(null);
+  const openFrameRef = useRef<number | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
   const { cart, closeCart, error, isLoading, isOpen, refreshCart } =
     useCartDrawer();
   const lines = cart?.lines.nodes.filter((line) => line.quantity > 0) ?? [];
@@ -24,6 +30,43 @@ export function CartDrawer() {
     ? `Cart, ${totalQuantity} ${totalQuantity === 1 ? "item" : "items"}`
     : "Cart";
 
+  const clearCloseTimeout = useCallback(() => {
+    if (closeTimeoutRef.current === null) {
+      return;
+    }
+
+    window.clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = null;
+  }, []);
+
+  const clearOpenFrame = useCallback(() => {
+    if (openFrameRef.current === null) {
+      return;
+    }
+
+    window.cancelAnimationFrame(openFrameRef.current);
+    openFrameRef.current = null;
+  }, []);
+
+  const shouldReduceMotion = () =>
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const finishClose = useCallback(() => {
+    const dialog = dialogRef.current;
+
+    if (!dialog) {
+      return;
+    }
+
+    clearCloseTimeout();
+
+    if (dialog.open) {
+      dialog.close();
+    }
+
+    document.body.classList.remove("cart-drawer-open");
+  }, [clearCloseTimeout]);
+
   useEffect(() => {
     const dialog = dialogRef.current;
 
@@ -32,20 +75,65 @@ export function CartDrawer() {
     }
 
     if (isOpen && !dialog.open) {
+      clearCloseTimeout();
+      clearOpenFrame();
+      setIsVisible(false);
       dialog.showModal();
       document.body.classList.add("cart-drawer-open");
+      openFrameRef.current = window.requestAnimationFrame(() => {
+        openFrameRef.current = null;
+        setIsVisible(true);
+        closeButtonRef.current?.focus();
+      });
+
+      return;
+    }
+
+    if (isOpen && dialog.open) {
+      clearCloseTimeout();
+      clearOpenFrame();
+      setIsVisible(true);
       closeButtonRef.current?.focus();
+
+      return;
     }
 
     if (!isOpen && dialog.open) {
-      dialog.close();
-      document.body.classList.remove("cart-drawer-open");
-    }
+      clearOpenFrame();
+      setIsVisible(false);
 
-    return () => {
+      if (shouldReduceMotion()) {
+        finishClose();
+        return;
+      }
+
+      clearCloseTimeout();
+      closeTimeoutRef.current = window.setTimeout(() => {
+        finishClose();
+      }, 240);
+    }
+  }, [clearCloseTimeout, clearOpenFrame, finishClose, isOpen]);
+
+  useEffect(
+    () => () => {
+      clearCloseTimeout();
+      clearOpenFrame();
       document.body.classList.remove("cart-drawer-open");
-    };
-  }, [isOpen]);
+    },
+    [clearCloseTimeout, clearOpenFrame],
+  );
+
+  const handlePanelTransitionEnd = (
+    event: TransitionEvent<HTMLElement>,
+  ) => {
+    if (
+      event.target === event.currentTarget &&
+      event.propertyName === "transform" &&
+      !isOpen
+    ) {
+      finishClose();
+    }
+  };
 
   const handleBackdropClick = (event: MouseEvent<HTMLDialogElement>) => {
     if (event.target === event.currentTarget) {
@@ -110,17 +198,22 @@ export function CartDrawer() {
       ref={dialogRef}
       aria-labelledby="cart-drawer-heading"
       aria-modal="true"
-      className="cart-drawer-dialog"
+      className={
+        isVisible ? "cart-drawer-dialog is-open" : "cart-drawer-dialog"
+      }
       onClick={handleBackdropClick}
       onKeyDown={handleKeyDown}
     >
-      <section className="cart-drawer-panel">
+      <section
+        className="cart-drawer-panel"
+        onTransitionEnd={handlePanelTransitionEnd}
+      >
         <header className="cart-drawer-header">
           <h2 id="cart-drawer-heading" aria-label={headingLabel}>
             <span>Cart</span>
             {totalQuantity ? (
               <span aria-hidden="true" className="cart-drawer-heading-count">
-                {totalQuantity}
+                ({totalQuantity})
               </span>
             ) : null}
           </h2>
