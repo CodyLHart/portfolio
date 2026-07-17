@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { PageSections } from "../components/home/PageSections";
 import { ProductCard } from "../components/product/ProductCard";
+import productCardStyles from "../components/product/ProductCard.module.css";
 import { resolveHomePageSections } from "../lib/homepage";
 import { getCollectionByHandle } from "../lib/shopify/collections";
 import { getHomePageContent } from "../sanity/lib/homePage";
@@ -126,7 +127,7 @@ export default async function Page() {
               View collection
             </Link>
           </div>
-          <ul className="product-grid">
+          <ul className={productCardStyles.grid}>
             {featuredProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

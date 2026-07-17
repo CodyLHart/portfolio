@@ -13,6 +13,7 @@ import {
 import { CartDrawerLine } from "./CartDrawerLine";
 import { useCartDrawer } from "./CartDrawerProvider";
 import { formatShopifyPrice } from "../../lib/shopify/format";
+import styles from "./CartDrawer.module.css";
 
 export function CartDrawer() {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -199,20 +200,20 @@ export function CartDrawer() {
       aria-labelledby="cart-drawer-heading"
       aria-modal="true"
       className={
-        isVisible ? "cart-drawer-dialog is-open" : "cart-drawer-dialog"
+        isVisible ? `${styles.dialog} ${styles.dialogOpen}` : styles.dialog
       }
       onClick={handleBackdropClick}
       onKeyDown={handleKeyDown}
     >
       <section
-        className="cart-drawer-panel"
+        className={styles.panel}
         onTransitionEnd={handlePanelTransitionEnd}
       >
-        <header className="cart-drawer-header">
+        <header className={styles.header}>
           <h2 id="cart-drawer-heading" aria-label={headingLabel}>
             <span>Cart</span>
             {totalQuantity ? (
-              <span aria-hidden="true" className="cart-drawer-heading-count">
+              <span aria-hidden="true" className={styles.headingCount}>
                 ({totalQuantity})
               </span>
             ) : null}
@@ -220,7 +221,7 @@ export function CartDrawer() {
           <button
             ref={closeButtonRef}
             aria-label="Close cart"
-            className="cart-drawer-close"
+            className={styles.close}
             type="button"
             onClick={() => closeCart()}
           >
@@ -228,20 +229,20 @@ export function CartDrawer() {
           </button>
         </header>
 
-        <div className="cart-drawer-body">
+        <div className={styles.body}>
           {isLoading && !cart ? (
-            <p className="cart-drawer-status" role="status">
+            <p className={styles.status} role="status">
               Loading cart...
             </p>
           ) : null}
           {isLoading && cart ? (
-            <p className="cart-drawer-status" role="status">
+            <p className={styles.status} role="status">
               Refreshing cart...
             </p>
           ) : null}
 
           {error ? (
-            <div className="cart-drawer-state" role="alert">
+            <div className={styles.state} role="alert">
               <p>The cart could not be loaded.</p>
               <button type="button" onClick={() => void refreshCart()}>
                 Retry
@@ -256,14 +257,14 @@ export function CartDrawer() {
           ) : null}
 
           {!error && !isLoading && !hasLines ? (
-            <div className="cart-drawer-state">
+            <div className={styles.state}>
               <p>Your cart is empty.</p>
               <Link href="/store">Continue shopping</Link>
             </div>
           ) : null}
 
           {!error && hasLines ? (
-            <ul className="cart-drawer-lines">
+            <ul className={styles.lines}>
               {lines.map((line) => (
                 <CartDrawerLine
                   key={line.lineId}
@@ -275,9 +276,9 @@ export function CartDrawer() {
           ) : null}
         </div>
 
-        <footer className="cart-drawer-footer">
+        <footer className={styles.footer}>
           {!error && cart && hasLines ? (
-            <div className="cart-drawer-totals">
+            <div className={styles.totals}>
               <div>
                 <span>Subtotal</span>
                 <span>{formatShopifyPrice(cart.cost.subtotalAmount)}</span>

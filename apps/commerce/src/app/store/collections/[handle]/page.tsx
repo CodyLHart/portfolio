@@ -3,11 +3,13 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { BackButton } from "../../../../components/navigation/BackButton";
 import { ProductCard } from "../../../../components/product/ProductCard";
+import productCardStyles from "../../../../components/product/ProductCard.module.css";
 import {
   getCollectionByHandle,
   getCollections,
 } from "../../../../lib/shopify/collections";
 import type { ShopifyCollection, ShopifyImage } from "../../../../lib/shopify/types";
+import styles from "./CollectionPage.module.css";
 
 type CollectionPageProps = {
   params: Promise<{
@@ -39,7 +41,7 @@ const CollectionHero = ({ collection }: { collection: ShopifyCollection }) => {
   }
 
   return (
-    <header className="collection-hero">
+    <header className={styles.hero}>
       <Image
         src={image.url}
         alt={image.altText ?? collection.title}
@@ -48,7 +50,7 @@ const CollectionHero = ({ collection }: { collection: ShopifyCollection }) => {
         sizes="100vw"
         preload
       />
-      <div className="collection-hero-content">
+      <div className={styles.heroContent}>
         <h1>{collection.title}</h1>
       </div>
     </header>
@@ -112,19 +114,19 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
     <main
       className={
         hasCollectionImage
-          ? "collection-shell collection-shell-has-hero"
-          : "collection-shell"
+          ? `${styles.shell} ${styles.hasHero}`
+          : styles.shell
       }
     >
       {hasCollectionImage ? <CollectionHero collection={collection} /> : null}
 
-      <nav className="breadcrumb" aria-label="Breadcrumb">
+      <nav className={styles.breadcrumb} aria-label="Breadcrumb">
         <BackButton />
       </nav>
 
       {!hasCollectionImage ? (
-        <header className="collection-header">
-          <div className="collection-heading">
+        <header className={styles.header}>
+          <div className={styles.heading}>
             <h1>{collection.title}</h1>
           </div>
         </header>
@@ -132,7 +134,7 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
 
       {products.length > 0 ? (
         <section aria-label={`${collection.title} products`}>
-          <ul className="product-grid">
+          <ul className={productCardStyles.grid}>
             {products.map((product) => (
               <ProductCard
                 key={product.id}
@@ -143,7 +145,7 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
           </ul>
         </section>
       ) : (
-        <p className="store-empty">
+        <p className={styles.empty}>
           No published products were returned for this collection.
         </p>
       )}

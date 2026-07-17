@@ -10,6 +10,7 @@ import type {
 import { CartTrigger } from "../cart/CartTrigger";
 import { CmsLink } from "../content/CmsLink";
 import { MobileHeaderNav } from "./MobileHeaderNav";
+import styles from "./SiteHeader.module.css";
 
 const fallbackTitle = "Cody Hart Store";
 const cartHref = "/cart";
@@ -62,12 +63,12 @@ export function SiteHeader({
         ];
 
   return (
-    <header className="site-header storefront-chrome">
-      <nav className="site-nav site-nav-desktop" aria-label="Main navigation">
+    <header className={`${styles.header} storefront-chrome`}>
+      <nav className={styles.desktopNav} aria-label="Main navigation">
         {logo && logoSrc ? (
-          <Link className="site-logo-link" href="/" aria-label={title}>
+          <Link className={styles.logoLink} href="/" aria-label={title}>
             <Image
-              className="site-logo-image"
+              className={styles.logoImage}
               src={logoSrc}
               alt={logoAlt}
               width={160}
@@ -77,11 +78,11 @@ export function SiteHeader({
             />
           </Link>
         ) : (
-          <Link className="site-title" href="/">
+          <Link className={styles.title} href="/">
             {title}
           </Link>
         )}
-        <div className="site-nav-links">
+        <div className={styles.links}>
           {links.map((link) => (
             <CmsLink
               key={link._key ?? `${link.label}-${link.href}`}
@@ -97,6 +98,7 @@ export function SiteHeader({
         title={title}
         logo={logoSrc ? { src: logoSrc, alt: logoAlt } : null}
         links={links}
+        styles={styles}
       />
     </header>
   );

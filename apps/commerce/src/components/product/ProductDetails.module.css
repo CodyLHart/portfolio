@@ -1,0 +1,408 @@
+.detail {
+  display: grid;
+  gap: 18px;
+  grid-template-areas:
+    "info"
+    "media"
+    "details";
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+}
+
+.copy {
+  display: contents;
+}
+
+.media {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  grid-area: media;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+}
+
+.imagePlaceholder {
+  align-items: center;
+  aspect-ratio: 1 / 1;
+  background: #e2e8f0;
+  color: #64748b;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  padding: 24px;
+  text-align: center;
+  width: 100%;
+}
+
+.primaryImage {
+  aspect-ratio: 1 / 1;
+  background: transparent;
+  max-width: min(88vw, 58svh, 680px);
+  overflow: hidden;
+  width: 100%;
+}
+
+.primaryImage img,
+.gallery img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  width: 100%;
+}
+
+.gallery {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  max-width: min(100%, 520px);
+  padding: 0;
+  width: 100%;
+}
+
+.gallery li {
+  aspect-ratio: 1 / 1;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.thumbnail {
+  border: 2px solid transparent;
+  cursor: pointer;
+  display: block;
+  height: 100%;
+  padding: 0;
+  width: 100%;
+}
+
+.thumbnail[aria-pressed="true"] {
+  border-color: #111827;
+}
+
+.thumbnail:focus-visible,
+.optionButton:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: 3px;
+}
+
+.info {
+  display: grid;
+  gap: 8px;
+  grid-area: info;
+  min-width: 0;
+  max-width: 720px;
+  width: 100%;
+}
+
+.detailsPanel {
+  display: grid;
+  gap: 18px;
+  grid-area: details;
+  min-width: 0;
+  max-width: 720px;
+  width: 100%;
+}
+
+.headingGroup {
+  display: grid;
+  gap: 8px;
+}
+
+.headingGroup h1 {
+  font-size: clamp(1.65rem, 2.4vw, 2rem);
+  letter-spacing: 0;
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+}
+
+.vendor,
+.type,
+.availability {
+  color: #475569;
+  line-height: 1.6;
+}
+
+.vendor {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.price {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.purchaseSummary,
+.priceGroup {
+  display: grid;
+  gap: 6px;
+}
+
+.comparePrice {
+  color: #64748b;
+  text-decoration: line-through;
+}
+
+.saleContext {
+  color: #475569;
+  line-height: 1.6;
+}
+
+.form {
+  display: grid;
+  gap: 10px;
+}
+
+.addButton {
+  background: #111827;
+  border: 1px solid #111827;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 14px;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.addButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.addButton:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: 4px;
+}
+
+.formError {
+  color: #991b1b;
+  line-height: 1.6;
+}
+
+.options {
+  border-top: 1px solid #cbd5e1;
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+}
+
+.options h2 {
+  font-size: 1.1rem;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+.description,
+.richText {
+  color: #334155;
+  display: grid;
+  line-height: 1.6;
+  max-width: var(--width-copy);
+}
+
+.description {
+  gap: 8px;
+}
+
+.richText {
+  gap: 10px;
+}
+
+.richText :global(p),
+.richText :global(ul),
+.richText :global(ol) {
+  margin: 0;
+}
+
+.optionFieldsets {
+  display: grid;
+  gap: 16px;
+}
+
+.optionFieldset {
+  border: 0;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.optionFieldset legend {
+  font-weight: 800;
+  padding: 0;
+}
+
+.optionValues {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.optionButton {
+  background: #fff;
+  border: 1px solid #94a3b8;
+  color: #111827;
+  cursor: pointer;
+  display: inline-grid;
+  gap: 2px;
+  min-height: 42px;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.optionButton[aria-pressed="true"] {
+  border-color: #111827;
+  box-shadow: inset 0 0 0 1px #111827;
+  font-weight: 800;
+}
+
+.optionButton:disabled {
+  color: #64748b;
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.optionStatus {
+  font-size: 0.75rem;
+}
+
+/* Shared mobile navigation and product-stack breakpoint: 768px */
+@media (min-width: 768px) {
+  .detail {
+    align-items: start;
+    column-gap: clamp(16px, 2vw, 24px);
+    grid-template-areas: "media copy";
+    grid-template-columns: minmax(0, min(50vw, 520px)) minmax(280px, 380px);
+    justify-content: center;
+    margin-inline: auto;
+  }
+
+  .copy {
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    grid-area: copy;
+    justify-self: start;
+    max-width: 380px;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .media {
+    justify-self: center;
+  }
+
+  .primaryImage {
+    max-width: min(100%, 520px);
+  }
+
+  .info,
+  .detailsPanel {
+    max-width: 100%;
+  }
+
+  .headingGroup h1 {
+    font-size: clamp(1.75rem, 2.4vw, 2rem);
+    line-height: 1.08;
+  }
+}
+
+@media (min-width: 1024px) {
+  .detail {
+    column-gap: clamp(20px, 2.4vw, 32px);
+    row-gap: 14px;
+    grid-template-columns: minmax(0, min(58vw, 640px)) minmax(300px, 420px);
+  }
+
+  .primaryImage {
+    max-width: min(100%, 640px);
+  }
+
+  .copy {
+    max-width: 420px;
+  }
+
+  .headingGroup h1 {
+    font-size: clamp(1.75rem, 2.2vw, 2rem);
+  }
+}
+
+@media (min-width: 1280px) {
+  .detail {
+    column-gap: clamp(24px, 2.5vw, 40px);
+    grid-template-columns: minmax(0, min(54vw, 720px)) minmax(320px, 440px);
+  }
+
+  .primaryImage {
+    max-width: min(100%, 720px);
+  }
+
+  .copy {
+    max-width: 440px;
+  }
+
+  .headingGroup h1 {
+    font-size: clamp(1.75rem, 2vw, 2rem);
+  }
+}
+
+@media (max-width: 767px) {
+  .copy {
+    display: contents;
+  }
+
+  .media,
+  .primaryImage {
+    justify-self: center;
+    max-width: min(100%, 68svh, 640px);
+  }
+
+  .gallery {
+    max-width: min(100%, 640px);
+  }
+
+  .info {
+    max-width: 720px;
+  }
+
+  .detailsPanel {
+    max-width: 720px;
+  }
+}
+
+@media (max-width: 640px) {
+  .media,
+  .primaryImage {
+    width: 100%;
+  }
+
+  .primaryImage {
+    max-width: min(88vw, 58svh);
+  }
+
+  .gallery {
+    max-width: 100%;
+  }
+
+  .headingGroup h1 {
+    font-size: clamp(1.6rem, 6vw, 2rem);
+    line-height: 1.1;
+  }
+}
+
+@media (max-width: 360px) {
+  .headingGroup h1 {
+    font-size: clamp(1.55rem, 7vw, 2rem);
+  }
+}

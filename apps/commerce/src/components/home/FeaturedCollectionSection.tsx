@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ProductCard } from "../product/ProductCard";
+import productCardStyles from "../product/ProductCard.module.css";
 import type { ResolvedFeaturedCollectionSection } from "../../lib/homepage";
 
 export function FeaturedCollectionSection({
@@ -28,7 +29,7 @@ export function FeaturedCollectionSection({
           {linkLabel}
         </Link>
       </div>
-      <ul className="product-grid">
+      <ul className={productCardStyles.grid}>
         {products.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}

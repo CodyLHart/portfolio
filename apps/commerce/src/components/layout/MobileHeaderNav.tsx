@@ -15,10 +15,16 @@ type MobileHeaderNavProps = {
     alt: string;
     src: string;
   } | null;
+  styles: Record<string, string>;
   title: string;
 };
 
-export function MobileHeaderNav({ links, logo, title }: MobileHeaderNavProps) {
+export function MobileHeaderNav({
+  links,
+  logo,
+  styles,
+  title,
+}: MobileHeaderNavProps) {
   const menuId = useId();
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
@@ -61,15 +67,15 @@ export function MobileHeaderNav({ links, logo, title }: MobileHeaderNavProps) {
   };
 
   return (
-    <div className="mobile-site-nav">
-      <div className="mobile-site-nav-row">
-        <div className="mobile-site-nav-left">
+    <div className={styles.mobileNav}>
+      <div className={styles.mobileRow}>
+        <div className={styles.mobileLeft}>
           <button
             ref={menuButtonRef}
             aria-controls={menuId}
             aria-expanded={isMenuOpen}
             aria-label={isMenuOpen ? "Close menu" : "Open menu"}
-            className="mobile-menu-button"
+            className={styles.menuButton}
             type="button"
             onClick={toggleMenu}
           >
@@ -81,13 +87,13 @@ export function MobileHeaderNav({ links, logo, title }: MobileHeaderNavProps) {
 
         {logo ? (
           <Link
-            className="mobile-site-logo-link"
+            className={styles.mobileLogoLink}
             href="/"
             aria-label={title}
             onClick={closeMenu}
           >
             <Image
-              className="mobile-site-logo-image"
+              className={styles.mobileLogoImage}
               src={logo.src}
               alt={logo.alt}
               width={160}
@@ -97,26 +103,26 @@ export function MobileHeaderNav({ links, logo, title }: MobileHeaderNavProps) {
             />
           </Link>
         ) : (
-          <Link className="mobile-site-title" href="/" onClick={closeMenu}>
+          <Link className={styles.mobileTitle} href="/" onClick={closeMenu}>
             {title}
           </Link>
         )}
 
-        <div className="mobile-site-nav-right">
+        <div className={styles.mobileRight}>
           <CartTrigger onBeforeOpen={closeMenu} />
         </div>
       </div>
 
       <nav
         aria-label="Mobile navigation"
-        className="mobile-menu-panel"
+        className={styles.mobilePanel}
         hidden={!isMenuOpen}
         id={menuId}
       >
         {links.map((link) => (
           <CmsLink
             key={link._key ?? `${link.label}-${link.href}`}
-            className="mobile-menu-link"
+            className={styles.mobileLink}
             label={link.label}
             href={link.href}
             openInNewTab={link.openInNewTab}

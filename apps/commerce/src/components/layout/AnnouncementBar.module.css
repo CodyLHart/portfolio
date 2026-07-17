@@ -1,0 +1,19 @@
+.bar {
+  background: #111827;
+  color: #fff;
+  padding: 10px var(--page-gutter);
+  text-align: center;
+}
+
+.bar p,
+.link {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.link {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

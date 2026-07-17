@@ -6,6 +6,7 @@ import {
   removeCartLineFromCart,
   type CartLineActionState,
 } from "../../app/cart/actions";
+import styles from "./CartLineControls.module.css";
 
 const initialActionState: CartLineActionState = {
   error: null,
@@ -24,7 +25,7 @@ function QuantityButton({
   return (
     <button
       aria-label={label}
-      className="cart-quantity-button"
+      className={styles.button}
       disabled={disabled}
       type="submit"
     >
@@ -35,7 +36,7 @@ function QuantityButton({
 
 function ActionError({ state }: { state: CartLineActionState }) {
   return state.error ? (
-    <p className="cart-line-action-error" role="alert">
+    <p className={styles.error} role="alert">
       {state.error}
     </p>
   ) : null;
@@ -71,9 +72,16 @@ export function CartLineControls({
   }, [decrementState, incrementState, onSuccess]);
 
   return (
-    <div className={`cart-line-controls${isPending ? " is-pending" : ""}`}>
+    <div
+      className={[
+        styles.controls,
+        isPending ? styles.controlsPending : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <div
-        className="cart-quantity-controls"
+        className={styles.quantityControls}
         role="group"
         aria-label={`${productTitle} quantity`}
       >
@@ -98,7 +106,7 @@ export function CartLineControls({
           </QuantityButton>
         </form>
 
-        <span aria-live="polite" className="cart-quantity-value">
+        <span aria-live="polite" className={styles.value}>
           {quantity}
         </span>
 

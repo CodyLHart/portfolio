@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { useCartDrawer } from "./CartDrawerProvider";
+import styles from "./CartTrigger.module.css";
 
 export function CartTrigger({ onBeforeOpen }: { onBeforeOpen?: () => void }) {
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -18,7 +19,7 @@ export function CartTrigger({ onBeforeOpen }: { onBeforeOpen?: () => void }) {
       aria-label={accessibleLabel}
       aria-expanded={isOpen}
       aria-haspopup="dialog"
-      className="cart-trigger"
+      className={styles.trigger}
       type="button"
       onClick={() => {
         onBeforeOpen?.();
@@ -27,7 +28,7 @@ export function CartTrigger({ onBeforeOpen }: { onBeforeOpen?: () => void }) {
     >
       <svg
         aria-hidden="true"
-        className="cart-trigger-icon"
+        className={styles.icon}
         fill="none"
         focusable="false"
         viewBox="0 0 24 24"
@@ -43,7 +44,7 @@ export function CartTrigger({ onBeforeOpen }: { onBeforeOpen?: () => void }) {
         <circle cx="17.3" cy="20" r="0.95" fill="currentColor" />
       </svg>
       {totalQuantity ? (
-        <span className="cart-trigger-count">({totalQuantity})</span>
+        <span className={styles.count}>({totalQuantity})</span>
       ) : null}
     </button>
   );

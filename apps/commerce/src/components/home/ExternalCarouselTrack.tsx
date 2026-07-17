@@ -13,6 +13,7 @@ import {
   useState,
 } from "react";
 import { getSafeCmsHref, isExternalHref } from "../../lib/content";
+import styles from "./ExternalCarouselTrack.module.css";
 
 export type ExternalCarouselTrackItem = {
   _key: string;
@@ -173,11 +174,7 @@ export function ExternalCarouselTrack({
       renderKey: `real-${item._key}`,
       isClone: false,
     }));
-    const afterClones = getRepeatedClones(
-      validatedItems,
-      cloneCount,
-      "after",
-    );
+    const afterClones = getRepeatedClones(validatedItems, cloneCount, "after");
 
     return [...beforeClones, ...realItems, ...afterClones];
   }, [cloneCount, shouldRenderLoop, validatedItems]);
@@ -360,10 +357,14 @@ export function ExternalCarouselTrack({
 
       momentumLastTimeRef.current = performance.now();
       momentumDistanceRef.current = 0;
-      momentumFrameRef.current =
-        window.requestAnimationFrame(runMomentumFrame);
+      momentumFrameRef.current = window.requestAnimationFrame(runMomentumFrame);
     },
-    [cancelMouseMomentum, itemStep, normalizeScrollLeft, scheduleScrollNormalization],
+    [
+      cancelMouseMomentum,
+      itemStep,
+      normalizeScrollLeft,
+      scheduleScrollNormalization,
+    ],
   );
 
   const measureCarousel = useCallback(() => {
@@ -377,9 +378,7 @@ export function ExternalCarouselTrack({
     cancelMouseMomentum();
 
     const nextVisibleItemCount = getVisibleItemCount(viewport.clientWidth);
-    const firstItem = track.querySelector<HTMLElement>(
-      ".external-carousel-item",
-    );
+    const firstItem = track.querySelector<HTMLElement>(`.${styles.item}`);
     const trackStyles = window.getComputedStyle(track);
     const gap =
       Number.parseFloat(trackStyles.columnGap || trackStyles.gap) || 0;
@@ -683,8 +682,8 @@ export function ExternalCarouselTrack({
   }
 
   return (
-    <div className="external-carousel">
-      <div className="external-carousel-header">
+    <div className={styles.carousel}>
+      <div className={styles.header}>
         <button
           type="button"
           onClick={() => moveByItem("backward")}
@@ -703,15 +702,15 @@ export function ExternalCarouselTrack({
           →
         </button>
       </div>
-      <p className="external-carousel-status" aria-live="polite">
+      <p className={styles.status} aria-live="polite">
         Item {realIndex + 1} of {itemCount}
       </p>
       <div
         ref={viewportRef}
         className={[
-          "external-carousel-viewport",
-          shouldShowControls ? "is-draggable" : "",
-          isDragging ? "is-dragging" : "",
+          styles.viewport,
+          shouldShowControls ? styles.viewportDraggable : "",
+          isDragging ? styles.viewportDragging : "",
         ]
           .filter(Boolean)
           .join(" ")}
@@ -722,18 +721,14 @@ export function ExternalCarouselTrack({
         onPointerCancel={handlePointerCancel}
         onLostPointerCapture={handlePointerCancel}
       >
-        <ul
-          ref={trackRef}
-          className="external-carousel-track"
-          aria-labelledby={headingId}
-        >
+        <ul ref={trackRef} className={styles.track} aria-labelledby={headingId}>
           {renderedItems.map((item) => {
             const newTabProps = item.openInNewTab
               ? { target: "_blank", rel: "noopener noreferrer" }
               : {};
             const cardContent = (
               <>
-                <span className="external-carousel-image">
+                <span className={styles.image}>
                   {item.image ? (
                     <Image
                       src={item.image.src}
@@ -746,17 +741,13 @@ export function ExternalCarouselTrack({
                       draggable={false}
                     />
                   ) : (
-                    <span className="external-carousel-image-empty">
-                      No image
-                    </span>
+                    <span className={styles.imageEmpty}>No image</span>
                   )}
                 </span>
-                <span className="external-carousel-copy">
-                  <span className="external-carousel-title">{item.title}</span>
+                <span className={styles.copy}>
+                  <span className={styles.title}>{item.title}</span>
                   {item.subtitle ? (
-                    <span className="external-carousel-subtitle">
-                      {item.subtitle}
-                    </span>
+                    <span className={styles.subtitle}>{item.subtitle}</span>
                   ) : null}
                 </span>
               </>
@@ -764,7 +755,7 @@ export function ExternalCarouselTrack({
 
             return (
               <li
-                className="external-carousel-item"
+                className={styles.item}
                 key={item.renderKey}
                 aria-hidden={item.isClone}
               >

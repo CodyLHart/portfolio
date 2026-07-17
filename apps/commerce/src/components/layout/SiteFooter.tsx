@@ -4,6 +4,7 @@ import type {
   SiteSettingsContent,
 } from "../../sanity/lib/types";
 import { CmsLink } from "../content/CmsLink";
+import styles from "./SiteFooter.module.css";
 
 const fallbackCopyright = "© Cody Hart";
 
@@ -23,12 +24,12 @@ export function SiteFooter({
   const copyright = settings?.copyrightText?.trim() || fallbackCopyright;
 
   return (
-    <footer className="site-footer storefront-chrome">
+    <footer className={`${styles.footer} storefront-chrome`}>
       {heading || body ? (
-        <div className="site-footer-content">
+        <div className={styles.content}>
           {heading ? <h2>{heading}</h2> : null}
           {body ? (
-            <div className="site-footer-body">
+            <div className={styles.body}>
               {splitTextParagraphs(body).map((paragraph) => (
                 <p key={paragraph}>{paragraph}</p>
               ))}
@@ -38,7 +39,7 @@ export function SiteFooter({
       ) : null}
 
       {footerLinks.length > 0 ? (
-        <nav className="site-footer-links" aria-label="Footer navigation">
+        <nav className={styles.links} aria-label="Footer navigation">
           <ul>
             {footerLinks.map((link) => (
               <li key={link._key ?? `${link.label}-${link.href}`}>

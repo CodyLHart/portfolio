@@ -10,6 +10,7 @@ import {
   ExternalCarouselTrack,
   type ExternalCarouselTrackItem,
 } from "./ExternalCarouselTrack";
+import styles from "./ExternalCarouselSection.module.css";
 
 type RenderableImage = SanityHeroImage & {
   alt: string;
@@ -118,7 +119,7 @@ export function ExternalCarouselSection({
 
   return (
     <section
-      className="home-section external-carousel-section"
+      className={`home-section ${styles.section}`}
       aria-labelledby={headingId}
     >
       <ExternalCarouselTrack

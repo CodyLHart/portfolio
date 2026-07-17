@@ -7,6 +7,8 @@ import type {
   ShopifyImage,
   ShopifyProduct,
 } from "../../../lib/shopify/types";
+import productDetailsStyles from "../../../components/product/ProductDetails.module.css";
+import styles from "./ProductPage.module.css";
 
 type ProductPageProps = {
   params: Promise<{
@@ -91,12 +93,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
   }
 
   return (
-    <main className="product-detail-shell">
-      <nav className="breadcrumb" aria-label="Breadcrumb">
+    <main className={styles.shell}>
+      <nav className={styles.breadcrumb} aria-label="Breadcrumb">
         <BackButton />
       </nav>
 
-      <article className="product-detail">
+      <article className={productDetailsStyles.detail}>
         <ProductDetails product={product} />
       </article>
     </main>

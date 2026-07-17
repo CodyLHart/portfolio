@@ -24,6 +24,7 @@ import {
   selectedOptionsFromVariant,
   type SelectedOptions,
 } from "../../lib/shopify/variants";
+import styles from "./ProductDetails.module.css";
 
 type ProductDetailsProduct = {
   title: string;
@@ -115,7 +116,7 @@ function AddToCartButton({
   const disabled = pending || !isAvailable || !hasVariant;
 
   return (
-    <button className="add-to-cart-button" type="submit" disabled={disabled}>
+    <button className={styles.addButton} type="submit" disabled={disabled}>
       {pending ? "Adding..." : !isAvailable ? "Sold out" : "Add to cart"}
     </button>
   );
@@ -194,55 +195,55 @@ export function ProductDetails({
 
   return (
     <>
-      <div className="product-copy">
-        <section className="product-info" aria-labelledby="product-heading">
-          <div className="product-heading-group">
-            {product.vendor ? <p className="product-vendor">{product.vendor}</p> : null}
+      <div className={styles.copy}>
+        <section className={styles.info} aria-labelledby="product-heading">
+          <div className={styles.headingGroup}>
+            {product.vendor ? <p className={styles.vendor}>{product.vendor}</p> : null}
             <h1 id="product-heading">{product.title}</h1>
             {product.productType ? (
-              <p className="product-type">{product.productType}</p>
+              <p className={styles.type}>{product.productType}</p>
             ) : null}
           </div>
         </section>
 
-        <section className="product-details-panel" aria-label="Product details">
-          <div className="product-purchase-summary">
-            <div className="product-price-group">
+        <section className={styles.detailsPanel} aria-label="Product details">
+          <div className={styles.purchaseSummary}>
+            <div className={styles.priceGroup}>
               {compareAtPriceVisible && selectedVariant?.compareAtPrice ? (
-                <span className="product-compare-price">
+                <span className={styles.comparePrice}>
                   {formatShopifyPrice(selectedVariant.compareAtPrice)}
                 </span>
               ) : null}
-              <p className="product-price">
+              <p className={styles.price}>
                 {selectedVariant
                   ? formatShopifyPrice(selectedVariant.price)
                   : "Price unavailable"}
               </p>
               {compareAtPriceVisible ? (
-                <p className="sale-context">Sale price</p>
+                <p className={styles.saleContext}>Sale price</p>
               ) : null}
             </div>
-            <div className="product-description">
+            <div className={styles.description}>
               {product.descriptionHtml ? (
                 <div
-                  className="product-rich-text"
+                  className={styles.richText}
                   dangerouslySetInnerHTML={{ __html: product.descriptionHtml }}
                 />
               ) : (
                 <p>{product.description || "No product description is available."}</p>
               )}
             </div>
-            <p className="product-availability">{availabilityText}</p>
+            <p className={styles.availability}>{availabilityText}</p>
           </div>
 
           {displayOptions.length > 0 ? (
-            <section className="product-options" aria-labelledby="options-heading">
+            <section className={styles.options} aria-labelledby="options-heading">
               <h2 id="options-heading">Options</h2>
-              <div className="option-fieldsets">
+              <div className={styles.optionFieldsets}>
                 {displayOptions.map((option) => (
-                  <fieldset className="option-fieldset" key={option.id}>
+                  <fieldset className={styles.optionFieldset} key={option.id}>
                     <legend>{option.name}</legend>
-                    <div className="option-values">
+                    <div className={styles.optionValues}>
                       {option.values.map((value) => {
                         const normalizedName = normalizeOptionName(option.name);
                         const isSelected = selectedOptions[normalizedName] === value;
@@ -257,14 +258,14 @@ export function ProductDetails({
                           <button
                             type="button"
                             key={value}
-                            className="option-button"
+                            className={styles.optionButton}
                             aria-pressed={isSelected}
                             disabled={status.disabled}
                             onClick={() => handleOptionChange(option.name, value)}
                           >
                             <span>{value}</span>
                             {status.soldOut ? (
-                              <span className="option-status">Sold out</span>
+                              <span className={styles.optionStatus}>Sold out</span>
                             ) : null}
                           </button>
                         );
@@ -276,14 +277,14 @@ export function ProductDetails({
             </section>
           ) : null}
 
-          <form action={addToCartAction} className="add-to-cart-form">
+          <form action={addToCartAction} className={styles.form}>
             <input type="hidden" name="variantId" value={selectedVariant?.id ?? ""} />
             <AddToCartButton
               isAvailable={canSubmitSelectedVariant}
               hasVariant={Boolean(selectedVariant)}
             />
             {addToCartState.error ? (
-              <p className="form-error" role="alert">
+              <p className={styles.formError} role="alert">
                 {addToCartState.error}
               </p>
             ) : null}
@@ -291,9 +292,9 @@ export function ProductDetails({
         </section>
       </div>
 
-      <section className="product-media" aria-label={`${product.title} images`}>
+      <section className={styles.media} aria-label={`${product.title} images`}>
         {activeImage ? (
-          <div className="product-primary-image">
+          <div className={styles.primaryImage}>
             <Image
               src={activeImage.url}
               alt={activeImage.altText ?? product.title}
@@ -304,11 +305,11 @@ export function ProductDetails({
             />
           </div>
         ) : (
-          <div className="product-image-placeholder">No product image available</div>
+          <div className={styles.imagePlaceholder}>No product image available</div>
         )}
 
         {images.length > 1 ? (
-          <ul className="product-gallery" aria-label="Product image thumbnails">
+          <ul className={styles.gallery} aria-label="Product image thumbnails">
             {images.map((image, index) => {
               const isSelected = image.url === activeImage?.url;
 
@@ -316,7 +317,7 @@ export function ProductDetails({
                 <li key={image.url}>
                   <button
                     type="button"
-                    className="product-thumbnail"
+                    className={styles.thumbnail}
                     aria-label={`Show image ${index + 1} for ${product.title}`}
                     aria-pressed={isSelected}
                     onClick={() => setActiveImageUrl(image.url)}

@@ -1,0 +1,11 @@
+.shell {
+  margin: 0 auto;
+  max-width: var(--width-page);
+  min-height: 100vh;
+  padding: 24px var(--page-gutter) 56px;
+  width: 100%;
+}
+
+.breadcrumb {
+  margin-bottom: 20px;
+}

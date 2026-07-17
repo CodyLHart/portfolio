@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { formatShopifyPrice } from "../../lib/shopify/format";
 import type { ShopifyProductSummary } from "../../lib/shopify/types";
+import styles from "./ProductCard.module.css";
 
 export function ProductCard({
   product,
@@ -17,9 +18,9 @@ export function ProductCard({
   const productType = product.productType.trim();
 
   return (
-    <li className="product-card">
-      <Link href={`/store/${product.handle}`} className="product-card-link">
-        <div className="product-card-image">
+    <li className={styles.card}>
+      <Link href={`/store/${product.handle}`} className={styles.link}>
+        <div className={styles.image}>
           {image ? (
             <Image
               src={image.url}
@@ -29,12 +30,12 @@ export function ProductCard({
               sizes="(max-width: 700px) 100vw, (max-width: 1100px) 50vw, 33vw"
             />
           ) : (
-            <div className="product-card-image-empty">No image</div>
+            <div className={styles.imageEmpty}>No image</div>
           )}
         </div>
-        <div className="product-card-content">
+        <div className={styles.content}>
           {showProductType && productType ? (
-            <p className="product-card-type">{productType}</p>
+            <p className={styles.type}>{productType}</p>
           ) : null}
           <h2>{product.title}</h2>
           <p>{price}</p>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSafeCmsHref, isExternalHref } from "../../lib/content";
 import type { SiteSettingsContent } from "../../sanity/lib/types";
+import styles from "./AnnouncementBar.module.css";
 
 type AnnouncementBarProps = {
   settings: SiteSettingsContent | null;
@@ -22,19 +23,19 @@ export function AnnouncementBar({ settings }: AnnouncementBarProps) {
 
   return (
     <aside
-      className="announcement-bar storefront-chrome"
+      className={`${styles.bar} storefront-chrome`}
       aria-label="Store announcement"
     >
       {safeHref && isExternalHref(safeHref) ? (
         <a
-          className="announcement-link"
+          className={styles.link}
           href={safeHref}
           {...newTabProps}
         >
           {text}
         </a>
       ) : safeHref ? (
-        <Link className="announcement-link" href={safeHref} {...newTabProps}>
+        <Link className={styles.link} href={safeHref} {...newTabProps}>
           {text}
         </Link>
       ) : (
