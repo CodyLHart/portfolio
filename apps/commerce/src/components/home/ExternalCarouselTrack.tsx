@@ -75,9 +75,39 @@ const getMotionBehavior = () =>
 const mouseDragIntentThreshold = 10;
 const mouseClickSuppressionThreshold = 10;
 const arrowBoundaryToleranceRatio = 0.15;
+const mouseMomentumMinVelocity = 0.2; // scrollLeft CSS px per millisecond.
+const mouseMomentumMaxVelocity = 2;
+const mouseMomentumStopVelocity = 0.02;
+const mouseMomentumFrictionPerFrame = 0.94;
+const mouseMomentumMaxDistanceSteps = 3;
+const frameDurationMs = 16.67;
 
 const getPositiveModulo = (value: number, modulus: number) =>
   ((value % modulus) + modulus) % modulus;
+
+const getRepeatedClones = (
+  items: ExternalCarouselTrackItem[],
+  cloneCount: number,
+  position: "before" | "after",
+): RenderedCarouselItem[] => {
+  if (items.length === 0 || cloneCount <= 0) {
+    return [];
+  }
+
+  return Array.from({ length: cloneCount }, (_, index) => {
+    const itemIndex =
+      position === "before"
+        ? getPositiveModulo(items.length - cloneCount + index, items.length)
+        : index % items.length;
+    const item = items[itemIndex];
+
+    return {
+      ...item,
+      renderKey: `${position}-${index}-${item._key}`,
+      isClone: true,
+    };
+  });
+};
 
 export function ExternalCarouselTrack({
   heading,
@@ -94,6 +124,12 @@ export function ExternalCarouselTrack({
   const dragStartXRef = useRef<number | null>(null);
   const dragStartYRef = useRef<number | null>(null);
   const dragStartScrollLeftRef = useRef(0);
+  const lastMouseXRef = useRef(0);
+  const lastMouseSampleTimeRef = useRef(0);
+  const mouseVelocityRef = useRef(0);
+  const momentumFrameRef = useRef<number | null>(null);
+  const momentumLastTimeRef = useRef(0);
+  const momentumDistanceRef = useRef(0);
   const hasDraggedRef = useRef(false);
   const suppressClickRef = useRef(false);
   const isDraggingRef = useRef(false);
@@ -108,7 +144,7 @@ export function ExternalCarouselTrack({
   const itemCount = validatedItems.length;
   const cloneCount =
     itemCount > visibleItemCount
-      ? Math.min(visibleItemCount + 1, itemCount)
+      ? visibleItemCount + mouseMomentumMaxDistanceSteps + 1
       : 0;
   const shouldLoop = cloneCount > 0;
   const shouldRenderLoop = shouldLoop && itemStep > 0;
@@ -122,21 +158,21 @@ export function ExternalCarouselTrack({
       }));
     }
 
-    const beforeClones = validatedItems.slice(-cloneCount).map((item) => ({
-      ...item,
-      renderKey: `before-${item._key}`,
-      isClone: true,
-    }));
+    const beforeClones = getRepeatedClones(
+      validatedItems,
+      cloneCount,
+      "before",
+    );
     const realItems = validatedItems.map((item) => ({
       ...item,
       renderKey: `real-${item._key}`,
       isClone: false,
     }));
-    const afterClones = validatedItems.slice(0, cloneCount).map((item) => ({
-      ...item,
-      renderKey: `after-${item._key}`,
-      isClone: true,
-    }));
+    const afterClones = getRepeatedClones(
+      validatedItems,
+      cloneCount,
+      "after",
+    );
 
     return [...beforeClones, ...realItems, ...afterClones];
   }, [cloneCount, shouldRenderLoop, validatedItems]);
@@ -246,6 +282,85 @@ export function ExternalCarouselTrack({
     });
   }, [normalizeScrollLeft]);
 
+  const cancelMouseMomentum = useCallback(() => {
+    if (momentumFrameRef.current === null) {
+      return;
+    }
+
+    window.cancelAnimationFrame(momentumFrameRef.current);
+    momentumFrameRef.current = null;
+    momentumLastTimeRef.current = 0;
+    momentumDistanceRef.current = 0;
+  }, []);
+
+  const startMouseMomentum = useCallback(
+    (releaseVelocity: number) => {
+      const viewport = viewportRef.current;
+      const step = itemStepRef.current || itemStep;
+
+      if (
+        !viewport ||
+        step <= 0 ||
+        getMotionBehavior() !== "smooth" ||
+        Math.abs(releaseVelocity) < mouseMomentumMinVelocity
+      ) {
+        return;
+      }
+
+      cancelMouseMomentum();
+
+      let velocity = Math.max(
+        -mouseMomentumMaxVelocity,
+        Math.min(mouseMomentumMaxVelocity, releaseVelocity),
+      );
+      const maxMomentumDistance = step * mouseMomentumMaxDistanceSteps;
+
+      const runMomentumFrame = (timestamp: number) => {
+        if (momentumLastTimeRef.current === 0) {
+          momentumLastTimeRef.current = timestamp;
+        }
+
+        const elapsed = Math.min(
+          timestamp - momentumLastTimeRef.current,
+          frameDurationMs * 2,
+        );
+
+        momentumLastTimeRef.current = timestamp;
+
+        const nextDelta = velocity * elapsed;
+
+        viewport.scrollLeft += nextDelta;
+        normalizeScrollLeft();
+        momentumDistanceRef.current += Math.abs(nextDelta);
+
+        velocity *= Math.pow(
+          mouseMomentumFrictionPerFrame,
+          elapsed / frameDurationMs,
+        );
+
+        if (
+          Math.abs(velocity) < mouseMomentumStopVelocity ||
+          momentumDistanceRef.current >= maxMomentumDistance
+        ) {
+          momentumFrameRef.current = null;
+          momentumLastTimeRef.current = 0;
+          momentumDistanceRef.current = 0;
+          scheduleScrollNormalization();
+          return;
+        }
+
+        momentumFrameRef.current =
+          window.requestAnimationFrame(runMomentumFrame);
+      };
+
+      momentumLastTimeRef.current = performance.now();
+      momentumDistanceRef.current = 0;
+      momentumFrameRef.current =
+        window.requestAnimationFrame(runMomentumFrame);
+    },
+    [cancelMouseMomentum, itemStep, normalizeScrollLeft, scheduleScrollNormalization],
+  );
+
   const measureCarousel = useCallback(() => {
     const viewport = viewportRef.current;
     const track = trackRef.current;
@@ -253,6 +368,8 @@ export function ExternalCarouselTrack({
     if (!viewport || !track) {
       return;
     }
+
+    cancelMouseMomentum();
 
     const nextVisibleItemCount = getVisibleItemCount(viewport.clientWidth);
     const firstItem = track.querySelector<HTMLElement>(
@@ -266,7 +383,7 @@ export function ExternalCarouselTrack({
       const nextItemStep = firstItem.getBoundingClientRect().width + gap;
       const nextCloneCount =
         itemCount > nextVisibleItemCount
-          ? Math.min(nextVisibleItemCount + 1, itemCount)
+          ? nextVisibleItemCount + mouseMomentumMaxDistanceSteps + 1
           : 0;
       const previousItemStep = itemStepRef.current;
       const previousCloneCount = cloneCount;
@@ -291,7 +408,7 @@ export function ExternalCarouselTrack({
     }
 
     setVisibleItemCount(nextVisibleItemCount);
-  }, [cloneCount, itemCount, updateRealIndexFromScroll]);
+  }, [cancelMouseMomentum, cloneCount, itemCount, updateRealIndexFromScroll]);
 
   const moveByItem = (direction: "backward" | "forward") => {
     const viewport = viewportRef.current;
@@ -299,6 +416,8 @@ export function ExternalCarouselTrack({
     if (!viewport || !shouldShowControls || isDraggingRef.current) {
       return;
     }
+
+    cancelMouseMomentum();
 
     const step = itemStepRef.current || itemStep;
 
@@ -374,6 +493,8 @@ export function ExternalCarouselTrack({
 
   useEffect(
     () => () => {
+      cancelMouseMomentum();
+
       if (normalizeScrollFrameRef.current !== null) {
         window.cancelAnimationFrame(normalizeScrollFrameRef.current);
         normalizeScrollFrameRef.current = null;
@@ -384,7 +505,7 @@ export function ExternalCarouselTrack({
       hasDraggedRef.current = false;
       isDraggingRef.current = false;
     },
-    [],
+    [cancelMouseMomentum],
   );
 
   const cleanupPointerInteraction = (
@@ -419,10 +540,15 @@ export function ExternalCarouselTrack({
       return;
     }
 
+    cancelMouseMomentum();
+
     activePointerIdRef.current = event.pointerId;
     dragStartXRef.current = event.clientX;
     dragStartYRef.current = event.clientY;
     dragStartScrollLeftRef.current = event.currentTarget.scrollLeft;
+    lastMouseXRef.current = event.clientX;
+    lastMouseSampleTimeRef.current = event.timeStamp;
+    mouseVelocityRef.current = 0;
     hasDraggedRef.current = false;
     suppressClickRef.current = false;
     isDraggingRef.current = false;
@@ -442,6 +568,7 @@ export function ExternalCarouselTrack({
 
     const deltaX = event.clientX - dragStartXRef.current;
     const deltaY = event.clientY - dragStartYRef.current;
+    const elapsed = event.timeStamp - lastMouseSampleTimeRef.current;
     const hasHorizontalDragIntent =
       Math.abs(deltaX) >= mouseDragIntentThreshold &&
       Math.abs(deltaX) > Math.abs(deltaY);
@@ -462,6 +589,16 @@ export function ExternalCarouselTrack({
       setIsDragging(true);
     }
 
+    if (elapsed > 0 && elapsed < 140) {
+      const instantVelocity = (lastMouseXRef.current - event.clientX) / elapsed;
+
+      mouseVelocityRef.current =
+        mouseVelocityRef.current * 0.65 + instantVelocity * 0.35;
+    }
+
+    lastMouseXRef.current = event.clientX;
+    lastMouseSampleTimeRef.current = event.timeStamp;
+
     event.preventDefault();
     event.currentTarget.scrollLeft = dragStartScrollLeftRef.current - deltaX;
     normalizeScrollLeft();
@@ -475,7 +612,16 @@ export function ExternalCarouselTrack({
       return;
     }
 
+    const elapsed = event.timeStamp - lastMouseSampleTimeRef.current;
+    const finalSampleVelocity =
+      elapsed > 0 && elapsed < 140
+        ? (lastMouseXRef.current - event.clientX) / elapsed
+        : 0;
     const completedDrag = hasDraggedRef.current;
+    const releaseVelocity =
+      finalSampleVelocity !== 0
+        ? mouseVelocityRef.current * 0.65 + finalSampleVelocity * 0.35
+        : mouseVelocityRef.current;
     const dragDistance =
       dragStartXRef.current === null
         ? 0
@@ -488,6 +634,14 @@ export function ExternalCarouselTrack({
       completedDrag &&
       dragDistance >= mouseClickSuppressionThreshold;
     hasDraggedRef.current = false;
+
+    if (shouldSuppressClick && completedDrag) {
+      startMouseMomentum(releaseVelocity);
+    }
+
+    lastMouseSampleTimeRef.current = 0;
+    lastMouseXRef.current = 0;
+    mouseVelocityRef.current = 0;
     scheduleScrollNormalization();
   };
 
@@ -496,6 +650,7 @@ export function ExternalCarouselTrack({
   };
 
   const handlePointerCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
+    cancelMouseMomentum();
     finishPointerDrag(event, false);
   };
 
