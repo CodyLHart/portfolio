@@ -31,27 +31,6 @@ const shortenDescription = (description: string) => {
     : normalized;
 };
 
-const CollectionDescription = ({
-  collection,
-}: {
-  collection: ShopifyCollection;
-}) => {
-  if (collection.descriptionHtml) {
-    return (
-      <div
-        className="collection-rich-text"
-        dangerouslySetInnerHTML={{ __html: collection.descriptionHtml }}
-      />
-    );
-  }
-
-  if (collection.description) {
-    return <p>{collection.description}</p>;
-  }
-
-  return null;
-};
-
 const CollectionHero = ({ collection }: { collection: ShopifyCollection }) => {
   const image = collection.image;
 
@@ -147,13 +126,8 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
         <header className="collection-header">
           <div className="collection-heading">
             <h1>{collection.title}</h1>
-            <CollectionDescription collection={collection} />
           </div>
         </header>
-      ) : collection.descriptionHtml || collection.description ? (
-        <div className="collection-heading">
-          <CollectionDescription collection={collection} />
-        </div>
       ) : null}
 
       {products.length > 0 ? (
