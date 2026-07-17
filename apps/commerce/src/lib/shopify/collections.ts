@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { shopifyStorefrontRequest } from "./client";
 import { COLLECTION_BY_HANDLE_QUERY } from "./queries/collection";
 import { COLLECTIONS_QUERY } from "./queries/collections";
@@ -24,7 +25,7 @@ const getValidProductCount = (first: number) => {
   return first;
 };
 
-export const getCollectionByHandle = async (
+export const getCollectionByHandle = cache(async (
   handle: string | null | undefined,
   first = DEFAULT_COLLECTION_PRODUCT_COUNT,
 ) => {
@@ -42,15 +43,17 @@ export const getCollectionByHandle = async (
       handle: trimmedHandle,
       first: productCount,
     },
+    retryMode: "read",
   });
 
   return data.collection;
-};
+});
 
-export const getCollections = async () => {
+export const getCollections = cache(async () => {
   const data = await shopifyStorefrontRequest<CollectionsQueryResponse>({
     query: COLLECTIONS_QUERY,
+    retryMode: "read",
   });
 
   return data.collections.nodes;
-};
+});

@@ -60,6 +60,7 @@ export const getCart = async (cartId: string, buyerIp?: string) => {
       id: cartId,
     },
     buyerIp,
+    retryMode: "read",
   });
 
   return data.cart;

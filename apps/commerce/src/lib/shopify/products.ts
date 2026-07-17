@@ -1,3 +1,6 @@
+import "server-only";
+
+import { cache } from "react";
 import { shopifyStorefrontRequest } from "./client";
 import { PRODUCT_BY_HANDLE_QUERY } from "./queries/product";
 import { PRODUCTS_QUERY } from "./queries/products";
@@ -6,21 +9,23 @@ import type {
   ProductsQueryResponse,
 } from "./types";
 
-export const getProducts = async () => {
+export const getProducts = cache(async () => {
   const data = await shopifyStorefrontRequest<ProductsQueryResponse>({
     query: PRODUCTS_QUERY,
+    retryMode: "read",
   });
 
   return data.products.nodes;
-};
+});
 
-export const getProductByHandle = async (handle: string) => {
+export const getProductByHandle = cache(async (handle: string) => {
   const data = await shopifyStorefrontRequest<ProductByHandleQueryResponse>({
     query: PRODUCT_BY_HANDLE_QUERY,
     variables: {
       handle,
     },
+    retryMode: "read",
   });
 
   return data.product;
-};
+});
