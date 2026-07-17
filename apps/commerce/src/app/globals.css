@@ -538,6 +538,23 @@ body.cart-drawer-open {
   width: 100%;
 }
 
+.external-carousel-viewport.is-draggable {
+  cursor: grab;
+}
+
+.external-carousel-viewport.is-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.external-carousel-viewport.is-draggable .external-carousel-item a {
+  cursor: pointer;
+}
+
+.external-carousel-viewport.is-dragging .external-carousel-item a {
+  cursor: grabbing;
+}
+
 .external-carousel-track {
   display: flex;
   gap: var(--carousel-gap);
@@ -549,6 +566,11 @@ body.cart-drawer-open {
 
 .external-carousel-track.is-transitioning {
   transition: transform 240ms ease;
+  will-change: transform;
+}
+
+.external-carousel-track.is-dragging {
+  transition: none;
   will-change: transform;
 }
 
@@ -575,6 +597,10 @@ body.cart-drawer-open {
   opacity: 0.9;
 }
 
+.external-carousel-viewport.is-dragging .external-carousel-item a:hover {
+  opacity: 1;
+}
+
 .external-carousel-image {
   aspect-ratio: 1 / 1;
   background: #e2e8f0;
@@ -585,6 +611,7 @@ body.cart-drawer-open {
 .external-carousel-image img {
   height: 100%;
   object-fit: cover;
+  user-select: none;
   width: 100%;
 }
 
