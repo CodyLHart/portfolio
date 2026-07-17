@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import {
   type DragEvent as ReactDragEvent,
   type MouseEvent as ReactMouseEvent,
@@ -15,6 +16,7 @@ import { getSafeCmsHref, isExternalHref } from "../../lib/content";
 
 export type ExternalCarouselTrackItem = {
   _key: string;
+  linkType: "external" | "internal";
   title: string;
   subtitle: string | null;
   href: string;
@@ -25,7 +27,7 @@ export type ExternalCarouselTrackItem = {
     width: number;
     height: number;
     blurDataURL: string | null;
-  };
+  } | null;
 };
 
 const getValidatedItems = (items: ExternalCarouselTrackItem[]) =>
@@ -33,7 +35,10 @@ const getValidatedItems = (items: ExternalCarouselTrackItem[]) =>
     .map((item) => {
       const safeHref = getSafeCmsHref(item.href);
 
-      return safeHref && isExternalHref(safeHref)
+      return safeHref &&
+        (item.linkType === "external"
+          ? isExternalHref(safeHref)
+          : !isExternalHref(safeHref))
         ? {
             ...item,
             href: safeHref,
@@ -726,22 +731,10 @@ export function ExternalCarouselTrack({
             const newTabProps = item.openInNewTab
               ? { target: "_blank", rel: "noopener noreferrer" }
               : {};
-
-            return (
-              <li
-                className="external-carousel-item"
-                key={item.renderKey}
-                aria-hidden={item.isClone}
-              >
-                <a
-                  href={item.href}
-                  tabIndex={item.isClone ? -1 : undefined}
-                  draggable={false}
-                  onClick={handleLinkClick}
-                  onDragStart={handleDragStart}
-                  {...newTabProps}
-                >
-                  <span className="external-carousel-image">
+            const cardContent = (
+              <>
+                <span className="external-carousel-image">
+                  {item.image ? (
                     <Image
                       src={item.image.src}
                       alt={item.image.alt}
@@ -752,18 +745,51 @@ export function ExternalCarouselTrack({
                       blurDataURL={item.image.blurDataURL ?? undefined}
                       draggable={false}
                     />
-                  </span>
-                  <span className="external-carousel-copy">
-                    <span className="external-carousel-title">
-                      {item.title}
+                  ) : (
+                    <span className="external-carousel-image-empty">
+                      No image
                     </span>
-                    {item.subtitle ? (
-                      <span className="external-carousel-subtitle">
-                        {item.subtitle}
-                      </span>
-                    ) : null}
-                  </span>
-                </a>
+                  )}
+                </span>
+                <span className="external-carousel-copy">
+                  <span className="external-carousel-title">{item.title}</span>
+                  {item.subtitle ? (
+                    <span className="external-carousel-subtitle">
+                      {item.subtitle}
+                    </span>
+                  ) : null}
+                </span>
+              </>
+            );
+
+            return (
+              <li
+                className="external-carousel-item"
+                key={item.renderKey}
+                aria-hidden={item.isClone}
+              >
+                {item.linkType === "internal" ? (
+                  <Link
+                    href={item.href}
+                    tabIndex={item.isClone ? -1 : undefined}
+                    draggable={false}
+                    onClick={handleLinkClick}
+                    onDragStart={handleDragStart}
+                  >
+                    {cardContent}
+                  </Link>
+                ) : (
+                  <a
+                    href={item.href}
+                    tabIndex={item.isClone ? -1 : undefined}
+                    draggable={false}
+                    onClick={handleLinkClick}
+                    onDragStart={handleDragStart}
+                    {...newTabProps}
+                  >
+                    {cardContent}
+                  </a>
+                )}
               </li>
             );
           })}

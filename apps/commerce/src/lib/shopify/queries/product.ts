@@ -1,3 +1,15 @@
+import { PRODUCT_SUMMARY_FRAGMENT } from "../fragments/product-summary";
+
+export const PRODUCT_SUMMARY_BY_HANDLE_QUERY = `#graphql
+  ${PRODUCT_SUMMARY_FRAGMENT}
+
+  query ProductSummaryByHandle($handle: String!) {
+    product(handle: $handle) {
+      ...ProductSummaryFragment
+    }
+  }
+`;
+
 export const PRODUCT_BY_HANDLE_QUERY = `#graphql
   query ProductByHandle($handle: String!) {
     product(handle: $handle) {

@@ -2,7 +2,7 @@ import { defineField, defineType } from "sanity";
 
 export const externalCarouselSection = defineType({
   name: "externalCarouselSection",
-  title: "External carousel",
+  title: "Mixed carousel",
   type: "object",
   fields: [
     defineField({
@@ -15,8 +15,9 @@ export const externalCarouselSection = defineType({
       name: "items",
       title: "Items",
       type: "array",
-      description: "Add, remove, and drag external carousel cards.",
-      of: [{ type: "externalCarouselItem" }],
+      description:
+        "Mix and reorder external link cards and Shopify product cards in one carousel. External items navigate to other websites; Shopify products navigate to product pages in this store.",
+      of: [{ type: "externalCarouselItem" }, { type: "shopifyProductCarouselItem" }],
       validation: (Rule) => Rule.required().min(1).max(30),
     }),
   ],
@@ -26,7 +27,7 @@ export const externalCarouselSection = defineType({
       items: "items",
     },
     prepare: ({ title, items }) => ({
-      title: title || "External carousel",
+      title: title || "Mixed carousel",
       subtitle: `${Array.isArray(items) ? items.length : 0} item${
         Array.isArray(items) && items.length === 1 ? "" : "s"
       }`,

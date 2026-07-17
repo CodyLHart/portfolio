@@ -116,24 +116,49 @@ export const HOME_PAGE_QUERY = defineQuery(`
         heading,
         items[] {
           _key,
-          title,
-          subtitle,
-          href,
-          openInNewTab,
-          image {
-            alt,
-            crop,
-            hotspot,
-            asset->{
-              _id,
-              url,
-              metadata {
-                dimensions {
-                  width,
-                  height,
-                  aspectRatio
+          _type,
+          _type == "externalCarouselItem" => {
+            title,
+            subtitle,
+            href,
+            openInNewTab,
+            image {
+              alt,
+              crop,
+              hotspot,
+              asset->{
+                _id,
+                url,
+                metadata {
+                  dimensions {
+                    width,
+                    height,
+                    aspectRatio
+                  },
+                  lqip
                 },
-                lqip
+              }
+            }
+          },
+          _type == "shopifyProductCarouselItem" => {
+            productHandle,
+            customTitle,
+            customSubtitle,
+            customImage {
+              alt,
+              crop,
+              hotspot,
+              asset->{
+                _id,
+                url,
+                metadata {
+                  dimensions {
+                    width,
+                    height,
+                    aspectRatio
+                  },
+                  lqip
+                }
               }
             }
           }

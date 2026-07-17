@@ -6,6 +6,7 @@ import { imageTextSection } from "./sections/imageTextSection";
 import { homePage } from "./homePage";
 import { navigationItem } from "./navigationItem";
 import { promoCollectionTile } from "./promoCollectionTile";
+import { shopifyProductCarouselItem } from "./shopifyProductCarouselItem";
 import { siteSettings } from "./siteSettings";
 import { splitCollectionHeroSection } from "./sections/splitCollectionHeroSection";
 
@@ -13,6 +14,7 @@ export const schemaTypes = [
   navigationItem,
   promoCollectionTile,
   externalCarouselItem,
+  shopifyProductCarouselItem,
   heroSection,
   splitCollectionHeroSection,
   featuredCollectionSection,

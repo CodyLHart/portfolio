@@ -1,8 +1,10 @@
 import "server-only";
 
 import { getCollectionByHandle } from "./shopify/collections";
-import type { ShopifyCollection } from "./shopify/types";
+import { getProductSummaryByHandle } from "./shopify/products";
+import type { ShopifyCollection, ShopifyProductSummary } from "./shopify/types";
 import type {
+  CarouselItemContent,
   ExternalCarouselSectionContent,
   FeaturedCollectionSectionContent,
   HeroSectionContent,
@@ -46,7 +48,29 @@ export type ResolvedFeaturedCollectionSection =
 
 export type ResolvedImageTextSection = ImageTextSectionContent;
 
-export type ResolvedExternalCarouselSection = ExternalCarouselSectionContent;
+export type ResolvedExternalCarouselItem = Extract<
+  CarouselItemContent,
+  { _type: "externalCarouselItem" }
+>;
+
+export type ResolvedShopifyProductCarouselItem = Extract<
+  CarouselItemContent,
+  { _type: "shopifyProductCarouselItem" }
+> & {
+  productHandle: string;
+  product: ShopifyProductSummary;
+};
+
+export type ResolvedCarouselItem =
+  | ResolvedExternalCarouselItem
+  | ResolvedShopifyProductCarouselItem;
+
+export type ResolvedExternalCarouselSection = Omit<
+  ExternalCarouselSectionContent,
+  "items"
+> & {
+  items: ResolvedCarouselItem[];
+};
 
 export type ResolvedHomePageSection =
   | ResolvedHeroSection
@@ -88,6 +112,45 @@ export const resolveHomePageSections = async (
           ...section,
           collection,
           productCount,
+        };
+      }
+
+      if (section._type === "externalCarouselSection") {
+        const resolvedItems: Array<ResolvedCarouselItem | null> = await Promise.all(
+          (section.items ?? []).map(async (item) => {
+            if (item._type === "externalCarouselItem") {
+              return item;
+            }
+
+            if (item._type === "shopifyProductCarouselItem") {
+              const productHandle = item.productHandle?.trim();
+
+              if (!productHandle) {
+                return null;
+              }
+
+              const product = await getProductSummaryByHandle(productHandle);
+
+              if (!product) {
+                return null;
+              }
+
+              return {
+                ...item,
+                productHandle,
+                product,
+              };
+            }
+
+            return null;
+          }),
+        );
+
+        return {
+          ...section,
+          items: resolvedItems.filter(
+            (item): item is ResolvedCarouselItem => Boolean(item),
+          ),
         };
       }
 

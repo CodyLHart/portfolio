@@ -98,6 +98,7 @@ export type ImageTextSectionContent = HomePageSectionBase & {
 
 export type ExternalCarouselItemContent = {
   _key: string;
+  _type: "externalCarouselItem";
   title: string;
   subtitle: string | null;
   href: string;
@@ -105,10 +106,23 @@ export type ExternalCarouselItemContent = {
   image: SanityHeroImage | null;
 };
 
+export type ShopifyProductCarouselItemContent = {
+  _key: string;
+  _type: "shopifyProductCarouselItem";
+  productHandle: string | null;
+  customTitle: string | null;
+  customSubtitle: string | null;
+  customImage: SanityHeroImage | null;
+};
+
+export type CarouselItemContent =
+  | ExternalCarouselItemContent
+  | ShopifyProductCarouselItemContent;
+
 export type ExternalCarouselSectionContent = HomePageSectionBase & {
   _type: "externalCarouselSection";
   heading: string;
-  items: ExternalCarouselItemContent[] | null;
+  items: CarouselItemContent[] | null;
 };
 
 export type HomePageSection =

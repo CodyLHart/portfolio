@@ -14,6 +14,7 @@ export type ShopifyProductSummary = {
   id: string;
   title: string;
   handle: string;
+  availableForSale: boolean;
   featuredImage: ShopifyImage | null;
   priceRange: {
     minVariantPrice: ShopifyMoney;
@@ -100,6 +101,10 @@ export type ShopifyProduct = ShopifyProductSummary & {
 
 export type ProductByHandleQueryResponse = {
   product: ShopifyProduct | null;
+};
+
+export type ProductSummaryByHandleQueryResponse = {
+  product: ShopifyProductSummary | null;
 };
 
 export type ShopifyCartLine = {
