@@ -25,12 +25,7 @@ export function CartTrigger({ onBeforeOpen }: { onBeforeOpen?: () => void }) {
         openCart(buttonRef.current);
       }}
     >
-      <span>Cart</span>
-      {totalQuantity ? (
-        <span aria-hidden="true" className="cart-trigger-count">
-          {totalQuantity}
-        </span>
-      ) : null}
+      <span>Cart{totalQuantity ? ` (${totalQuantity})` : ""}</span>
     </button>
   );
 }

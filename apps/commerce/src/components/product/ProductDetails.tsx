@@ -170,7 +170,7 @@ export function ProductDetails({
 
   useEffect(() => {
     if (addToCartState.success) {
-      openCart();
+      openCart(undefined, { refresh: true });
     }
   }, [addToCartState, openCart]);
 

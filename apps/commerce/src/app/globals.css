@@ -112,21 +112,6 @@ a:focus-visible {
   padding: 0;
 }
 
-.cart-trigger-count {
-  align-items: center;
-  background: #111827;
-  border-radius: 999px;
-  color: #ffffff;
-  display: inline-flex;
-  font-size: 0.72rem;
-  font-weight: 800;
-  justify-content: center;
-  line-height: 1;
-  min-height: 20px;
-  min-width: 20px;
-  padding: 2px 6px;
-}
-
 .cart-trigger:focus-visible {
   outline: 2px solid #111827;
   outline-offset: 4px;
@@ -1862,8 +1847,10 @@ body.cart-drawer-open {
   }
 
   .mobile-site-nav .cart-trigger {
+    font-size: 0.95rem;
     min-height: 44px;
     padding: 0;
+    white-space: nowrap;
   }
 }
 
