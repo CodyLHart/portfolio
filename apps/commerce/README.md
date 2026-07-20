@@ -8,6 +8,7 @@ React, TypeScript, Shopify Storefront API, Sanity CMS, and CSS Modules.
 ```bash
 npm --workspace @portfolio/commerce run dev
 npm --workspace @portfolio/commerce run lint
+npm --workspace @portfolio/commerce run test
 npm --workspace @portfolio/commerce run build
 ```
 
@@ -55,6 +56,42 @@ project identifiers used by the embedded Studio and published-content reads.
 The storefront uses CSS Modules for component and route-owned styles. Remaining
 global CSS is reserved for design tokens, base resets, legacy homepage section
 classes, shared route states, cart-page styles, and global error/loading states.
+
+## Testing
+
+The initial test foundation uses Vitest for unit and focused component tests,
+React Testing Library for DOM interaction tests, and Playwright for browser smoke
+tests.
+
+```bash
+npm --workspace @portfolio/commerce run test
+npm --workspace @portfolio/commerce run test:watch
+npm --workspace @portfolio/commerce run test:coverage
+npm --workspace @portfolio/commerce run test:e2e
+```
+
+Install Playwright browsers before the first E2E run in a fresh environment:
+
+```bash
+npm --workspace @portfolio/commerce exec playwright install chromium
+```
+
+Unit coverage currently focuses on:
+
+- Shopify variant matching helpers
+- CMS URL validation
+- cart cookie value parsing and validation
+- Shopify retry-policy and request retry behavior
+- CMS/Shopify homepage section composition
+- carousel drag-versus-click gesture helpers
+- ProductDetails option/variant behavior
+- cart line control wiring
+
+Playwright smoke tests expect the normal commerce environment variables listed
+above. Product-navigation smoke coverage uses the current Shopify development
+catalog and skips that specific test when no seeded product link exists. The E2E
+suite should not mutate catalog data; cart mutation coverage can be expanded once
+a deterministic test product is documented.
 
 ## Deployment
 
