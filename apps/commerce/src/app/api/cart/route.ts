@@ -2,10 +2,9 @@ import { NextResponse } from "next/server";
 import { toPublicCart } from "../../../components/cart/cart-drawer-types";
 import { getCart } from "../../../lib/shopify/cart";
 import { getCartCookie } from "../../../lib/shopify/cart-cookie";
+import { isShopifyCartGid } from "../../../lib/shopify/cart-cookie-value";
 import { getBuyerIp } from "../../../lib/shopify/request";
 import type { PublicCartResponse } from "../../../components/cart/cart-drawer-types";
-
-const CART_GID_PREFIX = "gid://shopify/Cart/";
 
 const emptyCartResponse = () =>
   NextResponse.json<PublicCartResponse>(
@@ -20,7 +19,7 @@ const emptyCartResponse = () =>
 export async function GET() {
   const cartId = await getCartCookie();
 
-  if (!cartId || !cartId.startsWith(CART_GID_PREFIX)) {
+  if (!isShopifyCartGid(cartId)) {
     return emptyCartResponse();
   }
 

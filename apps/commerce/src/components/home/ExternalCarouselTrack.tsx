@@ -13,6 +13,13 @@ import {
   useState,
 } from "react";
 import { getSafeCmsHref, isExternalHref } from "../../lib/content";
+import {
+  hasCarouselHorizontalDragIntent,
+  mouseClickSuppressionThreshold,
+  mouseDragIntentThreshold,
+  resolveCarouselClickSuppression,
+  shouldSuppressCarouselClickAfterDrag,
+} from "./carousel-gesture";
 import styles from "./ExternalCarouselTrack.module.css";
 
 export type ExternalCarouselTrackItem = {
@@ -78,8 +85,6 @@ const getMotionBehavior = () =>
     ? "instant"
     : "smooth";
 
-const mouseDragIntentThreshold = 10;
-const mouseClickSuppressionThreshold = 10;
 const arrowBoundaryToleranceRatio = 0.15;
 const mouseMomentumMinVelocity = 0.2; // scrollLeft CSS px per millisecond.
 const mouseMomentumMaxVelocity = 2;
@@ -573,9 +578,11 @@ export function ExternalCarouselTrack({
     const deltaX = event.clientX - dragStartXRef.current;
     const deltaY = event.clientY - dragStartYRef.current;
     const elapsed = event.timeStamp - lastMouseSampleTimeRef.current;
-    const hasHorizontalDragIntent =
-      Math.abs(deltaX) >= mouseDragIntentThreshold &&
-      Math.abs(deltaX) > Math.abs(deltaY);
+    const hasHorizontalDragIntent = hasCarouselHorizontalDragIntent({
+      deltaX,
+      deltaY,
+      threshold: mouseDragIntentThreshold,
+    });
 
     if (!hasDraggedRef.current && !hasHorizontalDragIntent) {
       return;
@@ -635,8 +642,11 @@ export function ExternalCarouselTrack({
 
     suppressClickRef.current =
       shouldSuppressClick &&
-      completedDrag &&
-      dragDistance >= mouseClickSuppressionThreshold;
+      shouldSuppressCarouselClickAfterDrag({
+        completedDrag,
+        dragDistance,
+        threshold: mouseClickSuppressionThreshold,
+      });
     hasDraggedRef.current = false;
 
     if (shouldSuppressClick && completedDrag) {
@@ -659,18 +669,17 @@ export function ExternalCarouselTrack({
   };
 
   const handleLinkClick = (event: ReactMouseEvent<HTMLAnchorElement>) => {
-    if (event.detail === 0) {
-      suppressClickRef.current = false;
-      return;
-    }
+    const suppression = resolveCarouselClickSuppression({
+      eventDetail: event.detail,
+      suppressNextClick: suppressClickRef.current,
+    });
 
-    if (!suppressClickRef.current) {
-      return;
-    }
+    suppressClickRef.current = suppression.suppressNextClick;
 
-    event.preventDefault();
-    event.stopPropagation();
-    suppressClickRef.current = false;
+    if (suppression.shouldPreventDefault) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
   };
 
   const handleDragStart = (event: ReactDragEvent<HTMLAnchorElement>) => {

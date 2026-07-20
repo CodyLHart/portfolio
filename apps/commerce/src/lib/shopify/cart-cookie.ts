@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cookies } from "next/headers";
+import { decodeCartCookieValue } from "./cart-cookie-value";
 
 const CART_COOKIE = "shopify_cart_id";
 const CART_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
@@ -9,19 +10,7 @@ export const getCartCookie = async () => {
   const cookieStore = await cookies();
   const value = cookieStore.get(CART_COOKIE)?.value;
 
-  if (!value) {
-    return null;
-  }
-
-  try {
-    return decodeURIComponent(value);
-  } catch (error) {
-    if (error instanceof URIError) {
-      return null;
-    }
-
-    throw error;
-  }
+  return decodeCartCookieValue(value);
 };
 
 export const setCartCookie = async (cartId: string) => {

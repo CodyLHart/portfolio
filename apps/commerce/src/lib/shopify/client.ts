@@ -1,5 +1,11 @@
 import "server-only";
 
+import {
+  getShopifyRetryDelayMs,
+  isRetryableShopifyStatus,
+  maxShopifyAttempts,
+} from "./retry-policy";
+
 type ShopifyGraphQlResponse<TData> = {
   data?: TData;
   errors?: Array<{
@@ -17,12 +23,6 @@ type ShopifyFetchOptions = {
   };
   signal?: AbortSignal;
 };
-
-const retryableStatuses = new Set([429, 500, 502, 503, 504]);
-const maxRetryAttempts = 3;
-const maxAttempts = maxRetryAttempts + 1;
-const retryAfterCapMs = 2_000;
-const fallbackRetryDelaysMs = [400, 900, 1_800];
 
 const requiredEnv = {
   SHOPIFY_STORE_DOMAIN: process.env.SHOPIFY_STORE_DOMAIN,
@@ -56,32 +56,6 @@ const sleep = (milliseconds: number) =>
   new Promise((resolve) => {
     setTimeout(resolve, milliseconds);
   });
-
-const getRetryDelay = (attempt: number, retryAfter: string | null) => {
-  if (retryAfter) {
-    const retryAfterSeconds = Number.parseFloat(retryAfter);
-
-    if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds >= 0) {
-      return Math.min(retryAfterSeconds * 1_000, retryAfterCapMs);
-    }
-
-    const retryAfterDate = Date.parse(retryAfter);
-
-    if (!Number.isNaN(retryAfterDate)) {
-      return Math.min(
-        Math.max(retryAfterDate - Date.now(), 0),
-        retryAfterCapMs,
-      );
-    }
-  }
-
-  const baseDelay =
-    fallbackRetryDelaysMs[Math.min(attempt - 1, fallbackRetryDelaysMs.length - 1)] ??
-    fallbackRetryDelaysMs[fallbackRetryDelaysMs.length - 1];
-  const jitter = Math.floor(Math.random() * 120);
-
-  return baseDelay + jitter;
-};
 
 const isAbortError = (error: unknown) =>
   error instanceof DOMException
@@ -124,7 +98,7 @@ export const shopifyStorefrontRequest = async <TData>({
   let finalStatus: number | null = null;
   let finalNetworkError: unknown = null;
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+  for (let attempt = 1; attempt <= maxShopifyAttempts; attempt += 1) {
     let response: Response;
 
     try {
@@ -142,16 +116,16 @@ export const shopifyStorefrontRequest = async <TData>({
       }
 
       finalNetworkError = error;
-      if (attempt === maxAttempts) {
+      if (attempt === maxShopifyAttempts) {
         break;
       }
 
       warnRetry(
         `Shopify request failed at the network layer; retrying attempt ${
           attempt + 1
-        } of ${maxAttempts}.`,
+        } of ${maxShopifyAttempts}.`,
       );
-      await sleep(getRetryDelay(attempt, null));
+      await sleep(getShopifyRetryDelayMs(attempt, null));
       continue;
     }
 
@@ -160,15 +134,17 @@ export const shopifyStorefrontRequest = async <TData>({
 
       if (
         shouldRetry &&
-        retryableStatuses.has(response.status) &&
-        attempt < maxAttempts
+        isRetryableShopifyStatus(response.status) &&
+        attempt < maxShopifyAttempts
       ) {
         warnRetry(
           `Shopify request returned ${response.status}; retrying attempt ${
             attempt + 1
-          } of ${maxAttempts}.`,
+          } of ${maxShopifyAttempts}.`,
         );
-        await sleep(getRetryDelay(attempt, response.headers.get("Retry-After")));
+        await sleep(
+          getShopifyRetryDelayMs(attempt, response.headers.get("Retry-After")),
+        );
         continue;
       }
 
@@ -203,13 +179,13 @@ export const shopifyStorefrontRequest = async <TData>({
 
   if (finalStatus) {
     throw new Error(
-      `Shopify request failed with status ${finalStatus} after ${maxAttempts} attempts.`,
+      `Shopify request failed with status ${finalStatus} after ${maxShopifyAttempts} attempts.`,
     );
   }
 
   throw new Error(
     finalNetworkError
-      ? `Shopify request failed at the network layer after ${maxAttempts} attempts.`
+      ? `Shopify request failed at the network layer after ${maxShopifyAttempts} attempts.`
       : "Shopify request failed.",
   );
 };
