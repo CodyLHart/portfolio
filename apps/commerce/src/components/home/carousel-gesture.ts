@@ -1,5 +1,9 @@
 export const mouseDragIntentThreshold = 10;
 export const mouseClickSuppressionThreshold = 10;
+export const carouselPositionEpsilon = 0.5;
+
+const getPositiveModulo = (value: number, modulus: number) =>
+  ((value % modulus) + modulus) % modulus;
 
 export const hasCarouselHorizontalDragIntent = ({
   deltaX,
@@ -45,5 +49,148 @@ export const resolveCarouselClickSuppression = ({
   return {
     shouldPreventDefault: true,
     suppressNextClick: false,
+  };
+};
+
+export const getCarouselPhysicalIndex = ({
+  scrollLeft,
+  itemStep,
+}: {
+  scrollLeft: number;
+  itemStep: number;
+}) => (itemStep > 0 ? Math.round(scrollLeft / itemStep) : 0);
+
+export const getCarouselLogicalIndex = ({
+  scrollLeft,
+  itemStep,
+  itemCount,
+  cloneCount,
+  shouldLoop,
+}: {
+  scrollLeft: number;
+  itemStep: number;
+  itemCount: number;
+  cloneCount: number;
+  shouldLoop: boolean;
+}) => {
+  if (itemCount <= 0 || itemStep <= 0) {
+    return 0;
+  }
+
+  const physicalIndex = getCarouselPhysicalIndex({ scrollLeft, itemStep });
+
+  if (!shouldLoop) {
+    return Math.max(0, Math.min(physicalIndex, itemCount - 1));
+  }
+
+  return getPositiveModulo(physicalIndex - cloneCount, itemCount);
+};
+
+export const getCarouselCentralScrollLeft = ({
+  logicalIndex,
+  itemStep,
+  itemCount,
+  cloneCount,
+}: {
+  logicalIndex: number;
+  itemStep: number;
+  itemCount: number;
+  cloneCount: number;
+}) => {
+  if (itemCount <= 0 || itemStep <= 0) {
+    return 0;
+  }
+
+  return (
+    (cloneCount + getPositiveModulo(logicalIndex, itemCount)) * itemStep
+  );
+};
+
+export const getCarouselArrowTarget = ({
+  direction,
+  scrollLeft,
+  itemStep,
+  itemCount,
+  cloneCount,
+  maxScrollLeft,
+  shouldLoop,
+  boundaryEpsilon = carouselPositionEpsilon,
+}: {
+  direction: "backward" | "forward";
+  scrollLeft: number;
+  itemStep: number;
+  itemCount: number;
+  cloneCount: number;
+  maxScrollLeft: number;
+  shouldLoop: boolean;
+  boundaryEpsilon?: number;
+}) => {
+  const directionDelta = direction === "forward" ? 1 : -1;
+  const currentLogicalIndex = getCarouselLogicalIndex({
+    scrollLeft,
+    itemStep,
+    itemCount,
+    cloneCount,
+    shouldLoop,
+  });
+
+  if (itemCount <= 0 || itemStep <= 0) {
+    return {
+      currentLogicalIndex,
+      nextLogicalIndex: currentLogicalIndex,
+      targetScrollLeft: Math.max(0, scrollLeft),
+      requiresNormalization: false,
+    };
+  }
+
+  const nextLogicalIndex = shouldLoop
+    ? getPositiveModulo(currentLogicalIndex + directionDelta, itemCount)
+    : Math.max(0, Math.min(currentLogicalIndex + directionDelta, itemCount - 1));
+
+  if (!shouldLoop) {
+    return {
+      currentLogicalIndex,
+      nextLogicalIndex,
+      targetScrollLeft: Math.max(
+        0,
+        Math.min(nextLogicalIndex * itemStep, maxScrollLeft),
+      ),
+      requiresNormalization: false,
+    };
+  }
+
+  const currentPhysicalIndex = getCarouselPhysicalIndex({
+    scrollLeft,
+    itemStep,
+  });
+  const centralPhysicalIndex = cloneCount + nextLogicalIndex;
+  const candidatePhysicalIndexes = [-2, -1, 0, 1, 2].map(
+    (offset) => centralPhysicalIndex + offset * itemCount,
+  );
+  const directionalCandidates = candidatePhysicalIndexes.filter((index) =>
+    direction === "forward"
+      ? index > currentPhysicalIndex
+      : index < currentPhysicalIndex,
+  );
+  const candidates =
+    directionalCandidates.length > 0
+      ? directionalCandidates
+      : [centralPhysicalIndex];
+  const targetPhysicalIndex = candidates.reduce((nearest, index) =>
+    Math.abs(index - currentPhysicalIndex) <
+    Math.abs(nearest - currentPhysicalIndex)
+      ? index
+      : nearest,
+  );
+  const targetScrollLeft = targetPhysicalIndex * itemStep;
+  const requiresNormalization =
+    targetScrollLeft > maxScrollLeft - boundaryEpsilon ||
+    targetScrollLeft < boundaryEpsilon;
+
+  return {
+    currentLogicalIndex,
+    nextLogicalIndex,
+    targetScrollLeft,
+    requiresNormalization,
   };
 };

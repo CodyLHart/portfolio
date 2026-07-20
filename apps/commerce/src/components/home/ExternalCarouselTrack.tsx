@@ -14,6 +14,9 @@ import {
 } from "react";
 import { getSafeCmsHref, isExternalHref } from "../../lib/content";
 import {
+  getCarouselArrowTarget,
+  getCarouselCentralScrollLeft,
+  getCarouselLogicalIndex,
   hasCarouselHorizontalDragIntent,
   mouseClickSuppressionThreshold,
   mouseDragIntentThreshold,
@@ -85,7 +88,7 @@ const getMotionBehavior = () =>
     ? "instant"
     : "smooth";
 
-const arrowBoundaryToleranceRatio = 0.15;
+const arrowScrollSettleDelayMs = 180;
 const mouseMomentumMinVelocity = 0.2; // scrollLeft CSS px per millisecond.
 const mouseMomentumMaxVelocity = 2;
 const mouseMomentumStopVelocity = 0.02;
@@ -145,6 +148,10 @@ export function ExternalCarouselTrack({
   const suppressClickRef = useRef(false);
   const isDraggingRef = useRef(false);
   const normalizeScrollFrameRef = useRef<number | null>(null);
+  const arrowScrollActiveRef = useRef(false);
+  const arrowScrollSettleTimeoutRef = useRef<number | null>(null);
+  const arrowNormalizationFrameRef = useRef<number | null>(null);
+  const arrowTargetLogicalIndexRef = useRef<number | null>(null);
   const realIndexRef = useRef(0);
   const itemStepRef = useRef(0);
   const [visibleItemCount, setVisibleItemCount] = useState(5);
@@ -219,7 +226,7 @@ export function ExternalCarouselTrack({
     [getRealRegionStart, itemCount, shouldRenderLoop],
   );
 
-  const normalizeScrollLeft = useCallback(() => {
+  const normalizeScrollLeft = useCallback((forceIntoRealRegion = false) => {
     const viewport = viewportRef.current;
     const step = itemStepRef.current;
     const realContentWidth = getRealContentWidth(step);
@@ -249,12 +256,22 @@ export function ExternalCarouselTrack({
     );
     let nextScrollLeft = viewport.scrollLeft;
 
-    while (nextScrollLeft <= realRegionStart - normalizationThreshold) {
-      nextScrollLeft += realContentWidth;
-    }
+    if (forceIntoRealRegion) {
+      while (nextScrollLeft < realRegionStart) {
+        nextScrollLeft += realContentWidth;
+      }
 
-    while (nextScrollLeft >= realRegionEnd + normalizationThreshold) {
-      nextScrollLeft -= realContentWidth;
+      while (nextScrollLeft >= realRegionEnd) {
+        nextScrollLeft -= realContentWidth;
+      }
+    } else {
+      while (nextScrollLeft <= realRegionStart - normalizationThreshold) {
+        nextScrollLeft += realContentWidth;
+      }
+
+      while (nextScrollLeft >= realRegionEnd + normalizationThreshold) {
+        nextScrollLeft -= realContentWidth;
+      }
     }
 
     const scrollAdjustment = nextScrollLeft - viewport.scrollLeft;
@@ -279,6 +296,10 @@ export function ExternalCarouselTrack({
   ]);
 
   const scheduleScrollNormalization = useCallback(() => {
+    if (arrowScrollActiveRef.current) {
+      return;
+    }
+
     if (normalizeScrollFrameRef.current !== null) {
       return;
     }
@@ -288,6 +309,42 @@ export function ExternalCarouselTrack({
       normalizeScrollLeft();
     });
   }, [normalizeScrollLeft]);
+
+  const clearArrowScrollSettleTimeout = useCallback(() => {
+    if (arrowScrollSettleTimeoutRef.current === null) {
+      return;
+    }
+
+    window.clearTimeout(arrowScrollSettleTimeoutRef.current);
+    arrowScrollSettleTimeoutRef.current = null;
+  }, []);
+
+  const finishArrowScroll = useCallback(() => {
+    clearArrowScrollSettleTimeout();
+    arrowScrollActiveRef.current = false;
+    arrowTargetLogicalIndexRef.current = null;
+    normalizeScrollLeft(true);
+  }, [clearArrowScrollSettleTimeout, normalizeScrollLeft]);
+
+  const scheduleArrowScrollSettlement = useCallback(() => {
+    clearArrowScrollSettleTimeout();
+    arrowScrollSettleTimeoutRef.current = window.setTimeout(() => {
+      arrowScrollSettleTimeoutRef.current = null;
+      finishArrowScroll();
+    }, arrowScrollSettleDelayMs);
+  }, [clearArrowScrollSettleTimeout, finishArrowScroll]);
+
+  const cancelArrowNavigation = useCallback(() => {
+    clearArrowScrollSettleTimeout();
+
+    if (arrowNormalizationFrameRef.current !== null) {
+      window.cancelAnimationFrame(arrowNormalizationFrameRef.current);
+      arrowNormalizationFrameRef.current = null;
+    }
+
+    arrowScrollActiveRef.current = false;
+    arrowTargetLogicalIndexRef.current = null;
+  }, [clearArrowScrollSettleTimeout]);
 
   const cancelMouseMomentum = useCallback(() => {
     if (momentumFrameRef.current === null) {
@@ -380,6 +437,7 @@ export function ExternalCarouselTrack({
       return;
     }
 
+    cancelArrowNavigation();
     cancelMouseMomentum();
 
     const nextVisibleItemCount = getVisibleItemCount(viewport.clientWidth);
@@ -417,12 +475,22 @@ export function ExternalCarouselTrack({
     }
 
     setVisibleItemCount(nextVisibleItemCount);
-  }, [cancelMouseMomentum, cloneCount, itemCount, updateRealIndexFromScroll]);
+  }, [
+    cancelArrowNavigation,
+    cancelMouseMomentum,
+    cloneCount,
+    itemCount,
+    updateRealIndexFromScroll,
+  ]);
 
   const moveByItem = (direction: "backward" | "forward") => {
     const viewport = viewportRef.current;
 
     if (!viewport || !shouldShowControls || isDraggingRef.current) {
+      return;
+    }
+
+    if (arrowNormalizationFrameRef.current !== null) {
       return;
     }
 
@@ -434,43 +502,93 @@ export function ExternalCarouselTrack({
       return;
     }
 
-    normalizeScrollLeft();
-
-    const currentScrollLeft = viewport.scrollLeft;
-    const boundaryTolerance = step * arrowBoundaryToleranceRatio;
-    const floatingIndex = currentScrollLeft / step;
-    let targetRenderedIndex =
-      direction === "forward"
-        ? Math.ceil(floatingIndex)
-        : Math.floor(floatingIndex);
-    const candidateScrollLeft = targetRenderedIndex * step;
-    const distanceToCandidate = Math.abs(
-      currentScrollLeft - candidateScrollLeft,
+    const maxScrollLeft = Math.max(
+      0,
+      viewport.scrollWidth - viewport.clientWidth,
     );
-
-    if (distanceToCandidate <= boundaryTolerance) {
-      targetRenderedIndex += direction === "forward" ? 1 : -1;
-    }
-
-    let targetScrollLeft = Math.max(0, targetRenderedIndex * step);
-
-    if (shouldRenderLoop) {
-      const realRegionStart = getRealRegionStart(step);
-      const realRegionEnd = realRegionStart + getRealContentWidth(step);
-
-      if (targetScrollLeft >= realRegionEnd) {
-        viewport.scrollLeft = currentScrollLeft - getRealContentWidth(step);
-        targetScrollLeft -= getRealContentWidth(step);
-      } else if (targetScrollLeft < realRegionStart) {
-        viewport.scrollLeft = currentScrollLeft + getRealContentWidth(step);
-        targetScrollLeft += getRealContentWidth(step);
+    const getPlanningScrollLeft = () => {
+      if (
+        !shouldRenderLoop ||
+        arrowTargetLogicalIndexRef.current === null ||
+        !arrowScrollActiveRef.current
+      ) {
+        return viewport.scrollLeft;
       }
+
+      return getCarouselCentralScrollLeft({
+        logicalIndex: arrowTargetLogicalIndexRef.current,
+        itemStep: step,
+        itemCount,
+        cloneCount,
+      });
+    };
+
+    const scrollToTarget = (
+      targetScrollLeft: number,
+      nextLogicalIndex: number,
+    ) => {
+      arrowScrollActiveRef.current = true;
+      arrowTargetLogicalIndexRef.current = nextLogicalIndex;
+      updateRealIndexFromScroll(targetScrollLeft, step);
+
+      viewport.scrollTo({
+        left: targetScrollLeft,
+        behavior: getMotionBehavior() === "smooth" ? "smooth" : "auto",
+      });
+      scheduleArrowScrollSettlement();
+    };
+
+    const target = getCarouselArrowTarget({
+      direction,
+      scrollLeft: getPlanningScrollLeft(),
+      itemStep: step,
+      itemCount,
+      cloneCount,
+      maxScrollLeft,
+      shouldLoop: shouldRenderLoop,
+    });
+
+    if (target.requiresNormalization && shouldRenderLoop) {
+      const currentLogicalIndex = getCarouselLogicalIndex({
+        scrollLeft: viewport.scrollLeft,
+        itemStep: step,
+        itemCount,
+        cloneCount,
+        shouldLoop: shouldRenderLoop,
+      });
+      const centralScrollLeft = getCarouselCentralScrollLeft({
+        logicalIndex: currentLogicalIndex,
+        itemStep: step,
+        itemCount,
+        cloneCount,
+      });
+
+      viewport.scrollTo({ left: centralScrollLeft, behavior: "auto" });
+      updateRealIndexFromScroll(centralScrollLeft, step);
+      arrowNormalizationFrameRef.current = window.requestAnimationFrame(() => {
+        arrowNormalizationFrameRef.current = null;
+        const nextTarget = getCarouselArrowTarget({
+          direction,
+          scrollLeft: centralScrollLeft,
+          itemStep: step,
+          itemCount,
+          cloneCount,
+          maxScrollLeft,
+          shouldLoop: shouldRenderLoop,
+        });
+
+        scrollToTarget(
+          Math.max(0, Math.min(nextTarget.targetScrollLeft, maxScrollLeft)),
+          nextTarget.nextLogicalIndex,
+        );
+      });
+      return;
     }
 
-    viewport.scrollTo({
-      left: targetScrollLeft,
-      behavior: getMotionBehavior() === "smooth" ? "smooth" : "auto",
-    });
+    scrollToTarget(
+      Math.max(0, Math.min(target.targetScrollLeft, maxScrollLeft)),
+      target.nextLogicalIndex,
+    );
   };
 
   useEffect(() => {
@@ -503,6 +621,7 @@ export function ExternalCarouselTrack({
   useEffect(
     () => () => {
       cancelMouseMomentum();
+      cancelArrowNavigation();
 
       if (normalizeScrollFrameRef.current !== null) {
         window.cancelAnimationFrame(normalizeScrollFrameRef.current);
@@ -514,8 +633,28 @@ export function ExternalCarouselTrack({
       hasDraggedRef.current = false;
       isDraggingRef.current = false;
     },
-    [cancelMouseMomentum],
+    [cancelArrowNavigation, cancelMouseMomentum],
   );
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+
+    if (!viewport) {
+      return;
+    }
+
+    const handleScrollEnd = () => {
+      if (arrowScrollActiveRef.current) {
+        finishArrowScroll();
+      }
+    };
+
+    viewport.addEventListener("scrollend", handleScrollEnd);
+
+    return () => {
+      viewport.removeEventListener("scrollend", handleScrollEnd);
+    };
+  }, [finishArrowScroll]);
 
   const cleanupPointerInteraction = (
     event?: ReactPointerEvent<HTMLDivElement>,
@@ -550,6 +689,7 @@ export function ExternalCarouselTrack({
     }
 
     cancelMouseMomentum();
+    cancelArrowNavigation();
 
     activePointerIdRef.current = event.pointerId;
     dragStartXRef.current = event.clientX;
@@ -613,6 +753,23 @@ export function ExternalCarouselTrack({
     event.preventDefault();
     event.currentTarget.scrollLeft = dragStartScrollLeftRef.current - deltaX;
     normalizeScrollLeft();
+  };
+
+  const handleViewportScroll = () => {
+    const viewport = viewportRef.current;
+    const step = itemStepRef.current;
+
+    if (!viewport) {
+      return;
+    }
+
+    if (arrowScrollActiveRef.current) {
+      updateRealIndexFromScroll(viewport.scrollLeft, step);
+      scheduleArrowScrollSettlement();
+      return;
+    }
+
+    scheduleScrollNormalization();
   };
 
   const finishPointerDrag = (
@@ -723,7 +880,7 @@ export function ExternalCarouselTrack({
         ]
           .filter(Boolean)
           .join(" ")}
-        onScroll={scheduleScrollNormalization}
+        onScroll={handleViewportScroll}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
