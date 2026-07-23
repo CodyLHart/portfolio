@@ -60,6 +60,19 @@ export const getCarouselPhysicalIndex = ({
   itemStep: number;
 }) => (itemStep > 0 ? Math.round(scrollLeft / itemStep) : 0);
 
+export const getCarouselCloneCount = ({
+  itemCount,
+  visibleItemCount,
+  maxMomentumDistanceItems,
+}: {
+  itemCount: number;
+  visibleItemCount: number;
+  maxMomentumDistanceItems: number;
+}) =>
+  itemCount > visibleItemCount
+    ? visibleItemCount + maxMomentumDistanceItems + 1
+    : 0;
+
 export const getCarouselLogicalIndex = ({
   scrollLeft,
   itemStep,
@@ -105,6 +118,17 @@ export const getCarouselCentralScrollLeft = ({
     (cloneCount + getPositiveModulo(logicalIndex, itemCount)) * itemStep
   );
 };
+
+export const getCarouselCentralPhysicalRange = ({
+  itemCount,
+  cloneCount,
+}: {
+  itemCount: number;
+  cloneCount: number;
+}) => ({
+  start: cloneCount,
+  end: cloneCount + Math.max(0, itemCount - 1),
+});
 
 export const getCarouselArrowTarget = ({
   direction,
@@ -163,27 +187,17 @@ export const getCarouselArrowTarget = ({
     scrollLeft,
     itemStep,
   });
+  const adjacentPhysicalIndex = currentPhysicalIndex + directionDelta;
   const centralPhysicalIndex = cloneCount + nextLogicalIndex;
-  const candidatePhysicalIndexes = [-2, -1, 0, 1, 2].map(
-    (offset) => centralPhysicalIndex + offset * itemCount,
-  );
-  const directionalCandidates = candidatePhysicalIndexes.filter((index) =>
-    direction === "forward"
-      ? index > currentPhysicalIndex
-      : index < currentPhysicalIndex,
-  );
-  const candidates =
-    directionalCandidates.length > 0
-      ? directionalCandidates
-      : [centralPhysicalIndex];
-  const targetPhysicalIndex = candidates.reduce((nearest, index) =>
-    Math.abs(index - currentPhysicalIndex) <
-    Math.abs(nearest - currentPhysicalIndex)
-      ? index
-      : nearest,
-  );
+  const targetPhysicalIndex =
+    adjacentPhysicalIndex >= 0 &&
+    adjacentPhysicalIndex * itemStep <= maxScrollLeft
+      ? adjacentPhysicalIndex
+      : centralPhysicalIndex;
   const targetScrollLeft = targetPhysicalIndex * itemStep;
   const requiresNormalization =
+    targetPhysicalIndex < cloneCount ||
+    targetPhysicalIndex >= cloneCount + itemCount ||
     targetScrollLeft > maxScrollLeft - boundaryEpsilon ||
     targetScrollLeft < boundaryEpsilon;
 

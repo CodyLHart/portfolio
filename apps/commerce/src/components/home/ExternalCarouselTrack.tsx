@@ -14,9 +14,10 @@ import {
 } from "react";
 import { getSafeCmsHref, isExternalHref } from "../../lib/content";
 import {
+  carouselPositionEpsilon,
   getCarouselArrowTarget,
+  getCarouselCloneCount,
   getCarouselCentralScrollLeft,
-  getCarouselLogicalIndex,
   hasCarouselHorizontalDragIntent,
   mouseClickSuppressionThreshold,
   mouseDragIntentThreshold,
@@ -88,7 +89,7 @@ const getMotionBehavior = () =>
     ? "instant"
     : "smooth";
 
-const arrowScrollSettleDelayMs = 180;
+const arrowScrollStableFrameCount = 3;
 const mouseMomentumMinVelocity = 0.2; // scrollLeft CSS px per millisecond.
 const mouseMomentumMaxVelocity = 2;
 const mouseMomentumStopVelocity = 0.02;
@@ -149,9 +150,15 @@ export function ExternalCarouselTrack({
   const isDraggingRef = useRef(false);
   const normalizeScrollFrameRef = useRef<number | null>(null);
   const arrowScrollActiveRef = useRef(false);
-  const arrowScrollSettleTimeoutRef = useRef<number | null>(null);
-  const arrowNormalizationFrameRef = useRef<number | null>(null);
+  const arrowScrollSettleFrameRef = useRef<number | null>(null);
+  const arrowScrollLastLeftRef = useRef(0);
+  const arrowScrollStableFramesRef = useRef(0);
   const arrowTargetLogicalIndexRef = useRef<number | null>(null);
+  const arrowTargetScrollLeftRef = useRef<number | null>(null);
+  const queuedArrowDirectionRef = useRef<"backward" | "forward" | null>(null);
+  const moveByItemRef = useRef<
+    ((direction: "backward" | "forward") => void) | null
+  >(null);
   const realIndexRef = useRef(0);
   const itemStepRef = useRef(0);
   const [visibleItemCount, setVisibleItemCount] = useState(5);
@@ -160,10 +167,11 @@ export function ExternalCarouselTrack({
   const [isDragging, setIsDragging] = useState(false);
   const validatedItems = getValidatedItems(items);
   const itemCount = validatedItems.length;
-  const cloneCount =
-    itemCount > visibleItemCount
-      ? visibleItemCount + mouseMomentumMaxDistanceSteps + 1
-      : 0;
+  const cloneCount = getCarouselCloneCount({
+    itemCount,
+    visibleItemCount,
+    maxMomentumDistanceItems: mouseMomentumMaxDistanceSteps,
+  });
   const shouldLoop = cloneCount > 0;
   const shouldRenderLoop = shouldLoop && itemStep > 0;
   const shouldShowControls = itemCount > visibleItemCount;
@@ -310,41 +318,92 @@ export function ExternalCarouselTrack({
     });
   }, [normalizeScrollLeft]);
 
-  const clearArrowScrollSettleTimeout = useCallback(() => {
-    if (arrowScrollSettleTimeoutRef.current === null) {
+  const clearArrowScrollSettlement = useCallback(() => {
+    if (arrowScrollSettleFrameRef.current === null) {
       return;
     }
 
-    window.clearTimeout(arrowScrollSettleTimeoutRef.current);
-    arrowScrollSettleTimeoutRef.current = null;
+    window.cancelAnimationFrame(arrowScrollSettleFrameRef.current);
+    arrowScrollSettleFrameRef.current = null;
+    arrowScrollStableFramesRef.current = 0;
   }, []);
 
   const finishArrowScroll = useCallback(() => {
-    clearArrowScrollSettleTimeout();
+    clearArrowScrollSettlement();
     arrowScrollActiveRef.current = false;
     arrowTargetLogicalIndexRef.current = null;
+    arrowTargetScrollLeftRef.current = null;
     normalizeScrollLeft(true);
-  }, [clearArrowScrollSettleTimeout, normalizeScrollLeft]);
+
+    const queuedDirection = queuedArrowDirectionRef.current;
+
+    if (queuedDirection) {
+      queuedArrowDirectionRef.current = null;
+      window.requestAnimationFrame(() => {
+        moveByItemRef.current?.(queuedDirection);
+      });
+    }
+  }, [clearArrowScrollSettlement, normalizeScrollLeft]);
 
   const scheduleArrowScrollSettlement = useCallback(() => {
-    clearArrowScrollSettleTimeout();
-    arrowScrollSettleTimeoutRef.current = window.setTimeout(() => {
-      arrowScrollSettleTimeoutRef.current = null;
-      finishArrowScroll();
-    }, arrowScrollSettleDelayMs);
-  }, [clearArrowScrollSettleTimeout, finishArrowScroll]);
+    const viewport = viewportRef.current;
 
-  const cancelArrowNavigation = useCallback(() => {
-    clearArrowScrollSettleTimeout();
-
-    if (arrowNormalizationFrameRef.current !== null) {
-      window.cancelAnimationFrame(arrowNormalizationFrameRef.current);
-      arrowNormalizationFrameRef.current = null;
+    if (!viewport || !arrowScrollActiveRef.current) {
+      return;
     }
 
+    clearArrowScrollSettlement();
+    arrowScrollLastLeftRef.current = viewport.scrollLeft;
+
+    const checkSettled = () => {
+      const nextViewport = viewportRef.current;
+
+      if (!nextViewport || !arrowScrollActiveRef.current) {
+        arrowScrollSettleFrameRef.current = null;
+        return;
+      }
+
+      const nextScrollLeft = nextViewport.scrollLeft;
+
+      if (
+        Math.abs(nextScrollLeft - arrowScrollLastLeftRef.current) <=
+        carouselPositionEpsilon
+      ) {
+        arrowScrollStableFramesRef.current += 1;
+      } else {
+        arrowScrollStableFramesRef.current = 0;
+        arrowScrollLastLeftRef.current = nextScrollLeft;
+      }
+
+      const targetScrollLeft = arrowTargetScrollLeftRef.current;
+      const hasReachedTarget =
+        targetScrollLeft === null ||
+        Math.abs(nextScrollLeft - targetScrollLeft) <= carouselPositionEpsilon;
+
+      if (
+        hasReachedTarget &&
+        arrowScrollStableFramesRef.current >= arrowScrollStableFrameCount
+      ) {
+        arrowScrollSettleFrameRef.current = null;
+        finishArrowScroll();
+        return;
+      }
+
+      arrowScrollSettleFrameRef.current =
+        window.requestAnimationFrame(checkSettled);
+    };
+
+    arrowScrollSettleFrameRef.current =
+      window.requestAnimationFrame(checkSettled);
+  }, [clearArrowScrollSettlement, finishArrowScroll]);
+
+  const cancelArrowNavigation = useCallback(() => {
+    clearArrowScrollSettlement();
     arrowScrollActiveRef.current = false;
     arrowTargetLogicalIndexRef.current = null;
-  }, [clearArrowScrollSettleTimeout]);
+    arrowTargetScrollLeftRef.current = null;
+    queuedArrowDirectionRef.current = null;
+  }, [clearArrowScrollSettlement]);
 
   const cancelMouseMomentum = useCallback(() => {
     if (momentumFrameRef.current === null) {
@@ -449,9 +508,11 @@ export function ExternalCarouselTrack({
     if (firstItem) {
       const nextItemStep = firstItem.getBoundingClientRect().width + gap;
       const nextCloneCount =
-        itemCount > nextVisibleItemCount
-          ? nextVisibleItemCount + mouseMomentumMaxDistanceSteps + 1
-          : 0;
+        getCarouselCloneCount({
+          itemCount,
+          visibleItemCount: nextVisibleItemCount,
+          maxMomentumDistanceItems: mouseMomentumMaxDistanceSteps,
+        });
       const previousItemStep = itemStepRef.current;
       const previousCloneCount = cloneCount;
       const previousScrollLeft = viewport.scrollLeft;
@@ -483,14 +544,15 @@ export function ExternalCarouselTrack({
     updateRealIndexFromScroll,
   ]);
 
-  const moveByItem = (direction: "backward" | "forward") => {
+  const moveByItem = useCallback((direction: "backward" | "forward") => {
     const viewport = viewportRef.current;
 
     if (!viewport || !shouldShowControls || isDraggingRef.current) {
       return;
     }
 
-    if (arrowNormalizationFrameRef.current !== null) {
+    if (arrowScrollActiveRef.current) {
+      queuedArrowDirectionRef.current = direction;
       return;
     }
 
@@ -507,20 +569,11 @@ export function ExternalCarouselTrack({
       viewport.scrollWidth - viewport.clientWidth,
     );
     const getPlanningScrollLeft = () => {
-      if (
-        !shouldRenderLoop ||
-        arrowTargetLogicalIndexRef.current === null ||
-        !arrowScrollActiveRef.current
-      ) {
+      if (!shouldRenderLoop || arrowTargetScrollLeftRef.current === null) {
         return viewport.scrollLeft;
       }
 
-      return getCarouselCentralScrollLeft({
-        logicalIndex: arrowTargetLogicalIndexRef.current,
-        itemStep: step,
-        itemCount,
-        cloneCount,
-      });
+      return arrowTargetScrollLeftRef.current;
     };
 
     const scrollToTarget = (
@@ -529,6 +582,7 @@ export function ExternalCarouselTrack({
     ) => {
       arrowScrollActiveRef.current = true;
       arrowTargetLogicalIndexRef.current = nextLogicalIndex;
+      arrowTargetScrollLeftRef.current = targetScrollLeft;
       updateRealIndexFromScroll(targetScrollLeft, step);
 
       viewport.scrollTo({
@@ -548,48 +602,22 @@ export function ExternalCarouselTrack({
       shouldLoop: shouldRenderLoop,
     });
 
-    if (target.requiresNormalization && shouldRenderLoop) {
-      const currentLogicalIndex = getCarouselLogicalIndex({
-        scrollLeft: viewport.scrollLeft,
-        itemStep: step,
-        itemCount,
-        cloneCount,
-        shouldLoop: shouldRenderLoop,
-      });
-      const centralScrollLeft = getCarouselCentralScrollLeft({
-        logicalIndex: currentLogicalIndex,
-        itemStep: step,
-        itemCount,
-        cloneCount,
-      });
-
-      viewport.scrollTo({ left: centralScrollLeft, behavior: "auto" });
-      updateRealIndexFromScroll(centralScrollLeft, step);
-      arrowNormalizationFrameRef.current = window.requestAnimationFrame(() => {
-        arrowNormalizationFrameRef.current = null;
-        const nextTarget = getCarouselArrowTarget({
-          direction,
-          scrollLeft: centralScrollLeft,
-          itemStep: step,
-          itemCount,
-          cloneCount,
-          maxScrollLeft,
-          shouldLoop: shouldRenderLoop,
-        });
-
-        scrollToTarget(
-          Math.max(0, Math.min(nextTarget.targetScrollLeft, maxScrollLeft)),
-          nextTarget.nextLogicalIndex,
-        );
-      });
-      return;
-    }
-
     scrollToTarget(
       Math.max(0, Math.min(target.targetScrollLeft, maxScrollLeft)),
       target.nextLogicalIndex,
     );
-  };
+  }, [
+    cancelMouseMomentum,
+    cloneCount,
+    itemCount,
+    itemStep,
+    scheduleArrowScrollSettlement,
+    shouldRenderLoop,
+    shouldShowControls,
+    updateRealIndexFromScroll,
+  ]);
+
+  moveByItemRef.current = moveByItem;
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -848,7 +876,7 @@ export function ExternalCarouselTrack({
   }
 
   return (
-    <div className={styles.carousel}>
+    <div className={styles.carousel} data-carousel>
       <div className={styles.header}>
         <button
           type="button"
@@ -873,6 +901,7 @@ export function ExternalCarouselTrack({
       </p>
       <div
         ref={viewportRef}
+        data-carousel-viewport
         className={[
           styles.viewport,
           shouldShowControls ? styles.viewportDraggable : "",
@@ -924,6 +953,8 @@ export function ExternalCarouselTrack({
                 className={styles.item}
                 key={item.renderKey}
                 aria-hidden={item.isClone}
+                data-carousel-item
+                data-carousel-clone={item.isClone ? "true" : "false"}
               >
                 {item.linkType === "internal" ? (
                   <Link
