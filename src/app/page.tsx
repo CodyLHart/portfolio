@@ -20,18 +20,13 @@ export default function Home() {
             className="max-w-3xl bg-white px-6 py-7 md:px-8 md:py-9"
             style={{ boxShadow: "1px 1px 5px 2px #00000015" }}
           >
-            <p className="font-mono text-sm font-semibold uppercase tracking-[0.2em] text-yellow-700">
-              Development Potfolio
-            </p>
-            <h1 className="page-title mt-3 font-serif">
-              Hi, I’m Cody. I build apps.
-            </h1>
+            <h1 className="page-title mt-3 font-serif">Hi, I’m Cody.</h1>
             <p className="mt-5 text-lg leading-8 text-neutral-800">
-              This portfolio is a collection of some projects that I have done.
-              These include some apps I have built for my own use. I decided to
-              make my own version of the apps I use most often to get rid of
-              pesky ads and in-app purchases, give myself the power to add any
-              features I want, and put my data back into my own hands.
+              This portfolio is a small sample of my work. Right now it includes
+              an eCommerce project to showcase my bands and apparel company, a
+              selected design portfolio, a list app that I use for organizing my
+              daily life, and the portfolio site itself. Thanks for taking a
+              look!
             </p>
           </section>
 
@@ -44,9 +39,7 @@ export default function Home() {
               >
                 <div>
                   <div className="flex items-start justify-between gap-4">
-                    <h2 className="card-title font-serif">
-                      {project.name}
-                    </h2>
+                    <h2 className="card-title font-serif">{project.name}</h2>
                     <span className="whitespace-nowrap bg-black px-3 py-1 font-mono text-xs font-semibold uppercase text-white">
                       {statusLabel[project.status]}
                     </span>
@@ -78,7 +71,9 @@ export default function Home() {
                       className="border border-black bg-white px-4 py-2 font-sans text-sm font-semibold text-black hover:bg-neutral-50"
                       href={project.href}
                       aria-label={`Open ${project.name} project`}
-                      rel={isExternalHref(project.href) ? "noreferrer" : undefined}
+                      rel={
+                        isExternalHref(project.href) ? "noreferrer" : undefined
+                      }
                     >
                       Open project
                     </a>
