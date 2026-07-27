@@ -1,5 +1,5 @@
 import Header from "@/components/layout/Header";
-import { getProject, projects } from "@/data/projects";
+import { allProjects, getProject } from "@/data/projects";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -10,10 +10,12 @@ type ProjectPageProps = {
 };
 
 export function generateStaticParams() {
-  return projects.map((project) => ({
+  return allProjects.map((project) => ({
     slug: project.slug,
   }));
 }
+
+const isExternalHref = (href: string) => /^https?:\/\//i.test(href);
 
 export async function generateMetadata({ params }: ProjectPageProps) {
   const { slug } = await params;
@@ -113,6 +115,8 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
             <a
               className="w-fit bg-black px-5 py-3 font-sans text-sm font-semibold text-white hover:bg-neutral-800"
               href={project.href}
+              aria-label={`Open ${project.name} project`}
+              rel={isExternalHref(project.href) ? "noreferrer" : undefined}
             >
               Open project
             </a>

@@ -8,6 +8,8 @@ const statusLabel = {
   draft: "Draft",
 };
 
+const isExternalHref = (href: string) => /^https?:\/\//i.test(href);
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-white text-black">
@@ -75,6 +77,8 @@ export default function Home() {
                     <a
                       className="border border-black bg-white px-4 py-2 font-sans text-sm font-semibold text-black hover:bg-neutral-50"
                       href={project.href}
+                      aria-label={`Open ${project.name} project`}
+                      rel={isExternalHref(project.href) ? "noreferrer" : undefined}
                     >
                       Open project
                     </a>

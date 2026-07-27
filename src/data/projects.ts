@@ -9,11 +9,13 @@ export type PortfolioProject = {
   href?: string;
   sourcePath?: string;
   notes?: string;
+  visible?: boolean;
 };
 
 const externalUrl = (url: string) =>
   url.startsWith("/") || /^https?:\/\//i.test(url) ? url : `https://${url}`;
 
+const storeUrl = "https://shop.codyhartdesign.com/";
 const habitTrackerUrl = externalUrl(
   process.env.NEXT_PUBLIC_HABIT_TRACKER_URL ?? "http://127.0.0.1:5173",
 );
@@ -24,28 +26,29 @@ const listAppUrl = externalUrl(
   process.env.NEXT_PUBLIC_LIST_APP_URL ?? "http://localhost:3001",
 );
 
-export const projects: PortfolioProject[] = [
+export const allProjects: PortfolioProject[] = [
   {
-    slug: "portfolio-shell",
-    name: "Portfolio Shell",
+    slug: "store",
+    name: "Store",
     summary:
-      "My central Next.js launchpad for the apps, games, design work, and experiments that are growing out of this portfolio.",
-    kind: "Portfolio infrastructure",
+      "A headless commerce storefront built with Next.js, TypeScript, Shopify, and Sanity, featuring CMS-managed content, product variants, cart and checkout, responsive interactions, and automated testing.",
+    kind: "Headless commerce",
     stack: [
-      "Next.js App Router",
+      "Next.js",
       "React",
       "TypeScript",
-      "Tailwind CSS",
-      "Vercel",
-      "npm Workspaces",
-      "Turbopack",
+      "Shopify",
+      "Sanity",
+      "CSS Modules",
+      "Vitest",
+      "Playwright",
     ],
     status: "live",
     featured: true,
-    href: "/",
-    sourcePath: ".",
+    href: storeUrl,
+    sourcePath: "apps/commerce",
     notes:
-      "This is the front door for the whole workspace: a Vercel-friendly root app that keeps the portfolio easy to deploy while each larger project can live as its own app. I use it as a launchpad, a project registry, and a place to explain why I am rebuilding everyday tools in a way that gives me more control over the features and the data.",
+      "The Store is a separately deployed commerce workspace in this monorepo. It uses Shopify for product and cart data, Sanity for CMS-managed content, and a Next.js storefront for responsive product browsing, cart interactions, and checkout handoff.",
   },
   {
     slug: "design-portfolio",
@@ -68,6 +71,55 @@ export const projects: PortfolioProject[] = [
     sourcePath: "apps/design-portfolio",
     notes:
       "This section collects the more tactile side of my work: tour posters, shirts, logos, album art, and oddball product ideas that care about type, texture, and a little bit of joke timing. It is currently served through the portfolio shell at /design-portfolio so the existing deployment stays simple, with the metadata ready to become a separate app when the design side needs its own build pipeline.",
+  },
+  {
+    slug: "list-app",
+    name: "List App",
+    summary:
+      "A collaborative list app for shared errands and projects, with Google sign-in, friends, roles, realtime updates, rich item metadata, and restorable history.",
+    kind: "Full-stack collaboration app",
+    stack: [
+      "Next.js App Router",
+      "React",
+      "TypeScript",
+      "Supabase Auth",
+      "Supabase Realtime",
+      "Supabase RPC",
+      "Supabase Presence",
+      "PostgreSQL",
+      "Row Level Security",
+      "SQL",
+      "Google OAuth",
+      "CSS",
+    ],
+    status: "live",
+    featured: true,
+    href: listAppUrl,
+    sourcePath: "apps/list-app",
+    notes:
+      "This one is my answer to list apps that are fine for one person and awkward the second another human joins in. It has exact-email friend requests, notifications, owner/editor/viewer roles, share-link invites, realtime list and item updates, collaborator presence, assignable items, optional quantity/category/due-date/priority/notes fields, category grouping and filtering, checked-item cleanup, reusable suggestions from list history, and snapshots that can restore an older version. Supabase handles auth, Postgres, realtime channels, RPC, and RLS so the collaboration rules live close to the data.",
+  },
+  {
+    slug: "portfolio-shell",
+    name: "Shell",
+    summary:
+      "My central Next.js launchpad for the apps, design work, and experiments that are growing out of this portfolio.",
+    kind: "Portfolio infrastructure",
+    stack: [
+      "Next.js App Router",
+      "React",
+      "TypeScript",
+      "Tailwind CSS",
+      "Vercel",
+      "npm Workspaces",
+      "Turbopack",
+    ],
+    status: "live",
+    featured: true,
+    href: "/",
+    sourcePath: ".",
+    notes:
+      "This is the front door for the whole workspace: a Vercel-friendly root app that keeps the portfolio easy to deploy while each larger project can live as its own app. I use it as a launchpad, a project registry, and a place to explain why I am rebuilding everyday tools in a way that gives me more control over the features and the data.",
   },
   {
     slug: "habit-tracker",
@@ -98,6 +150,7 @@ export const projects: PortfolioProject[] = [
     featured: true,
     href: habitTrackerUrl,
     sourcePath: "apps/habit-tracker",
+    visible: false,
     notes:
       "I built this because most habit apps either feel too rigid or turn basic tracking into a subscription. The app supports habits measured in counts or time, partial progress toward daily targets, a calendar view, Google-authenticated accounts, and a C# API with EF Core models and migrations. Local development stays lightweight with SQLite, while production is set up for a Vite frontend, Dockerized ASP.NET Core API, Render hosting, and Neon Postgres.",
   },
@@ -123,37 +176,15 @@ export const projects: PortfolioProject[] = [
     featured: true,
     href: gamesUrl,
     sourcePath: "apps/games",
+    visible: false,
     notes:
       "This is the fun shelf: familiar games rebuilt with the little quality-of-life details I expect when I actually play them. Solitaire includes draw 1/draw 3, standard and Vegas scoring, tap-to-move, drag-and-drop, undo, animated cards, and persisted stats. Minesweeper includes beginner, intermediate, advanced, and custom boards, first-click-safe mine placement, timers, flags, and local stats by difficulty.",
   },
-  {
-    slug: "list-app",
-    name: "List App",
-    summary:
-      "A collaborative list app for shared errands and projects, with Google sign-in, friends, roles, realtime updates, rich item metadata, and restorable history.",
-    kind: "Full-stack collaboration app",
-    stack: [
-      "Next.js App Router",
-      "React",
-      "TypeScript",
-      "Supabase Auth",
-      "Supabase Realtime",
-      "Supabase RPC",
-      "Supabase Presence",
-      "PostgreSQL",
-      "Row Level Security",
-      "SQL",
-      "Google OAuth",
-      "CSS",
-    ],
-    status: "live",
-    featured: true,
-    href: listAppUrl,
-    sourcePath: "apps/list-app",
-    notes:
-      "This one is my answer to list apps that are fine for one person and awkward the second another human joins in. It has exact-email friend requests, notifications, owner/editor/viewer roles, share-link invites, realtime list and item updates, collaborator presence, assignable items, optional quantity/category/due-date/priority/notes fields, category grouping and filtering, checked-item cleanup, reusable suggestions from list history, and snapshots that can restore an older version. Supabase handles auth, Postgres, realtime channels, RPC, and RLS so the collaboration rules live close to the data.",
-  },
 ];
 
+export const projects: PortfolioProject[] = allProjects.filter(
+  (project) => project.visible !== false,
+);
+
 export const getProject = (slug: string) =>
-  projects.find((project) => project.slug === slug);
+  allProjects.find((project) => project.slug === slug);

@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:portfolio": "next dev",
+    "test": "node --test src/data/projects.test.mjs",
     "build": "next build",
     "build:portfolio": "next build",
     "build:projects": "node scripts/run-project-scripts.mjs build",
