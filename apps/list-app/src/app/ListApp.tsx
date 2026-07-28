@@ -4,6 +4,12 @@ import type { Session, User } from "@supabase/supabase-js";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatDate, formatDateTime } from "../lib/format";
+import {
+  buildFriendSummaries,
+  findFriendSummary,
+  getRoleForList,
+  type FriendSummary,
+} from "../lib/friends";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import {
   Collaborator,
@@ -29,6 +35,8 @@ const priorityOptions: Priority[] = ["low", "medium", "high", "urgent"];
 type DropPlacement = "before" | "after";
 type ActiveListModal = "collaboration" | "owner" | "history" | null;
 type MobileView = "lists" | "detail";
+type AppSection = "lists" | "friends";
+type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 const defaultItemFields: ListItemFields = {
   assignee: true,
   category: true,
@@ -131,13 +139,22 @@ const sortListsByPreference = (
   });
 };
 
-export function ListApp() {
+export function ListApp({
+  initialFriendId = null,
+  initialSection = "lists",
+}: {
+  initialFriendId?: string | null;
+  initialSection?: AppSection;
+} = {}) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [lists, setLists] = useState<List[]>([]);
   const [activeListId, setActiveListId] = useState<string | null>(null);
   const [items, setItems] = useState<ListItem[]>([]);
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
+  const [allListCollaborators, setAllListCollaborators] = useState<
+    Collaborator[]
+  >([]);
   const [friends, setFriends] = useState<FriendRequest[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [snapshots, setSnapshots] = useState<ListSnapshot[]>([]);
@@ -171,10 +188,15 @@ export function ListApp() {
     listId: string;
     placement: DropPlacement;
   } | null>(null);
+  const [authStatus, setAuthStatus] = useState<AuthStatus>("loading");
   const [isLoading, setIsLoading] = useState(true);
   const dropHandledRef = useRef(false);
   const mobileDetailHistoryRef = useRef(false);
   const [mobileView, setMobileView] = useState<MobileView>("lists");
+  const [appSection, setAppSection] = useState<AppSection>(initialSection);
+  const [selectedFriendId, setSelectedFriendId] = useState<string | null>(
+    initialFriendId,
+  );
 
   const user = session?.user ?? null;
   const activeList = lists.find((list) => list.id === activeListId) ?? null;
@@ -183,7 +205,9 @@ export function ListApp() {
       friends
         .filter((friend) => friend.status === "accepted")
         .map((friend) =>
-          friend.requester_id === user?.id ? friend.addressee : friend.requester,
+          friend.requester_id === user?.id
+            ? friend.addressee
+            : friend.requester,
         )
         .filter((friend): friend is Profile => Boolean(friend))
         .sort((first, second) =>
@@ -191,6 +215,16 @@ export function ListApp() {
         ),
     [friends, user?.id],
   );
+  const friendSummaries = useMemo<FriendSummary[]>(
+    () =>
+      buildFriendSummaries({
+        collaborators: allListCollaborators,
+        currentUserId: user?.id ?? null,
+        lists,
+      }),
+    [allListCollaborators, lists, user?.id],
+  );
+  const selectedFriend = findFriendSummary(friendSummaries, selectedFriendId);
   const currentRole = getCurrentRole(
     activeList,
     collaborators,
@@ -357,9 +391,95 @@ export function ListApp() {
       ? []
       : ((orderResult.data ?? []) as ListOrderPreference[]);
     const sortedLists = sortListsByPreference(uniqueLists, orderPreferences);
+    const listIds = sortedLists.map((list) => list.id);
 
     setLists(sortedLists);
     setActiveListId((current) => current ?? sortedLists[0]?.id ?? null);
+
+    if (listIds.length === 0) {
+      setAllListCollaborators([]);
+      return;
+    }
+
+    const { data: allCollaboratorsData, error: allCollaboratorsError } =
+      await supabase
+        .from("list_collaborators")
+        .select("*, profile:profiles!list_collaborators_user_id_fkey(*)")
+        .in("list_id", listIds);
+
+    if (allCollaboratorsError) {
+      throw allCollaboratorsError;
+    }
+
+    setAllListCollaborators((allCollaboratorsData ?? []) as Collaborator[]);
+  }, []);
+
+  const loadFriendsWorkspaceData = useCallback(async (userId: string) => {
+    const [ownedResult, collabResult] = await Promise.all([
+      supabase
+        .from("lists")
+        .select("*")
+        .eq("owner_id", userId)
+        .order("updated_at", { ascending: false }),
+      supabase
+        .from("list_collaborators")
+        .select("list_id, lists(*)")
+        .eq("user_id", userId)
+        .eq("status", "accepted"),
+    ]);
+
+    if (ownedResult.error) {
+      throw ownedResult.error;
+    }
+
+    if (collabResult.error) {
+      throw collabResult.error;
+    }
+
+    const ownedLists = (ownedResult.data ?? []) as List[];
+    const collaboratorLists = (collabResult.data ?? [])
+      .map((row) => row.lists as unknown as List | null)
+      .filter(Boolean) as List[];
+    const sharedCandidateLists = Array.from(
+      new Map(
+        [...ownedLists, ...collaboratorLists].map((list) => [list.id, list]),
+      ).values(),
+    );
+    const listIds = sharedCandidateLists.map((list) => list.id);
+
+    if (listIds.length === 0) {
+      setLists([]);
+      setAllListCollaborators([]);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("list_collaborators")
+      .select("*, profile:profiles!list_collaborators_user_id_fkey(*)")
+      .in("list_id", listIds)
+      .eq("status", "accepted");
+
+    if (error) {
+      throw error;
+    }
+
+    const acceptedCollaborators = (data ?? []) as Collaborator[];
+    const sharedListIds = new Set(
+      acceptedCollaborators
+        .filter(
+          (collaborator) =>
+            collaborator.user_id !== userId &&
+            listIds.includes(collaborator.list_id),
+        )
+        .map((collaborator) => collaborator.list_id),
+    );
+
+    setLists(sharedCandidateLists.filter((list) => sharedListIds.has(list.id)));
+    setAllListCollaborators(
+      acceptedCollaborators.filter((collaborator) =>
+        sharedListIds.has(collaborator.list_id),
+      ),
+    );
   }, []);
 
   const loadProfile = useCallback(async (authUser: User) => {
@@ -402,14 +522,18 @@ export function ListApp() {
       setIsLoading(true);
       try {
         await loadProfile(authUser);
-        await loadLists(authUser.id);
+        if (initialSection === "friends") {
+          await loadFriendsWorkspaceData(authUser.id);
+        } else {
+          await loadLists(authUser.id);
+        }
       } catch (error) {
         setStatusMessage(getErrorMessage(error));
       } finally {
         setIsLoading(false);
       }
     },
-    [loadLists, loadProfile],
+    [initialSection, loadFriendsWorkspaceData, loadLists, loadProfile],
   );
 
   const loadFriendsAndNotifications = useCallback(async (userId: string) => {
@@ -484,24 +608,34 @@ export function ListApp() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
       if (data.session?.user) {
+        setSession(data.session);
+        setAuthStatus("authenticated");
         void loadUserData(data.session.user);
       } else {
+        setSession(null);
+        setAuthStatus("unauthenticated");
         setIsLoading(false);
       }
     });
 
     const { data: subscription } = supabase.auth.onAuthStateChange(
       (_event, nextSession) => {
-        setSession(nextSession);
         if (nextSession?.user) {
+          setSession(nextSession);
+          setAuthStatus("authenticated");
           void loadUserData(nextSession.user);
         } else {
+          setSession(null);
+          setAuthStatus("unauthenticated");
+          setIsLoading(false);
           setProfile(null);
           setLists([]);
+          setAllListCollaborators([]);
           setActiveListId(null);
           setItems([]);
+          setAppSection("lists");
+          setSelectedFriendId(null);
         }
       },
     );
@@ -623,7 +757,10 @@ export function ListApp() {
           table: "list_collaborators",
           filter: `list_id=eq.${activeListId}`,
         },
-        () => void loadListData(activeListId),
+        () => {
+          void loadListData(activeListId);
+          void loadLists(user.id);
+        },
       )
       .on("presence", { event: "sync" }, () => {
         const state = channel.presenceState<{ profile: Profile }>();
@@ -647,6 +784,18 @@ export function ListApp() {
 
   useEffect(() => {
     const handlePopState = () => {
+      const routeState = getFriendsRouteState();
+
+      if (routeState.section === "friends") {
+        setAppSection("friends");
+        setSelectedFriendId(routeState.friendId);
+        setMobileView("lists");
+        mobileDetailHistoryRef.current = false;
+        return;
+      }
+
+      setAppSection("lists");
+      setSelectedFriendId(null);
       mobileDetailHistoryRef.current = false;
       setMobileView("lists");
     };
@@ -658,16 +807,19 @@ export function ListApp() {
     };
   }, []);
 
-  const selectActiveList = (listId: string) => {
+  const selectActiveList = (listId: string, skipMobileHistory = false) => {
     setSelectedCategories([]);
     setSelectedPriorities([]);
     setDeleteListConfirmation("");
+    setAppSection("lists");
+    setSelectedFriendId(null);
     setActiveListId(listId);
     setMobileView("detail");
 
     if (
       typeof window !== "undefined" &&
       window.matchMedia("(max-width: 860px)").matches &&
+      !skipMobileHistory &&
       !mobileDetailHistoryRef.current
     ) {
       window.history.pushState({ listAppView: "detail", listId }, "", "");
@@ -682,6 +834,50 @@ export function ListApp() {
     }
 
     setMobileView("lists");
+  };
+
+  const showLists = () => {
+    setAppSection("lists");
+    setSelectedFriendId(null);
+    setMobileView("lists");
+
+    if (typeof window !== "undefined" && window.location.pathname !== "/") {
+      window.history.pushState({ listAppView: "lists" }, "", "/");
+    }
+  };
+
+  const showFriendsIndex = () => {
+    setAppSection("friends");
+    setSelectedFriendId(null);
+
+    if (
+      typeof window !== "undefined" &&
+      window.location.pathname !== "/friends"
+    ) {
+      window.history.pushState({ listAppView: "friends" }, "", "/friends");
+    }
+  };
+
+  const openFriend = (friendId: string) => {
+    setAppSection("friends");
+    setSelectedFriendId(friendId);
+    window.history.pushState(
+      { listAppView: "friend", friendId },
+      "",
+      `/friends/${friendId}`,
+    );
+  };
+
+  const openSharedList = (listId: string) => {
+    if (typeof window !== "undefined" && window.location.pathname !== "/") {
+      window.history.pushState({ listAppView: "detail", listId }, "", "/");
+    }
+
+    if (user) {
+      void loadLists(user.id);
+    }
+
+    selectActiveList(listId, true);
   };
 
   const openOwnerSettings = () => {
@@ -1585,7 +1781,34 @@ export function ListApp() {
     }
   };
 
-  if (!session) {
+  if (authStatus === "loading") {
+    return (
+      <Shell isAccountLoading onSignOut={null} profile={null}>
+        <main
+          className={`app-main ${
+            initialSection === "friends" ? "friends-main" : "signed-in-main"
+          }`}
+        >
+          {initialSection === "friends" ? (
+            initialFriendId ? (
+              <FriendDetailLoadingPanel />
+            ) : (
+              <FriendsIndexLoadingPanel showLists={null} />
+            )
+          ) : (
+            <ListsWorkspaceLoadingView
+              canCreate={false}
+              mobileView={mobileView}
+              onCreateList={null}
+              onShowMobileListIndex={null}
+            />
+          )}
+        </main>
+      </Shell>
+    );
+  }
+
+  if (authStatus === "unauthenticated" || !session) {
     return (
       <Shell
         headerAction={
@@ -1613,7 +1836,9 @@ export function ListApp() {
                 >
                   Continue with Google
                 </button>
-                <span className="muted">Your lists stay with your account.</span>
+                <span className="muted">
+                  Your lists stay with your account.
+                </span>
               </div>
               {statusMessage ? (
                 <p className="status-message" role="status">
@@ -1644,9 +1869,15 @@ export function ListApp() {
                 </div>
                 <div className="preview-input">Add an item</div>
                 <ul className="preview-items">
-                  <li><span /> Pick up coffee</li>
-                  <li><span /> Return library books</li>
-                  <li className="done"><span /> Water plants</li>
+                  <li>
+                    <span /> Pick up coffee
+                  </li>
+                  <li>
+                    <span /> Return library books
+                  </li>
+                  <li className="done">
+                    <span /> Water plants
+                  </li>
                 </ul>
               </div>
             </div>
@@ -1656,6 +1887,37 @@ export function ListApp() {
               <span>Fast add, complete, edit, and restore</span>
             </div>
           </section>
+        </main>
+      </Shell>
+    );
+  }
+
+  if (appSection === "friends") {
+    return (
+      <Shell
+        acceptFriendRequest={acceptFriendRequest}
+        acceptListInvite={acceptListInvite}
+        ignoreNotification={ignoreNotification}
+        notifications={notifications}
+        onSignOut={signOut}
+        profile={profile}
+      >
+        <main className="app-main friends-main">
+          <FriendsPanel
+            friendSummaries={friendSummaries}
+            isLoading={isLoading}
+            onBackToFriends={showFriendsIndex}
+            onOpenFriend={openFriend}
+            onOpenList={openSharedList}
+            selectedFriendId={selectedFriendId}
+            selectedFriend={selectedFriend}
+            showLists={showLists}
+          />
+          {statusMessage ? (
+            <p className="status-message" role="status">
+              {statusMessage}
+            </p>
+          ) : null}
         </main>
       </Shell>
     );
@@ -1676,7 +1938,7 @@ export function ListApp() {
             <div className="toolbar">
               <div>
                 <p className="eyebrow">Workspace</p>
-                <h1>Your lists</h1>
+                <h2>Your lists</h2>
               </div>
               <button
                 aria-label="Create list"
@@ -1701,6 +1963,9 @@ export function ListApp() {
               </div>
             ) : null}
             <nav className="list-nav" aria-label="Lists">
+              {isLoading && lists.length === 0 ? (
+                <LoadingSpinner label="Loading lists" />
+              ) : null}
               {lists.map((list) => {
                 const isDropTarget = listDropIndicator?.listId === list.id;
                 const isSelected = list.id === activeListId;
@@ -1800,23 +2065,25 @@ export function ListApp() {
 
           <section className="panel list-detail-panel">
             {!activeList ? (
-              <div className="empty-state">
-                {isLoading ? (
-                  "Loading lists..."
-                ) : (
-                  <>
-                    <h2>No lists yet</h2>
-                    <p>Create your first list to start keeping things organized.</p>
-                    <button
-                      className="primary-button"
-                      onClick={() => setIsCreateListOpen(true)}
-                      type="button"
-                    >
-                      Create list
-                    </button>
-                  </>
-                )}
-              </div>
+              isLoading ? (
+                <ListDetailLoadingPanel
+                  onShowMobileListIndex={showMobileListIndex}
+                />
+              ) : (
+                <div className="empty-state">
+                  <h2>No lists yet</h2>
+                  <p>
+                    Create your first list to start keeping things organized.
+                  </p>
+                  <button
+                    className="primary-button"
+                    onClick={() => setIsCreateListOpen(true)}
+                    type="button"
+                  >
+                    Create list
+                  </button>
+                </div>
+              )
             ) : (
               <>
                 <div className="toolbar">
@@ -2617,12 +2884,336 @@ export function ListApp() {
   );
 }
 
+function ListsWorkspaceLoadingView({
+  canCreate,
+  mobileView,
+  onCreateList,
+  onShowMobileListIndex,
+}: {
+  canCreate: boolean;
+  mobileView: MobileView;
+  onCreateList: (() => void) | null;
+  onShowMobileListIndex: (() => void) | null;
+}) {
+  return (
+    <div className={`app-grid mobile-view-${mobileView}`}>
+      <aside className="sidebar panel">
+        <div className="toolbar">
+          <div>
+            <p className="eyebrow">Workspace</p>
+            <h2>Your lists</h2>
+          </div>
+          <button
+            aria-label="Create list"
+            className="icon-button"
+            disabled={!canCreate}
+            onClick={onCreateList ?? undefined}
+            type="button"
+          >
+            +
+          </button>
+        </div>
+        <nav className="list-nav" aria-label="Lists">
+          <LoadingSpinner label="Loading lists" />
+        </nav>
+      </aside>
+
+      <section className="panel list-detail-panel">
+        <ListDetailLoadingPanel onShowMobileListIndex={onShowMobileListIndex} />
+      </section>
+    </div>
+  );
+}
+
+function ListDetailLoadingPanel({
+  onShowMobileListIndex,
+}: {
+  onShowMobileListIndex: (() => void) | null;
+}) {
+  return (
+    <div className="loading-detail-layout">
+      <div className="toolbar">
+        <div>
+          <button
+            className="mobile-back-button"
+            disabled={!onShowMobileListIndex}
+            onClick={onShowMobileListIndex ?? undefined}
+            type="button"
+          >
+            &larr; Your lists
+          </button>
+          <p className="eyebrow">Current list</p>
+          <h1 className="list-title loading-title">List details</h1>
+        </div>
+      </div>
+      <LoadingSpinner label="Loading list details" />
+    </div>
+  );
+}
+
+function FriendsPanel({
+  friendSummaries,
+  isLoading,
+  onBackToFriends,
+  onOpenFriend,
+  onOpenList,
+  selectedFriendId,
+  selectedFriend,
+  showLists,
+}: {
+  friendSummaries: FriendSummary[];
+  isLoading: boolean;
+  onBackToFriends: () => void;
+  onOpenFriend: (friendId: string) => void;
+  onOpenList: (listId: string) => void;
+  selectedFriendId: string | null;
+  selectedFriend: FriendSummary | null;
+  showLists: () => void;
+}) {
+  const shouldShowLoading =
+    isLoading &&
+    (selectedFriendId ? !selectedFriend : friendSummaries.length === 0);
+
+  if (shouldShowLoading) {
+    return selectedFriendId ? (
+      <FriendDetailLoadingPanel onBackToFriends={onBackToFriends} />
+    ) : (
+      <FriendsIndexLoadingPanel showLists={showLists} />
+    );
+  }
+
+  if (selectedFriendId && !selectedFriend) {
+    return (
+      <div className="friends-screen">
+        <button
+          aria-label="Back to friends"
+          className="mobile-back-button friends-back-button"
+          onClick={onBackToFriends}
+          type="button"
+        >
+          &larr; Friends
+        </button>
+        <div className="empty-state">
+          <h2>No shared lists</h2>
+          <p>You no longer share any lists with this person.</p>
+          <button
+            className="secondary-button"
+            onClick={onBackToFriends}
+            type="button"
+          >
+            Back to friends
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (selectedFriend) {
+    return (
+      <div className="friends-screen friend-detail-screen">
+        <div className="friends-screen-header">
+          <button
+            aria-label="Back to friends"
+            className="mobile-back-button friends-back-button"
+            onClick={onBackToFriends}
+            type="button"
+          >
+            &larr; Friends
+          </button>
+          <div className="friend-heading">
+            <Avatar profile={selectedFriend.profile} />
+            <div>
+              <p className="eyebrow">Friend</p>
+              <h1>{selectedFriend.profile.display_name}</h1>
+              <p className="muted">{selectedFriend.profile.email}</p>
+            </div>
+          </div>
+        </div>
+        <div className="friends-section">
+          <div>
+            <h2>Lists shared with {selectedFriend.profile.display_name}</h2>
+            <p className="muted">
+              Open a shared list to manage it with the existing list tools.
+            </p>
+          </div>
+          {selectedFriend.sharedLists.length === 0 ? (
+            <div className="empty-state">
+              <h2>No shared lists</h2>
+              <p>
+                You don&apos;t currently have any lists shared with this person.
+              </p>
+            </div>
+          ) : (
+            <div className="shared-list-rows">
+              {selectedFriend.sharedLists.map((sharedList) => (
+                <button
+                  className="shared-list-row"
+                  key={sharedList.list.id}
+                  onClick={() => onOpenList(sharedList.list.id)}
+                  type="button"
+                >
+                  <span className="shared-list-main">
+                    <strong>{sharedList.list.title}</strong>
+                    <span className="shared-list-participants">
+                      {sharedList.participants.map((participant) => (
+                        <span
+                          className="shared-list-participant"
+                          key={participant.profile.id}
+                        >
+                          <span className="participant-name">
+                            {participant.profile.display_name}
+                          </span>
+                          <span className="participant-access">
+                            {participant.accessLabel}
+                          </span>
+                        </span>
+                      ))}
+                    </span>
+                  </span>
+                  <span aria-hidden="true" className="list-row-chevron">
+                    &rsaquo;
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="friends-screen">
+      <div className="friends-screen-header">
+        <button
+          className="mobile-back-button friends-back-button"
+          onClick={showLists}
+          type="button"
+        >
+          &larr; Your lists
+        </button>
+        <div>
+          <p className="eyebrow">People</p>
+          <h1>Friends</h1>
+        </div>
+      </div>
+      {friendSummaries.length === 0 ? (
+        <div className="empty-state">
+          <h2>No friends yet</h2>
+          <p>People you share lists with will appear here.</p>
+        </div>
+      ) : (
+        <div className="friend-rows">
+          {friendSummaries.map((friend) => {
+            const sharedListCount = friend.sharedLists.length;
+
+            return (
+              <button
+                className="friend-row"
+                key={friend.profile.id}
+                onClick={() => onOpenFriend(friend.profile.id)}
+                type="button"
+              >
+                <Avatar profile={friend.profile} />
+                <span className="friend-row-main">
+                  <strong>{friend.profile.display_name}</strong>
+                  <span>
+                    {sharedListCount} shared list
+                    {sharedListCount === 1 ? "" : "s"}
+                  </span>
+                </span>
+                <span aria-hidden="true" className="list-row-chevron">
+                  &rsaquo;
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FriendsIndexLoadingPanel({
+  showLists,
+}: {
+  showLists: (() => void) | null;
+}) {
+  return (
+    <div className="friends-screen">
+      <div className="friends-screen-header">
+        <button
+          className="mobile-back-button friends-back-button"
+          disabled={!showLists}
+          onClick={showLists ?? undefined}
+          type="button"
+        >
+          &larr; Your lists
+        </button>
+        <div>
+          <p className="eyebrow">People</p>
+          <h1>Friends</h1>
+        </div>
+      </div>
+      <div className="friend-rows">
+        <LoadingSpinner label="Loading friends" />
+      </div>
+    </div>
+  );
+}
+
+function FriendDetailLoadingPanel({
+  onBackToFriends,
+}: {
+  onBackToFriends?: () => void;
+}) {
+  return (
+    <div className="friends-screen friend-detail-screen">
+      <div className="friends-screen-header">
+        <button
+          aria-label="Back to friends"
+          className="mobile-back-button friends-back-button"
+          disabled={!onBackToFriends}
+          onClick={onBackToFriends}
+          type="button"
+        >
+          &larr; Friends
+        </button>
+        <div>
+          <p className="eyebrow">Friend</p>
+          <h1>Friend details</h1>
+        </div>
+      </div>
+      <div className="friends-section">
+        <div>
+          <h2>Shared lists</h2>
+          <p className="muted">
+            Open a shared list to manage it with the existing list tools.
+          </p>
+        </div>
+        <div className="shared-list-rows">
+          <LoadingSpinner label="Loading shared lists" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LoadingSpinner({ label }: { label: string }) {
+  return (
+    <div aria-label={label} className="loading-region" role="status">
+      <span aria-hidden="true" className="loading-spinner" />
+    </div>
+  );
+}
+
 type ShellProps = {
   acceptFriendRequest?: (friendshipId: string) => void;
   acceptListInvite?: (collaboratorId: string) => void;
   children: React.ReactNode;
   headerAction?: React.ReactNode;
   ignoreNotification?: (notification: Notification) => void;
+  isAccountLoading?: boolean;
   notifications?: Notification[];
   onSignOut: (() => void) | null;
   profile: Profile | null;
@@ -2634,6 +3225,7 @@ function Shell({
   children,
   headerAction,
   ignoreNotification,
+  isAccountLoading = false,
   notifications = [],
   onSignOut,
   profile,
@@ -2641,17 +3233,13 @@ function Shell({
   return (
     <div className="app-shell">
       <header className="portfolio-header">
-        <a
-          className="header-logo"
-          href="/"
-          aria-label="Lists home"
-        >
+        <a className="header-logo" href="/" aria-label="Lists home">
           <span>Lists</span>
         </a>
         <nav className="header-nav" aria-label="Navigation">
-          <a className="text-link portfolio-link" href={portfolioUrl}>
+          {/* <a className="text-link portfolio-link" href={portfolioUrl}>
             Portfolio
-          </a>
+          </a> */}
           {headerAction}
           {profile ? (
             <div className="avatar-row">
@@ -2664,6 +3252,11 @@ function Shell({
                 />
               ) : null}
               <AvatarMenu onSignOut={onSignOut} profile={profile} />
+            </div>
+          ) : isAccountLoading ? (
+            <div aria-hidden="true" className="avatar-row account-loading">
+              <span className="account-loading-button" />
+              <span className="account-loading-avatar" />
             </div>
           ) : null}
         </nav>
@@ -2681,23 +3274,74 @@ function AvatarMenu({
   profile: Profile;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+        buttonRef.current?.focus();
+      }
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isOpen]);
 
   return (
-    <div className="avatar-menu">
+    <div className="avatar-menu" ref={menuRef}>
       <button
-        aria-label="Account menu"
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
+        aria-label="Open account menu"
         className="avatar-button"
-        onBlur={() => window.setTimeout(() => setIsOpen(false), 120)}
         onClick={() => setIsOpen((open) => !open)}
+        ref={buttonRef}
         type="button"
       >
         <Avatar profile={profile} />
       </button>
       {isOpen ? (
-        <div className="avatar-menu-panel">
-          <strong>{profile.display_name}</strong>
-          <span className="muted">{profile.email}</span>
-          <button onClick={onSignOut ?? undefined} type="button">
+        <div aria-label="Account menu" className="avatar-menu-panel">
+          <div className="account-menu-identity">
+            <Avatar profile={profile} />
+            <span className="account-menu-text">
+              <strong>{profile.display_name}</strong>
+              <span className="muted">{profile.email}</span>
+            </span>
+          </div>
+          <div className="account-menu-divider" />
+          <a
+            className="account-menu-item"
+            href="/friends"
+            onClick={() => setIsOpen(false)}
+          >
+            Friends
+          </a>
+          <div className="account-menu-divider" />
+          <button
+            className="account-menu-item sign-out-menu-item"
+            onClick={() => {
+              setIsOpen(false);
+              onSignOut?.();
+            }}
+            type="button"
+          >
             Sign out
           </button>
         </div>
@@ -3427,6 +4071,26 @@ const getCurrentRole = (
     collaborators.find((collaborator) => collaborator.user_id === userId)
       ?.role ?? null
   );
+};
+
+const getFriendsRouteState = (): {
+  friendId: string | null;
+  section: AppSection;
+} => {
+  if (typeof window === "undefined") {
+    return { friendId: null, section: "lists" };
+  }
+
+  const [, segment, friendId] = window.location.pathname.split("/");
+
+  if (segment !== "friends") {
+    return { friendId: null, section: "lists" };
+  }
+
+  return {
+    friendId: friendId ? decodeURIComponent(friendId) : null,
+    section: "friends",
+  };
 };
 
 const notificationLabel = (notification: Notification) => {
