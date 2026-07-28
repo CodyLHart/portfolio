@@ -1,0 +1,229 @@
+.main {
+  background: #f6f7f9;
+  min-height: calc(100vh - 64px);
+  padding: 24px;
+}
+
+.landing {
+  align-items: center;
+  display: grid;
+  gap: 48px;
+  grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);
+  margin: 0 auto;
+  max-width: 1160px;
+  min-height: calc(100vh - 112px);
+  padding: 48px 0 28px;
+}
+
+.copy {
+  display: grid;
+  gap: 20px;
+}
+
+.title {
+  font-size: 4.25rem;
+  letter-spacing: 0;
+  line-height: 0.97;
+  max-width: 680px;
+}
+
+.description {
+  color: #475569;
+  font-size: 1.08rem;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 580px;
+}
+
+.actions {
+  margin-top: 6px;
+}
+
+.googleButton {
+  min-height: 48px;
+}
+
+.benefits {
+  border-top: 1px solid #e5e7eb;
+  color: #475569;
+  display: grid;
+  font-size: 0.92rem;
+  gap: 10px;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding-top: 22px;
+}
+
+.preview {
+  background: #fff;
+  border: 1px solid #dbe1e8;
+  box-shadow: 0 18px 45px -34px #0f172a;
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  min-height: 430px;
+  overflow: hidden;
+}
+
+.previewSidebar {
+  align-content: start;
+  background: #f8fafc;
+  border-right: 1px solid #e5e7eb;
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+}
+
+.previewBrand {
+  font-size: 0.82rem;
+  font-weight: 950;
+  margin-bottom: 8px;
+}
+
+.previewList {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #0f172a;
+  display: grid;
+  gap: 4px;
+  min-height: 54px;
+  padding: 10px;
+  text-align: left;
+}
+
+.previewListActive {
+  background: #fff;
+  border-color: #dbe1e8;
+}
+
+.previewList span {
+  font-weight: 850;
+}
+
+.previewList small {
+  color: #64748b;
+}
+
+.previewDetail {
+  align-content: start;
+  display: grid;
+  gap: 18px;
+  padding: 28px;
+}
+
+.previewInput {
+  border: 1px solid #cbd5e1;
+  color: #94a3b8;
+  min-height: 44px;
+  padding: 11px 12px;
+}
+
+.previewItems {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.previewItems li {
+  align-items: center;
+  border: 1px solid #e5e7eb;
+  color: #0f172a;
+  display: flex;
+  gap: 10px;
+  min-height: 48px;
+  padding: 10px 12px;
+}
+
+.previewItems span {
+  border: 2px solid #94a3b8;
+  border-radius: 50%;
+  height: 18px;
+  width: 18px;
+}
+
+.done {
+  color: #64748b;
+  text-decoration: line-through;
+}
+
+@media (max-width: 1120px) {
+  .landing {
+    gap: 30px;
+    grid-template-columns: 1fr;
+    min-height: auto;
+    padding-top: 38px;
+  }
+
+  .title {
+    font-size: 3.45rem;
+  }
+
+  .preview {
+    min-height: 380px;
+  }
+}
+
+@media (max-width: 860px) {
+  .main {
+    padding: 14px;
+  }
+
+  .landing {
+    gap: 28px;
+    min-height: calc(100vh - 86px);
+    padding: 24px 0 10px;
+  }
+
+  .title {
+    font-size: 2.55rem;
+  }
+
+  .actions {
+    align-items: flex-start;
+    display: grid;
+  }
+
+  .benefits {
+    grid-template-columns: 1fr;
+  }
+
+  .preview {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .previewSidebar {
+    border-bottom: 1px solid #e5e7eb;
+    border-right: 0;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 12px;
+  }
+
+  .previewBrand {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
+  }
+
+  .previewList {
+    min-height: 60px;
+  }
+
+  .previewDetail {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 520px) {
+  .title {
+    font-size: 2.25rem;
+  }
+
+  .previewSidebar {
+    display: none;
+  }
+
+  .previewDetail {
+    min-height: 300px;
+  }
+}

@@ -45,6 +45,33 @@ The same derivation is exposed through authenticated API routes:
 Known limitation: shared-list rows intentionally do not show item counts because
 the app avoids loading every list's items for the Friends index/detail screens.
 
+## Architecture
+
+The app follows a feature-based structure while keeping the existing routes and
+behavior intact.
+
+- `src/app`: route entries, the client app controller, route tests, and
+  app-level CSS for shared primitives and the list/Friends workspace.
+- `src/app/friends`: dedicated Friends routes that render in the authenticated
+  shell without mounting the list workspace sidebar.
+- `src/app/api/friends`: authenticated API routes for Friends summaries and
+  detail data.
+- `src/components/layout`: reusable shell pieces such as the authenticated
+  header, notification menu, and account menu.
+- `src/components/ui`: shared leaf UI such as avatars and persistent loading
+  spinners.
+- `src/features/landing`: the signed-out landing experience and its colocated
+  CSS Module.
+- `src/features/lists`: the signed-in list workspace, list navigation, selected
+  list detail, item entry, item rows, drag/drop zones, list-specific types, and
+  pure list utilities.
+- `src/lib`: Supabase client setup, shared types, formatting helpers, Friends
+  domain derivation, and server query helpers.
+
+CSS that belongs to standalone components is colocated in `.module.css` files.
+`globals.css` remains for app-wide tokens, base elements, shared button/form
+primitives, Friends screen styles, and modal/shared utility styles.
+
 ## Local Development
 
 1. Create a Supabase project.

@@ -9,6 +9,117 @@ const component = await readFile(new URL("./ListApp.tsx", import.meta.url), {
 const styles = await readFile(new URL("./globals.css", import.meta.url), {
   encoding: "utf8",
 });
+const appShellComponent = await readFile(
+  new URL("../components/layout/AppShell.tsx", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const appShellStyles = await readFile(
+  new URL("../components/layout/AppShell.module.css", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const avatarComponent = await readFile(
+  new URL("../components/ui/Avatar.tsx", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const avatarStyles = await readFile(
+  new URL("../components/ui/Avatar.module.css", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const loadingSpinnerComponent = await readFile(
+  new URL("../components/ui/LoadingSpinner.tsx", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const loadingSpinnerStyles = await readFile(
+  new URL("../components/ui/LoadingSpinner.module.css", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const landingComponent = await readFile(
+  new URL("../features/landing/components/LandingPage.tsx", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const landingStyles = await readFile(
+  new URL(
+    "../features/landing/components/LandingPage.module.css",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const listsWorkspaceComponent = await readFile(
+  new URL("../features/lists/components/ListsWorkspace.tsx", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const listsWorkspaceStyles = await readFile(
+  new URL(
+    "../features/lists/components/ListsWorkspace.module.css",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const listsIndexComponent = await readFile(
+  new URL("../features/lists/components/ListsIndex.tsx", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const listDetailComponent = await readFile(
+  new URL("../features/lists/components/ListDetail.tsx", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const listDetailLoadingComponent = await readFile(
+  new URL(
+    "../features/lists/components/ListDetailLoadingPanel.tsx",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const listItemsComponent = await readFile(
+  new URL("../features/lists/components/ListItems.tsx", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const listItemRowComponent = await readFile(
+  new URL("../features/lists/components/ListItemRow.tsx", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const listUtilsSource = await readFile(
+  new URL("../features/lists/lib/list-utils.ts", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const listTypesSource = await readFile(
+  new URL("../features/lists/types.ts", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
 const friendsSource = await readFile(new URL("../lib/friends.ts", import.meta.url), {
   encoding: "utf8",
 });
@@ -40,9 +151,15 @@ const { buildFriendSummaries } = await import(
 );
 
 test("signed-out landing uses concise product copy and Google CTA", () => {
-  assert.match(component, /Keep the things you need in one place\./);
-  assert.match(component, /Continue with Google/);
-  assert.match(component, /Your lists stay with your account\./);
+  assert.match(
+    component,
+    /<LandingPage onSignIn=\{signIn\} statusMessage=\{statusMessage\} \/>/,
+  );
+  assert.match(landingComponent, /Keep the things you need in one place\./);
+  assert.match(landingComponent, /Continue with Google/);
+  assert.match(landingComponent, /Your lists stay with your account\./);
+  assert.match(landingStyles, /\.landing/);
+  assert.doesNotMatch(styles, /\.landing/);
 });
 
 test("auth loading state does not render the signed-out landing", () => {
@@ -61,18 +178,22 @@ test("auth loading state does not render the signed-out landing", () => {
 });
 
 test("loading lists renders static workspace UI with localized spinners", () => {
-  assert.match(component, /function ListsWorkspaceLoadingView/);
-  assert.match(component, /<h2>Your lists<\/h2>/);
-  assert.match(component, /aria-label="Create list"/);
-  assert.match(component, /<LoadingSpinner label="Loading lists" \/>/);
-  assert.match(component, /<LoadingSpinner label="Loading list details" \/>/);
-  assert.match(styles, /\.loading-region/);
-  assert.match(styles, /\.loading-spinner/);
+  assert.match(listsWorkspaceComponent, /function ListsWorkspaceLoadingView/);
+  assert.match(listsIndexComponent, /<h2>Your lists<\/h2>/);
+  assert.match(listsIndexComponent, /aria-label="Create list"/);
+  assert.match(listsIndexComponent, /<LoadingSpinner label="Loading lists" \/>/);
+  assert.match(
+    listDetailLoadingComponent,
+    /<LoadingSpinner label="Loading list details" \/>/,
+  );
+  assert.match(loadingSpinnerComponent, /role="status"/);
+  assert.match(loadingSpinnerStyles, /\.loadingRegion/);
+  assert.match(loadingSpinnerStyles, /\.spinner/);
   assert.doesNotMatch(component, /ListsWorkspaceSkeleton/);
 });
 
 test("loading lists keeps existing content during background refreshes", () => {
-  assert.match(component, /isLoading && lists\.length === 0/);
+  assert.match(listsIndexComponent, /isLoading && lists\.length === 0/);
   assert.match(component, /selectedFriendId \? !selectedFriend : friendSummaries\.length === 0/);
   assert.doesNotMatch(component, /setLists\(\[\]\);\n\s*setIsLoading\(true\)/);
 });
@@ -88,31 +209,41 @@ test("loading Friends uses static Friends UI with localized spinners", () => {
   assert.doesNotMatch(component, /FriendDetailSkeleton/);
   assert.doesNotMatch(component, /Loading shared lists\.\.\./);
   assert.doesNotMatch(styles, /skeleton/);
+  assert.doesNotMatch(styles, /\.loading-region/);
 });
 
 test("signed-in app exposes list index and useful empty states", () => {
-  assert.match(component, /Your lists/);
-  assert.match(component, /No lists yet/);
+  assert.match(listsIndexComponent, /Your lists/);
+  assert.match(listsIndexComponent, /No lists yet/);
   assert.match(
-    component,
+    listsIndexComponent,
     /Create your first list to start keeping things organized\./,
   );
-  assert.match(component, /This list is empty/);
+  assert.match(listItemsComponent, /This list is empty/);
 });
 
 test("mobile navigation hides the permanent sidebar and provides back flow", () => {
-  assert.match(component, /type MobileView = "lists" \| "detail"/);
+  assert.match(listTypesSource, /type MobileView = "lists" \| "detail"/);
   assert.match(component, /showMobileListIndex/);
-  assert.match(styles, /\.app-grid\.mobile-view-lists \.list-detail-panel/);
-  assert.match(styles, /\.app-grid\.mobile-view-detail \.sidebar/);
-  assert.match(styles, /\.mobile-back-button/);
-  assert.match(component, /<ListDetailLoadingPanel/);
+  assert.match(
+    listsWorkspaceStyles,
+    /\.scope:global\(\.mobile-view-lists\) :global\(\.list-detail-panel\)/,
+  );
+  assert.match(
+    listsWorkspaceStyles,
+    /\.scope:global\(\.mobile-view-detail\) :global\(\.sidebar\)/,
+  );
+  assert.match(listsWorkspaceStyles, /\.mobile-back-button/);
+  assert.match(listsWorkspaceComponent, /<ListDetailLoadingPanel/);
 });
 
 test("desktop layout keeps a two-pane app shell", () => {
-  assert.match(styles, /grid-template-columns: 300px minmax\(0, 1fr\)/);
-  assert.match(styles, /\.sidebar/);
-  assert.match(styles, /\.list-detail-panel/);
+  assert.match(
+    listsWorkspaceStyles,
+    /grid-template-columns: 300px minmax\(0, 1fr\)/,
+  );
+  assert.match(listsWorkspaceStyles, /\.sidebar/);
+  assert.match(listsWorkspaceStyles, /\.list-detail-panel/);
 });
 
 test("friends query model returns users after one accepted shared list", () => {
@@ -254,7 +385,7 @@ test("friends navigation and empty states are present in the app UI", () => {
   assert.match(component, /No friends yet/);
   assert.match(component, /No shared lists/);
   assert.match(component, /Lists shared with/);
-  assert.ok(component.includes('href="/friends"'));
+  assert.ok(appShellComponent.includes('href="/friends"'));
   assert.match(styles, /\.friend-row/);
   assert.match(styles, /\.shared-list-row/);
   assert.match(styles, /\.shared-list-participants/);
@@ -279,16 +410,47 @@ test("friends routes render outside the list workspace", () => {
 });
 
 test("avatar menu is structured as an account menu", () => {
-  assert.match(component, /aria-label="Open account menu"/);
-  assert.match(component, /aria-expanded=\{isOpen\}/);
-  assert.match(component, /aria-haspopup="menu"/);
-  assert.match(component, /account-menu-identity/);
-  assert.match(component, /account-menu-divider/);
-  assert.match(component, /className="account-menu-item"/);
-  assert.match(component, /className="account-menu-item sign-out-menu-item"/);
-  assert.match(component, /event.key === "Escape"/);
-  assert.match(styles, /\.account-menu-item/);
-  assert.match(styles, /\.account-menu-text strong/);
+  assert.match(appShellComponent, /aria-label="Open account menu"/);
+  assert.match(appShellComponent, /aria-expanded=\{isOpen\}/);
+  assert.match(appShellComponent, /aria-haspopup="menu"/);
+  assert.match(appShellComponent, /styles\.accountIdentity/);
+  assert.match(appShellComponent, /styles\.divider/);
+  assert.match(appShellComponent, /styles\.menuItem/);
+  assert.match(appShellComponent, /styles\.signOutItem/);
+  assert.match(appShellComponent, /event.key === "Escape"/);
+  assert.match(appShellStyles, /\.menuItem/);
+  assert.match(appShellStyles, /\.accountText strong/);
+  assert.doesNotMatch(styles, /\.account-menu-item/);
+  assert.doesNotMatch(styles, /\.avatar-menu/);
+});
+
+test("shared shell, avatar, spinner, and landing live outside the app controller", () => {
+  assert.match(component, /import \{ AppShell as Shell \}/);
+  assert.match(component, /import \{ Avatar \}/);
+  assert.match(component, /import \{ LoadingSpinner \}/);
+  assert.match(component, /import \{ LandingPage \}/);
+  assert.match(appShellStyles, /\.appShell/);
+  assert.match(appShellStyles, /\.notificationButton/);
+  assert.match(avatarComponent, /size\?: "default" \| "large"/);
+  assert.match(avatarStyles, /\.large/);
+  assert.doesNotMatch(styles, /\.app-shell/);
+  assert.doesNotMatch(styles, /\.notification-button/);
+});
+
+test("lists feature UI and pure helpers live outside the app controller", () => {
+  assert.match(component, /<ListsWorkspace/);
+  assert.match(listsWorkspaceComponent, /<ListsSidebar/);
+  assert.match(listsWorkspaceComponent, /<ListDetail/);
+  assert.match(listsIndexComponent, /<ListRow/);
+  assert.match(listDetailComponent, /<AddItemForm/);
+  assert.match(listDetailComponent, /<ListItems/);
+  assert.match(listItemsComponent, /<ListItemRow/);
+  assert.match(listItemRowComponent, /Open actions for/);
+  assert.match(listUtilsSource, /export const sortListsByPreference/);
+  assert.doesNotMatch(component, /function ItemCard/);
+  assert.doesNotMatch(component, /function DropZone/);
+  assert.doesNotMatch(styles, /\.item-card/);
+  assert.doesNotMatch(styles, /\.app-grid/);
 });
 
 test("friends routes and server query hooks are present", () => {

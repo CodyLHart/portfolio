@@ -1,0 +1,213 @@
+.appShell {
+  min-height: 100vh;
+}
+
+.header {
+  align-items: center;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: none;
+  display: flex;
+  height: 64px;
+  justify-content: space-between;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  width: 100%;
+  z-index: 50;
+}
+
+.logo {
+  align-items: center;
+  color: #0f172a;
+  display: inline-flex;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  min-height: 44px;
+  padding: 0;
+  text-decoration: none;
+  transition:
+    opacity 160ms ease,
+    box-shadow 160ms ease;
+  width: fit-content;
+}
+
+.logo:hover {
+  opacity: 0.85;
+}
+
+.nav {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.avatarRow {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.accountLoading {
+  min-height: 44px;
+}
+
+.accountLoadingButton {
+  display: block;
+  height: 44px;
+  width: 44px;
+}
+
+.accountLoadingAvatar {
+  border: 1px solid #cbd5e1;
+  border-radius: 50%;
+  display: block;
+  height: 36px;
+  width: 36px;
+}
+
+.accountMenu {
+  position: relative;
+}
+
+.avatarButton {
+  background: transparent;
+  border: 0;
+  display: inline-flex;
+  padding: 0;
+}
+
+.accountPanel {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 18px 40px -28px #0f172a;
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: min(260px, calc(100vw - 24px));
+  z-index: 50;
+}
+
+.accountIdentity {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 56px;
+  padding: 8px 10px;
+}
+
+.accountText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.accountText strong,
+.accountText span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accountText span {
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.divider {
+  background: #e5e7eb;
+  height: 1px;
+  margin: 4px 0;
+}
+
+.menuItem {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: #0f172a;
+  display: flex;
+  font: inherit;
+  font-weight: 850;
+  justify-content: flex-start;
+  min-height: 44px;
+  padding: 0 10px;
+  text-align: left;
+  text-decoration: none;
+  width: 100%;
+}
+
+.menuItem:hover,
+.menuItem:focus-visible {
+  background: #f8fafc;
+}
+
+.signOutItem {
+  color: #991b1b;
+}
+
+.notificationButton {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: #0f172a;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  padding: 0;
+  position: relative;
+  width: 44px;
+}
+
+.notificationButton svg {
+  height: 30px;
+  width: 30px;
+}
+
+.notificationBadge {
+  align-items: center;
+  background: #dc2626;
+  color: #fff;
+  display: inline-flex;
+  font-size: 0.65rem;
+  font-weight: 950;
+  height: 17px;
+  justify-content: center;
+  min-width: 17px;
+  padding: 0 5px;
+  position: absolute;
+  right: 0;
+  top: 3px;
+}
+
+.notificationPopover :global(.popover-panel) {
+  max-width: calc(100vw - 24px);
+  min-width: min(360px, calc(100vw - 24px));
+  right: 0;
+}
+
+@media (max-width: 860px) {
+  .header {
+    height: 58px;
+    padding-left: 14px;
+    padding-right: 16px;
+  }
+
+  .logo {
+    min-height: 44px;
+  }
+
+  .nav {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 520px) {
+  .header {
+    padding-right: 12px;
+  }
+}

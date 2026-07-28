@@ -1,0 +1,678 @@
+.scope {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 300px minmax(0, 1fr);
+  margin: 0 auto;
+  max-width: 1440px;
+}
+
+.scope :global(.sidebar) {
+  align-self: start;
+  display: grid;
+  gap: 14px;
+  min-height: calc(100vh - 112px);
+}
+
+.scope :global(.list-detail-panel) {
+  min-height: calc(100vh - 112px);
+}
+
+.scope :global(.loading-detail-layout),
+.scope :global(.item-form),
+.scope :global(.items),
+.scope :global(.category-group),
+.scope :global(.list-nav) {
+  display: grid;
+}
+
+.scope :global(.loading-detail-layout) {
+  gap: 18px;
+}
+
+.scope :global(.loading-title) {
+  color: #94a3b8;
+}
+
+.scope :global(.list-nav) {
+  gap: 8px;
+}
+
+.scope :global(.list-nav-row) {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  display: grid;
+  gap: 0;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 62px;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.scope :global(.list-nav-row:hover) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.scope :global(.list-nav-row.active) {
+  background: #f8fafc;
+  border-color: #0f172a;
+  box-shadow: inset 3px 0 0 #0f172a;
+}
+
+.scope :global(.list-nav-row.dragging),
+.scope :global(.item-card.dragging) {
+  opacity: 0.5;
+}
+
+.scope :global(.list-nav-title) {
+  background: transparent;
+  border: 0;
+  color: #0f172a;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px;
+  text-align: left;
+}
+
+.scope :global(.list-nav-title strong),
+.scope :global(.list-nav-title span) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scope :global(.list-nav-title span) {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.scope :global(.list-nav-row .drag-handle) {
+  padding-left: 10px;
+  padding-right: 6px;
+}
+
+.scope :global(.list-row-chevron) {
+  color: #94a3b8;
+  display: none;
+  font-size: 1.7rem;
+  line-height: 1;
+  padding-right: 12px;
+}
+
+.scope :global(.list-title) {
+  font-size: var(--app-h1-size);
+  line-height: 1.05;
+  max-width: 920px;
+}
+
+.scope :global(.list-action-bar) {
+  align-items: stretch;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-start;
+  margin-top: 12px;
+}
+
+.scope :global(.list-management-actions) {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.scope :global(.list-tool-button) {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  display: inline-flex;
+  height: 40px;
+  justify-content: center;
+  padding: 0;
+  width: 40px;
+}
+
+.scope :global(.list-tool-button:hover) {
+  box-shadow: 0 7px 16px -11px #000;
+}
+
+.scope :global(.list-tool-button svg) {
+  height: 25px;
+  width: 25px;
+}
+
+.scope :global(.add-item-toggle) {
+  align-items: center;
+  aspect-ratio: 1;
+  background: #0f172a;
+  border: 1px solid #0f172a;
+  color: #fff;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 1.8rem;
+  font-weight: 900;
+  height: 58px;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  width: 58px;
+}
+
+.scope :global(.add-item-toggle:disabled) {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.scope :global(.add-item-panel) {
+  margin-top: 12px;
+}
+
+.scope :global(.item-form) {
+  gap: 10px;
+}
+
+.scope :global(.suggestions),
+.scope :global(.category-options),
+.scope :global(.category-filter-bar),
+.scope :global(.priority-filter-bar),
+.scope :global(.filter-groups) {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.scope :global(.suggestions),
+.scope :global(.category-options),
+.scope :global(.category-filter-bar),
+.scope :global(.priority-filter-bar) {
+  gap: 6px;
+}
+
+.scope :global(.filter-groups) {
+  align-items: start;
+  gap: 10px;
+}
+
+.scope :global(.suggestions button) {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
+  font-size: 0.85rem;
+  font-weight: 800;
+  padding: 6px 9px;
+}
+
+.scope :global(.category-options button),
+.scope :global(.category-pill),
+.scope :global(.category-heading span),
+.scope :global(.category-filter-bar button),
+.scope :global(.priority-filter-bar button) {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  display: inline-flex;
+  font-size: 0.8rem;
+  font-weight: 900;
+  line-height: 1;
+  padding: 6px 8px;
+}
+
+.scope :global(.category-options button),
+.scope :global(.category-filter-bar button),
+.scope :global(.priority-filter-bar button),
+.scope :global(.category-pill) {
+  cursor: pointer;
+}
+
+.scope :global(.category-filter-bar button.selected),
+.scope :global(.priority-filter-bar button.selected) {
+  box-shadow: inset 0 0 0 2px #0f172a;
+}
+
+.scope :global(.category-filter-bar .clear-filter-button),
+.scope :global(.priority-filter-bar .clear-filter-button) {
+  background: #fff;
+  color: #0f172a;
+}
+
+.scope :global(.filter-group) {
+  display: grid;
+  gap: 5px;
+}
+
+.scope :global(.filter-group > span),
+.scope :global(.filter-label) {
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.scope :global(.filter-box) {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  display: grid;
+  flex: 1 1 auto;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+}
+
+.scope :global(.items) {
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.scope :global(.category-group) {
+  gap: 8px;
+}
+
+.scope :global(.category-heading) {
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  margin: 12px 0 0;
+  text-transform: uppercase;
+}
+
+.scope :global(.item-card) {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  padding: 10px 12px;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
+}
+
+.scope :global(.item-card:hover) {
+  border-color: #cbd5e1;
+}
+
+.scope :global(.item-card.has-note) {
+  align-items: start;
+}
+
+.scope :global(.item-card.completed) {
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.scope :global(.drop-indicator),
+.scope :global(.edge-drop-zone.active) {
+  background: #0f172a;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+  height: 3px;
+}
+
+.scope :global(.drop-indicator) {
+  margin: -2px 0;
+}
+
+.scope :global(.edge-drop-zone) {
+  height: 10px;
+  margin: -3px 0;
+}
+
+.scope :global(.edge-drop-zone.active) {
+  margin: 0;
+}
+
+.scope :global(.drag-handle) {
+  color: #64748b;
+  cursor: grab;
+  font-weight: 900;
+  letter-spacing: -0.18em;
+  line-height: 1;
+  padding: 5px 2px 0 0;
+  user-select: none;
+}
+
+.scope :global(.drag-handle.disabled) {
+  cursor: default;
+  opacity: 0.25;
+}
+
+.scope :global(.item-menu) {
+  position: relative;
+}
+
+.scope :global(.item-menu-panel) {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 18px 40px -28px #0f172a;
+  display: grid;
+  min-width: 120px;
+  padding: 6px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 30;
+}
+
+.scope :global(.item-menu-panel button) {
+  background: transparent;
+  border: 0;
+  color: #0f172a;
+  font-size: 0.86rem;
+  font-weight: 850;
+  padding: 9px 10px;
+  text-align: left;
+}
+
+.scope :global(.item-menu-panel button:hover) {
+  background: #f8fafc;
+}
+
+.scope :global(.item-menu-panel .danger-menu-item) {
+  color: #991b1b;
+}
+
+.scope :global(.item-card input[type="checkbox"]) {
+  height: 22px;
+  margin: 1px 0 0;
+  min-height: 0;
+  width: 22px;
+}
+
+.scope :global(.item-title) {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-weight: 900;
+  min-width: 0;
+}
+
+.scope :global(.item-title span:first-child) {
+  overflow-wrap: anywhere;
+}
+
+.scope :global(.quantity-pill) {
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1;
+  padding: 4px 7px;
+}
+
+.scope :global(.item-main) {
+  min-width: 0;
+}
+
+.scope :global(.item-note) {
+  color: #64748b;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  margin: 4px 0 0;
+}
+
+.scope :global(.item-right) {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  min-width: 0;
+  padding-top: 0;
+}
+
+.scope :global(.item-meta) {
+  align-items: center;
+  color: #64748b;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.84rem;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.scope :global(.item-meta span) {
+  background: #f1f5f9;
+  padding: 4px 7px;
+}
+
+.scope :global(.item-meta .category-pill) {
+  padding: 4px 7px;
+}
+
+.scope :global(.item-meta button.category-pill) {
+  font-family: inherit;
+}
+
+.scope :global(.list-index-empty) {
+  display: none;
+}
+
+.scope :global(.presence) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.scope :global(.presence span) {
+  background: #dcfce7;
+  color: #166534;
+  font-size: 0.78rem;
+  font-weight: 900;
+  padding: 5px 7px;
+}
+
+@media (max-width: 1120px) {
+  .scope {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .scope {
+    grid-template-columns: 250px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 860px) {
+  .scope :global(.toolbar) {
+    align-items: stretch;
+  }
+
+  .scope :global(.list-action-bar),
+  .scope :global(.category-filter-bar),
+  .scope :global(.list-management-actions) {
+    justify-content: flex-start;
+  }
+
+  .scope {
+    display: block;
+    max-width: 640px;
+  }
+
+  .scope:global(.mobile-view-lists) :global(.list-detail-panel) {
+    display: none;
+  }
+
+  .scope:global(.mobile-view-detail) :global(.sidebar) {
+    display: none;
+  }
+
+  .scope :global(.sidebar),
+  .scope :global(.list-detail-panel) {
+    min-height: calc(100vh - 86px);
+  }
+
+  .scope :global(.list-index-empty) {
+    display: grid;
+  }
+
+  .scope :global(.list-row-chevron) {
+    display: inline-block;
+  }
+
+  .scope :global(.list-nav-row) {
+    min-height: 66px;
+  }
+
+  .scope :global(.list-nav-row .drag-handle) {
+    display: none;
+  }
+
+  .scope :global(.list-nav-title) {
+    min-height: 64px;
+    padding-left: 14px;
+  }
+
+  .scope :global(.list-nav-title strong) {
+    white-space: normal;
+  }
+
+  .scope :global(.mobile-back-button) {
+    display: inline-flex;
+  }
+
+  .scope :global(.add-item-toggle) {
+    height: 48px;
+    width: 48px;
+  }
+
+  .scope :global(.filter-box) {
+    flex-basis: 100%;
+  }
+
+  .scope :global(.field-grid.two) {
+    grid-template-columns: 1fr;
+  }
+
+  .scope :global(.items) {
+    gap: 8px;
+  }
+
+  .scope :global(.item-card),
+  .scope :global(.item-card.has-note) {
+    align-items: start;
+    column-gap: 8px;
+    grid-template-columns: 18px 28px minmax(0, 1fr) 42px;
+    padding: 11px 10px;
+    row-gap: 6px;
+  }
+
+  .scope :global(.drag-handle) {
+    align-self: start;
+    font-size: 0.95rem;
+    padding: 7px 0 0;
+    width: 18px;
+  }
+
+  .scope :global(.item-card input[type="checkbox"]) {
+    height: 24px;
+    margin-top: 2px;
+    width: 24px;
+  }
+
+  .scope :global(.item-title) {
+    gap: 6px;
+    line-height: 1.25;
+    padding-top: 2px;
+  }
+
+  .scope :global(.quantity-pill) {
+    font-size: 0.72rem;
+    padding: 3px 6px;
+  }
+
+  .scope :global(.item-note) {
+    font-size: 0.76rem;
+    line-height: 1.3;
+    margin-top: 3px;
+  }
+
+  .scope :global(.item-right) {
+    display: contents;
+  }
+
+  .scope :global(.item-meta) {
+    grid-column: 3 / -1;
+    justify-content: flex-start;
+    line-height: 1.2;
+    padding-right: 2px;
+  }
+
+  .scope :global(.item-meta:empty) {
+    display: none;
+  }
+
+  .scope :global(.item-meta span),
+  .scope :global(.item-meta .category-pill) {
+    font-size: 0.72rem;
+    padding: 4px 6px;
+  }
+
+  .scope :global(.item-menu) {
+    align-self: start;
+    grid-column: 4;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  .scope :global(.item-menu .icon-button) {
+    background: transparent;
+    border-color: transparent;
+    font-size: 1.2rem;
+    min-height: 34px;
+    width: 34px;
+  }
+
+  .scope :global(.item-menu-panel) {
+    right: 0;
+    top: calc(100% + 4px);
+  }
+}
+
+@media (max-width: 600px) {
+  .scope :global(.list-action-bar) {
+    gap: 8px;
+  }
+
+  .scope :global(.list-management-actions) {
+    gap: 6px;
+  }
+
+  .scope :global(.list-tool-button) {
+    height: 38px;
+    width: 38px;
+  }
+}
+
+@media (max-width: 360px) {
+  .scope :global(.item-card),
+  .scope :global(.item-card.has-note) {
+    grid-template-columns: 24px minmax(0, 1fr) 36px;
+  }
+
+  .scope :global(.item-card .drag-handle) {
+    display: none;
+  }
+
+  .scope :global(.item-card input[type="checkbox"]) {
+    grid-column: 1;
+  }
+
+  .scope :global(.item-main) {
+    grid-column: 2;
+  }
+
+  .scope :global(.item-menu) {
+    grid-column: 3;
+  }
+
+  .scope :global(.item-meta) {
+    grid-column: 2 / -1;
+  }
+}

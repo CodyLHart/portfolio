@@ -6,7 +6,7 @@
     "dev": "next dev --webpack",
     "build": "next build",
     "lint": "tsc --noEmit --pretty false",
-    "test": "node --test src/app/ListApp.test.mjs"
+    "test": "node --test src/app/ListApp.test.mjs src/features/lists/lib/list-utils.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.89.0",

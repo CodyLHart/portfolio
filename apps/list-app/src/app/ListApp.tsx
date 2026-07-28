@@ -1,9 +1,33 @@
 "use client";
 
 import type { Session, User } from "@supabase/supabase-js";
-import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { formatDate, formatDateTime } from "../lib/format";
+import { AppShell as Shell } from "../components/layout/AppShell";
+import { Avatar } from "../components/ui/Avatar";
+import { LoadingSpinner } from "../components/ui/LoadingSpinner";
+import { LandingPage } from "../features/landing/components/LandingPage";
+import { ListDetailLoadingPanel } from "../features/lists/components/ListDetailLoadingPanel";
+import {
+  ListsWorkspace,
+  ListsWorkspaceLoadingView,
+} from "../features/lists/components/ListsWorkspace";
+import {
+  buildVisibleItemGroups,
+  emptyNewListDraft,
+  getCategoryOptions,
+  getCategoryStyle,
+  getPriorityFilterOptions,
+  itemFieldOptions,
+  normalizeItemFields,
+  priorityOptions,
+  sortListsByPreference,
+} from "../features/lists/lib/list-utils";
+import type {
+  DropPlacement,
+  ListDropIndicator,
+  MobileView,
+} from "../features/lists/types";
+import { formatDateTime } from "../lib/format";
 import {
   buildFriendSummaries,
   findFriendSummary,
@@ -29,49 +53,9 @@ import {
   Suggestion,
 } from "../lib/types";
 
-const portfolioUrl =
-  process.env.NEXT_PUBLIC_PORTFOLIO_URL ?? "http://127.0.0.1:3000";
-const priorityOptions: Priority[] = ["low", "medium", "high", "urgent"];
-type DropPlacement = "before" | "after";
 type ActiveListModal = "collaboration" | "owner" | "history" | null;
-type MobileView = "lists" | "detail";
 type AppSection = "lists" | "friends";
 type AuthStatus = "loading" | "authenticated" | "unauthenticated";
-const defaultItemFields: ListItemFields = {
-  assignee: true,
-  category: true,
-  dueDate: true,
-  notes: true,
-  priority: true,
-  quantity: true,
-};
-const emptyNewListDraft = {
-  collaboratorEmail: "",
-  collaboratorRole: "editor" as ListRole,
-  itemFields: defaultItemFields,
-  title: "",
-};
-const itemFieldOptions: Array<{ key: keyof ListItemFields; label: string }> = [
-  { key: "quantity", label: "Quantity" },
-  { key: "category", label: "Category" },
-  { key: "dueDate", label: "Due date" },
-  { key: "priority", label: "Priority" },
-  { key: "assignee", label: "Assignee" },
-  { key: "notes", label: "Notes" },
-];
-const categoryPalette = [
-  { background: "#dbeafe", color: "#1e3a8a" },
-  { background: "#dcfce7", color: "#14532d" },
-  { background: "#fef3c7", color: "#78350f" },
-  { background: "#fce7f3", color: "#831843" },
-  { background: "#ede9fe", color: "#4c1d95" },
-  { background: "#ccfbf1", color: "#134e4a" },
-  { background: "#fee2e2", color: "#7f1d1d" },
-  { background: "#e0e7ff", color: "#312e81" },
-];
-
-const getDropPlacement = (clientY: number, rect: DOMRect): DropPlacement =>
-  clientY > rect.top + rect.height / 2 ? "after" : "before";
 
 const getOAuthRedirectUrl = () => {
   if (typeof window === "undefined") {
@@ -85,58 +69,6 @@ const getOAuthRedirectUrl = () => {
   }
 
   return url.toString();
-};
-
-const getCategoryStyle = (
-  listId: string | null | undefined,
-  category: string,
-): CSSProperties => {
-  const seed = `${listId ?? "list"}:${category.trim().toLowerCase()}`;
-  const index = Array.from(seed).reduce(
-    (hash, character) =>
-      (hash * 31 + character.charCodeAt(0)) % categoryPalette.length,
-    0,
-  );
-
-  return categoryPalette[index];
-};
-
-const normalizeItemFields = (
-  fields: Partial<ListItemFields> | null | undefined,
-): ListItemFields => ({
-  ...defaultItemFields,
-  ...(fields ?? {}),
-});
-
-const sortListsByPreference = (
-  nextLists: List[],
-  preferences: ListOrderPreference[],
-) => {
-  const positions = new Map(
-    preferences.map((preference) => [
-      preference.list_id,
-      Number(preference.position),
-    ]),
-  );
-
-  return [...nextLists].sort((first, second) => {
-    const firstPosition = positions.get(first.id);
-    const secondPosition = positions.get(second.id);
-
-    if (firstPosition !== undefined && secondPosition !== undefined) {
-      return firstPosition - secondPosition;
-    }
-
-    if (firstPosition !== undefined) {
-      return -1;
-    }
-
-    if (secondPosition !== undefined) {
-      return 1;
-    }
-
-    return second.updated_at.localeCompare(first.updated_at);
-  });
 };
 
 export function ListApp({
@@ -184,10 +116,8 @@ export function ListApp({
     placement: DropPlacement;
   } | null>(null);
   const [draggedListId, setDraggedListId] = useState<string | null>(null);
-  const [listDropIndicator, setListDropIndicator] = useState<{
-    listId: string;
-    placement: DropPlacement;
-  } | null>(null);
+  const [listDropIndicator, setListDropIndicator] =
+    useState<ListDropIndicator>(null);
   const [authStatus, setAuthStatus] = useState<AuthStatus>("loading");
   const [isLoading, setIsLoading] = useState(true);
   const dropHandledRef = useRef(false);
@@ -238,46 +168,15 @@ export function ListApp({
   );
   const appOrigin = typeof window === "undefined" ? "" : window.location.origin;
 
-  const visibleItemGroups = useMemo(() => {
-    const next = [...items].sort((first, second) => {
-      if (first.completed !== second.completed) {
-        return first.completed ? 1 : -1;
-      }
-
-      return first.position - second.position;
-    });
-
-    const selectedCategorySet = new Set(
-      selectedCategories.map((category) => category.toLowerCase()),
-    );
-    const selectedPrioritySet = new Set(selectedPriorities);
-    const filteredItems = next.filter(
-      (item) =>
-        (selectedCategorySet.size === 0 ||
-          selectedCategorySet.has(
-            (item.category?.trim() || "Uncategorized").toLowerCase(),
-          )) &&
-        (selectedPrioritySet.size === 0 ||
-          (item.priority && selectedPrioritySet.has(item.priority))),
-    );
-
-    if (selectedCategories.length <= 1) {
-      return [{ category: null, items: filteredItems }];
-    }
-
-    const groups = new Map<string, ListItem[]>();
-    filteredItems.forEach((item) => {
-      const category = item.category?.trim() || "Uncategorized";
-      groups.set(category, [...(groups.get(category) ?? []), item]);
-    });
-
-    return selectedCategories
-      .map((category) => ({
-        category,
-        items: groups.get(category) ?? [],
-      }))
-      .filter((group) => group.items.length > 0);
-  }, [items, selectedCategories, selectedPriorities]);
+  const visibleItemGroups = useMemo(
+    () =>
+      buildVisibleItemGroups({
+        items,
+        selectedCategories,
+        selectedPriorities,
+      }),
+    [items, selectedCategories, selectedPriorities],
+  );
 
   const matchingSuggestions = useMemo(() => {
     const query = draft.title.trim().toLowerCase();
@@ -290,46 +189,15 @@ export function ListApp({
       .slice(0, 6);
   }, [activeList, draft.title, suggestions]);
 
-  const categoryOptions = useMemo(() => {
-    if (!itemFields.category) {
-      return [];
-    }
+  const categoryOptions = useMemo(
+    () => getCategoryOptions({ itemFields, items, suggestions }),
+    [itemFields, items, suggestions],
+  );
 
-    const categories = new Map<string, string>();
-
-    items.forEach((item) => {
-      const category = item.category?.trim();
-      if (category) {
-        categories.set(category.toLowerCase(), category);
-      } else {
-        categories.set("uncategorized", "Uncategorized");
-      }
-    });
-
-    suggestions.forEach((suggestion) => {
-      const category = suggestion.category?.trim();
-      if (category) {
-        categories.set(category.toLowerCase(), category);
-      }
-    });
-
-    return Array.from(categories.values()).sort((first, second) =>
-      first.localeCompare(second),
-    );
-  }, [itemFields.category, items, suggestions]);
-
-  const priorityFilterOptions = useMemo(() => {
-    if (!itemFields.priority) {
-      return [];
-    }
-
-    const availablePriorities = new Set(
-      items.map((item) => item.priority).filter(Boolean) as Priority[],
-    );
-    return priorityOptions.filter((priority) =>
-      availablePriorities.has(priority),
-    );
-  }, [itemFields.priority, items]);
+  const priorityFilterOptions = useMemo(
+    () => getPriorityFilterOptions({ itemFields, items }),
+    [itemFields, items],
+  );
   const hasFilterOptions =
     categoryOptions.length > 0 ||
     priorityFilterOptions.length > 0 ||
@@ -1819,75 +1687,7 @@ export function ListApp({
         onSignOut={null}
         profile={null}
       >
-        <main className="app-main signed-out-main">
-          <section className="landing" aria-labelledby="landing-title">
-            <div className="landing-copy">
-              <p className="eyebrow">Lists</p>
-              <h1 id="landing-title">Keep the things you need in one place.</h1>
-              <p>
-                Create simple lists for errands, projects, trips, ideas, and
-                anything else you want to keep organized.
-              </p>
-              <div className="inline-actions landing-actions">
-                <button
-                  className="primary-button google-button"
-                  onClick={signIn}
-                  type="button"
-                >
-                  Continue with Google
-                </button>
-                <span className="muted">
-                  Your lists stay with your account.
-                </span>
-              </div>
-              {statusMessage ? (
-                <p className="status-message" role="status">
-                  {statusMessage}
-                </p>
-              ) : null}
-            </div>
-            <div className="product-preview" aria-label="App preview">
-              <div className="preview-sidebar">
-                <span className="preview-brand">Lists</span>
-                <button className="preview-list active" type="button">
-                  <span>Weekend errands</span>
-                  <small>5 items</small>
-                </button>
-                <button className="preview-list" type="button">
-                  <span>Trip planning</span>
-                  <small>8 items</small>
-                </button>
-                <button className="preview-list" type="button">
-                  <span>House projects</span>
-                  <small>3 items</small>
-                </button>
-              </div>
-              <div className="preview-detail">
-                <div>
-                  <p className="eyebrow">Current list</p>
-                  <h2>Weekend errands</h2>
-                </div>
-                <div className="preview-input">Add an item</div>
-                <ul className="preview-items">
-                  <li>
-                    <span /> Pick up coffee
-                  </li>
-                  <li>
-                    <span /> Return library books
-                  </li>
-                  <li className="done">
-                    <span /> Water plants
-                  </li>
-                </ul>
-              </div>
-            </div>
-            <div className="landing-benefits">
-              <span>Separate lists for every part of life</span>
-              <span>Shared editing with people you trust</span>
-              <span>Fast add, complete, edit, and restore</span>
-            </div>
-          </section>
-        </main>
+        <LandingPage onSignIn={signIn} statusMessage={statusMessage} />
       </Shell>
     );
   }
@@ -1933,604 +1733,59 @@ export function ListApp({
       profile={profile}
     >
       <main className="app-main signed-in-main">
-        <div className={`app-grid mobile-view-${mobileView}`}>
-          <aside className="sidebar panel">
-            <div className="toolbar">
-              <div>
-                <p className="eyebrow">Workspace</p>
-                <h2>Your lists</h2>
-              </div>
-              <button
-                aria-label="Create list"
-                className="icon-button"
-                onClick={() => setIsCreateListOpen(true)}
-                type="button"
-              >
-                +
-              </button>
-            </div>
-            {!isLoading && lists.length === 0 ? (
-              <div className="empty-state list-index-empty">
-                <h2>No lists yet</h2>
-                <p>Create your first list to start keeping things organized.</p>
-                <button
-                  className="primary-button"
-                  onClick={() => setIsCreateListOpen(true)}
-                  type="button"
-                >
-                  Create list
-                </button>
-              </div>
-            ) : null}
-            <nav className="list-nav" aria-label="Lists">
-              {isLoading && lists.length === 0 ? (
-                <LoadingSpinner label="Loading lists" />
-              ) : null}
-              {lists.map((list) => {
-                const isDropTarget = listDropIndicator?.listId === list.id;
-                const isSelected = list.id === activeListId;
-                const itemCount = isSelected ? items.length : null;
-                const completedCount = isSelected
-                  ? items.filter((item) => item.completed).length
-                  : null;
-
-                return (
-                  <div key={list.id}>
-                    {isDropTarget &&
-                    listDropIndicator.placement === "before" ? (
-                      <div className="drop-indicator" />
-                    ) : null}
-                    <div
-                      className={[
-                        list.id === activeListId
-                          ? "list-nav-row active"
-                          : "list-nav-row",
-                        draggedListId === list.id ? "dragging" : "",
-                      ].join(" ")}
-                      draggable={lists.length > 1}
-                      onDragEnd={() => {
-                        setDraggedListId(null);
-                        setListDropIndicator(null);
-                      }}
-                      onDragOver={(event) => {
-                        if (draggedListId && draggedListId !== list.id) {
-                          event.preventDefault();
-                          event.dataTransfer.dropEffect = "move";
-                          setListDropIndicator({
-                            listId: list.id,
-                            placement: getDropPlacement(
-                              event.clientY,
-                              event.currentTarget.getBoundingClientRect(),
-                            ),
-                          });
-                        }
-                      }}
-                      onDragStart={(event) => {
-                        setDraggedListId(list.id);
-                        event.dataTransfer.effectAllowed = "move";
-                        event.dataTransfer.setData("text/plain", list.id);
-                      }}
-                      onDrop={(event) => {
-                        event.preventDefault();
-                        const droppedId =
-                          event.dataTransfer.getData("text/plain") ||
-                          draggedListId;
-                        const placement = getDropPlacement(
-                          event.clientY,
-                          event.currentTarget.getBoundingClientRect(),
-                        );
-
-                        if (droppedId) {
-                          reorderListByDrop(droppedId, list.id, placement);
-                        }
-
-                        setDraggedListId(null);
-                        setListDropIndicator(null);
-                      }}
-                    >
-                      <span
-                        aria-hidden="true"
-                        className={`drag-handle ${lists.length > 1 ? "" : "disabled"}`}
-                      >
-                        ::
-                      </span>
-                      <button
-                        className="list-nav-title"
-                        onClick={() => selectActiveList(list.id)}
-                        type="button"
-                      >
-                        <strong>{list.title}</strong>
-                        <span>
-                          {itemCount === null
-                            ? `Updated ${formatDate(list.updated_at)}`
-                            : `${itemCount} item${itemCount === 1 ? "" : "s"}${
-                                completedCount
-                                  ? `, ${completedCount} completed`
-                                  : ""
-                              }`}
-                        </span>
-                      </button>
-                      <span aria-hidden="true" className="list-row-chevron">
-                        &rsaquo;
-                      </span>
-                    </div>
-                    {isDropTarget && listDropIndicator.placement === "after" ? (
-                      <div className="drop-indicator" />
-                    ) : null}
-                  </div>
-                );
-              })}
-            </nav>
-          </aside>
-
-          <section className="panel list-detail-panel">
-            {!activeList ? (
-              isLoading ? (
-                <ListDetailLoadingPanel
-                  onShowMobileListIndex={showMobileListIndex}
-                />
-              ) : (
-                <div className="empty-state">
-                  <h2>No lists yet</h2>
-                  <p>
-                    Create your first list to start keeping things organized.
-                  </p>
-                  <button
-                    className="primary-button"
-                    onClick={() => setIsCreateListOpen(true)}
-                    type="button"
-                  >
-                    Create list
-                  </button>
-                </div>
-              )
-            ) : (
-              <>
-                <div className="toolbar">
-                  <div>
-                    <button
-                      className="mobile-back-button"
-                      onClick={showMobileListIndex}
-                      type="button"
-                    >
-                      &larr; Your lists
-                    </button>
-                    <p className="eyebrow">Current list</p>
-                    <h1 className="list-title">{activeList.title}</h1>
-                    <div className="presence">
-                      {presenceUsers.map((presenceUser) => (
-                        <span key={presenceUser.id}>
-                          {presenceUser.display_name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="list-management-actions">
-                    <button
-                      aria-label="Collaboration"
-                      className="list-tool-button"
-                      onClick={() => setActiveListModal("collaboration")}
-                      title="Collaboration"
-                      type="button"
-                    >
-                      <svg aria-hidden="true" viewBox="0 0 24 24">
-                        <path
-                          d="M19 14a1.4 1.4 0 0 0-1.4 1.4V18H6V6h2.6A1.4 1.4 0 0 0 10 4.6 1.4 1.4 0 0 0 8.6 3.2H5.4A2.2 2.2 0 0 0 3.2 5.4v13.2a2.2 2.2 0 0 0 2.2 2.2h13.2a2.2 2.2 0 0 0 2.2-2.2v-3.2A1.4 1.4 0 0 0 19.4 14H19Z"
-                          fill="currentColor"
-                        />
-                        <path
-                          d="M20.5 9.9 14.4 3.8A1.5 1.5 0 0 0 11.8 5v2.5C7.5 8.1 5.1 10.6 4.4 15c-.2 1.2 1.3 1.8 2 .8 1.4-2 3.1-2.9 5.4-3.1V15a1.5 1.5 0 0 0 2.6 1.1l6.1-6.1Z"
-                          fill="currentColor"
-                        />
-                      </svg>
-                    </button>
-                    <button
-                      aria-label="History"
-                      className="list-tool-button"
-                      onClick={() => setActiveListModal("history")}
-                      title="History"
-                      type="button"
-                    >
-                      <svg aria-hidden="true" viewBox="0 0 24 24">
-                        <path
-                          d="M12 2a10 10 0 0 1 7 17.1 1.55 1.55 0 0 1-2.2-2.2A6.9 6.9 0 1 0 5.3 10h1.1a1.4 1.4 0 0 1 1 2.4l-3 3a1.4 1.4 0 0 1-2 0l-3-3A1.4 1.4 0 0 1 .4 10h1.8A10 10 0 0 1 12 2Z"
-                          fill="currentColor"
-                        />
-                        <path
-                          d="M10.4 7.2A1.6 1.6 0 0 1 12 5.6a1.6 1.6 0 0 1 1.6 1.6v4l3 1.5a1.6 1.6 0 1 1-1.4 2.8l-3.9-2A1.6 1.6 0 0 1 10.4 12V7.2Z"
-                          fill="currentColor"
-                        />
-                      </svg>
-                    </button>
-                    <button
-                      aria-label="Settings"
-                      className="list-tool-button"
-                      onClick={openOwnerSettings}
-                      title="Settings"
-                      type="button"
-                    >
-                      <svg aria-hidden="true" viewBox="0 0 24 24">
-                        <path
-                          d="M13.6 1.5a1.4 1.4 0 0 1 1.3 1l.5 1.9c.5.2.9.4 1.3.7l1.9-1a1.4 1.4 0 0 1 1.6.3l1.4 1.4a1.4 1.4 0 0 1 .3 1.6l-1 1.9c.3.4.5.8.7 1.3l1.9.5a1.4 1.4 0 0 1 1 1.3v2a1.4 1.4 0 0 1-1 1.3l-1.9.5c-.2.5-.4.9-.7 1.3l1 1.9a1.4 1.4 0 0 1-.3 1.6l-1.4 1.4a1.4 1.4 0 0 1-1.6.3l-1.9-1c-.4.3-.8.5-1.3.7l-.5 1.9a1.4 1.4 0 0 1-1.3 1h-2a1.4 1.4 0 0 1-1.3-1l-.5-1.9a8.5 8.5 0 0 1-1.3-.7l-1.9 1a1.4 1.4 0 0 1-1.6-.3l-1.4-1.4a1.4 1.4 0 0 1-.3-1.6l1-1.9a8.5 8.5 0 0 1-.7-1.3l-1.9-.5a1.4 1.4 0 0 1-1-1.3v-2a1.4 1.4 0 0 1 1-1.3l1.9-.5c.2-.5.4-.9.7-1.3l-1-1.9a1.4 1.4 0 0 1 .3-1.6l1.4-1.4a1.4 1.4 0 0 1 1.6-.3l1.9 1c.4-.3.8-.5 1.3-.7l.5-1.9a1.4 1.4 0 0 1 1.3-1h2Zm-1 7a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"
-                          fill="currentColor"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="list-action-bar">
-                  <button
-                    aria-expanded={isAddItemOpen}
-                    aria-label="Add item"
-                    className="add-item-toggle"
-                    disabled={!canEdit}
-                    onClick={() => setIsAddItemOpen((open) => !open)}
-                    type="button"
-                  >
-                    +
-                  </button>
-                  {hasFilterOptions ? (
-                    <div className="filter-box">
-                      <span className="filter-label">Filter</span>
-                      <div className="filter-groups">
-                        {itemFields.category && categoryOptions.length > 0 ? (
-                          <div className="filter-group">
-                            <span>Category</span>
-                            <div
-                              className="category-filter-bar"
-                              aria-label="Category filters"
-                            >
-                              {categoryOptions.map((category) => {
-                                const isSelected = selectedCategories.some(
-                                  (selectedCategory) =>
-                                    selectedCategory.toLowerCase() ===
-                                    category.toLowerCase(),
-                                );
-
-                                return (
-                                  <button
-                                    className={isSelected ? "selected" : ""}
-                                    key={category}
-                                    onClick={() =>
-                                      toggleCategoryFilter(category)
-                                    }
-                                    style={getCategoryStyle(
-                                      activeList.id,
-                                      category,
-                                    )}
-                                    type="button"
-                                  >
-                                    {category}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        ) : null}
-                        {itemFields.priority &&
-                        priorityFilterOptions.length > 0 ? (
-                          <div className="filter-group">
-                            <span>Priority</span>
-                            <div
-                              className="priority-filter-bar"
-                              aria-label="Priority filters"
-                            >
-                              {priorityFilterOptions.map((priority) => (
-                                <button
-                                  className={
-                                    selectedPriorities.includes(priority)
-                                      ? "selected"
-                                      : ""
-                                  }
-                                  key={priority}
-                                  onClick={() => togglePriorityFilter(priority)}
-                                  type="button"
-                                >
-                                  {priority}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        ) : null}
-                        {selectedCategories.length > 0 ||
-                        selectedPriorities.length > 0 ? (
-                          <button
-                            className="clear-filter-button"
-                            onClick={() => {
-                              setSelectedCategories([]);
-                              setSelectedPriorities([]);
-                            }}
-                            type="button"
-                          >
-                            Clear
-                          </button>
-                        ) : null}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-
-                {isAddItemOpen ? (
-                  <div className="panel add-item-panel">
-                    <p className="eyebrow">Add item</p>
-                    <div className="item-form">
-                      <input
-                        aria-label="Item name"
-                        disabled={!canEdit}
-                        onChange={(event) =>
-                          setDraft((current) => ({
-                            ...current,
-                            title: event.target.value,
-                          }))
-                        }
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            void addItem();
-                          }
-                        }}
-                        placeholder="Add an item"
-                        value={draft.title}
-                      />
-                      {matchingSuggestions.length > 0 ? (
-                        <div className="suggestions">
-                          {matchingSuggestions.map((suggestion) => (
-                            <button
-                              key={suggestion.id}
-                              onClick={() =>
-                                setDraft((current) => ({
-                                  ...current,
-                                  category: suggestion.category ?? "",
-                                  title: suggestion.title,
-                                }))
-                              }
-                              type="button"
-                            >
-                              {suggestion.title}
-                            </button>
-                          ))}
-                        </div>
-                      ) : null}
-                      {itemFields.quantity || itemFields.category ? (
-                        <div className="field-grid two">
-                          {itemFields.quantity ? (
-                            <input
-                              disabled={!canEdit}
-                              onChange={(event) =>
-                                setDraft((current) => ({
-                                  ...current,
-                                  quantity: event.target.value,
-                                }))
-                              }
-                              placeholder="Quantity"
-                              value={draft.quantity}
-                            />
-                          ) : null}
-                          {itemFields.category ? (
-                            <input
-                              disabled={!canEdit}
-                              list="add-item-categories"
-                              onChange={(event) =>
-                                setDraft((current) => ({
-                                  ...current,
-                                  category: event.target.value,
-                                }))
-                              }
-                              placeholder="Category"
-                              value={draft.category}
-                            />
-                          ) : null}
-                        </div>
-                      ) : null}
-                      {itemFields.category ? (
-                        <datalist id="add-item-categories">
-                          {categoryOptions.map((category) => (
-                            <option key={category} value={category} />
-                          ))}
-                        </datalist>
-                      ) : null}
-                      {itemFields.category &&
-                      matchingCategoryOptions.length > 0 ? (
-                        <div className="category-options">
-                          {matchingCategoryOptions
-                            .slice(0, 8)
-                            .map((category) => (
-                              <button
-                                key={category}
-                                onClick={() =>
-                                  setDraft((current) => ({
-                                    ...current,
-                                    category,
-                                  }))
-                                }
-                                style={getCategoryStyle(
-                                  activeList.id,
-                                  category,
-                                )}
-                                type="button"
-                              >
-                                {category}
-                              </button>
-                            ))}
-                        </div>
-                      ) : null}
-                      {itemFields.dueDate || itemFields.priority ? (
-                        <div className="field-grid two">
-                          {itemFields.dueDate ? (
-                            <input
-                              disabled={!canEdit}
-                              onChange={(event) =>
-                                setDraft((current) => ({
-                                  ...current,
-                                  due_date: event.target.value,
-                                }))
-                              }
-                              type="date"
-                              value={draft.due_date}
-                            />
-                          ) : null}
-                          {itemFields.priority ? (
-                            <select
-                              disabled={!canEdit}
-                              onChange={(event) =>
-                                setDraft((current) => ({
-                                  ...current,
-                                  priority: event.target.value as "" | Priority,
-                                }))
-                              }
-                              value={draft.priority}
-                            >
-                              <option value="">Priority</option>
-                              {priorityOptions.map((priority) => (
-                                <option key={priority} value={priority}>
-                                  {priority}
-                                </option>
-                              ))}
-                            </select>
-                          ) : null}
-                        </div>
-                      ) : null}
-                      {itemFields.assignee ? (
-                        <select
-                          disabled={!canEdit}
-                          onChange={(event) =>
-                            setDraft((current) => ({
-                              ...current,
-                              assigned_to: event.target.value,
-                            }))
-                          }
-                          value={draft.assigned_to}
-                        >
-                          <option value="">Unassigned</option>
-                          {collaborators
-                            .filter(
-                              (collaborator) =>
-                                collaborator.status === "accepted",
-                            )
-                            .map((collaborator) => (
-                              <option
-                                key={collaborator.user_id}
-                                value={collaborator.user_id}
-                              >
-                                {collaborator.profile?.display_name ??
-                                  collaborator.user_id}
-                              </option>
-                            ))}
-                        </select>
-                      ) : null}
-                      {itemFields.notes ? (
-                        <textarea
-                          disabled={!canEdit}
-                          onChange={(event) =>
-                            setDraft((current) => ({
-                              ...current,
-                              notes: event.target.value,
-                            }))
-                          }
-                          placeholder="Notes"
-                          value={draft.notes}
-                        />
-                      ) : null}
-                      <button
-                        className="primary-button"
-                        disabled={!canEdit || !draft.title.trim()}
-                        onClick={addItem}
-                        type="button"
-                      >
-                        Add item
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-
-                <div className="items">
-                  {items.length === 0 ? (
-                    <div className="empty-state">
-                      <h2>This list is empty</h2>
-                      <p>Add the first item whenever you&apos;re ready.</p>
-                      <button
-                        className="secondary-button"
-                        disabled={!canEdit}
-                        onClick={() => setIsAddItemOpen(true)}
-                        type="button"
-                      >
-                        Add item
-                      </button>
-                    </div>
-                  ) : (
-                    visibleItemGroups.map((group) => (
-                      <div
-                        className="category-group"
-                        key={group.category ?? "manual"}
-                      >
-                        {group.category ? (
-                          <h2 className="category-heading">
-                            <span
-                              style={getCategoryStyle(
-                                activeList.id,
-                                group.category,
-                              )}
-                            >
-                              {group.category}
-                            </span>
-                          </h2>
-                        ) : null}
-                        {group.items.length > 0 &&
-                        selectedCategories.length === 0 ? (
-                          <DropZone
-                            canDrop={canEdit}
-                            completeItemDrop={completeItemDrop}
-                            draggedItemId={draggedItemId}
-                            itemId={group.items[0].id}
-                            label="top"
-                            placement="before"
-                            setDropIndicator={setDropIndicator}
-                          />
-                        ) : null}
-                        {group.items.map((item) => (
-                          <ItemCard
-                            beginItemDrag={beginItemDrag}
-                            canEdit={canEdit}
-                            collaborators={collaborators}
-                            completeItemDrop={completeItemDrop}
-                            deleteItem={deleteItem}
-                            draggedItemId={draggedItemId}
-                            dropIndicator={dropIndicator}
-                            finishItemDrag={finishItemDrag}
-                            itemFields={itemFields}
-                            item={item}
-                            key={item.id}
-                            listId={activeList.id}
-                            setDropIndicator={setDropIndicator}
-                            setEditingItem={setEditingItem}
-                            toggleCategoryFilter={toggleCategoryFilter}
-                            canDrag={selectedCategories.length === 0}
-                            toggleItem={toggleItem}
-                          />
-                        ))}
-                        {group.items.length > 0 &&
-                        selectedCategories.length === 0 ? (
-                          <DropZone
-                            canDrop={canEdit}
-                            completeItemDrop={completeItemDrop}
-                            draggedItemId={draggedItemId}
-                            itemId={group.items[group.items.length - 1].id}
-                            label="bottom"
-                            placement="after"
-                            setDropIndicator={setDropIndicator}
-                          />
-                        ) : null}
-                      </div>
-                    ))
-                  )}
-                </div>
-                {statusMessage ? (
-                  <p className="status-message">{statusMessage}</p>
-                ) : null}
-              </>
-            )}
-          </section>
-        </div>
+        <ListsWorkspace
+          activeList={activeList}
+          activeListId={activeListId}
+          beginItemDrag={beginItemDrag}
+          canCreate
+          canEdit={canEdit}
+          categoryOptions={categoryOptions}
+          collaborators={collaborators}
+          completeItemDrop={completeItemDrop}
+          deleteItem={deleteItem}
+          draggedItemId={draggedItemId}
+          draggedListId={draggedListId}
+          draft={draft}
+          dropIndicator={dropIndicator}
+          finishItemDrag={finishItemDrag}
+          hasFilterOptions={hasFilterOptions}
+          isAddItemOpen={isAddItemOpen}
+          isLoading={isLoading}
+          itemFields={itemFields}
+          items={items}
+          listDropIndicator={listDropIndicator}
+          lists={lists}
+          matchingCategoryOptions={matchingCategoryOptions}
+          matchingSuggestions={matchingSuggestions}
+          mobileView={mobileView}
+          onAddItem={addItem}
+          onClearFilters={() => {
+            setSelectedCategories([]);
+            setSelectedPriorities([]);
+          }}
+          onCreateList={() => setIsCreateListOpen(true)}
+          onOpenCollaboration={() => setActiveListModal("collaboration")}
+          onOpenHistory={() => setActiveListModal("history")}
+          onOpenOwnerSettings={openOwnerSettings}
+          onReorderListByDrop={reorderListByDrop}
+          onSelectActiveList={selectActiveList}
+          onShowMobileListIndex={showMobileListIndex}
+          presenceUsers={presenceUsers}
+          priorityFilterOptions={priorityFilterOptions}
+          selectedCategories={selectedCategories}
+          selectedPriorities={selectedPriorities}
+          setDraggedListId={setDraggedListId}
+          setDraft={setDraft}
+          setDropIndicator={setDropIndicator}
+          setEditingItem={setEditingItem}
+          setIsAddItemOpen={setIsAddItemOpen}
+          setListDropIndicator={setListDropIndicator}
+          statusMessage={statusMessage}
+          toggleCategoryFilter={toggleCategoryFilter}
+          toggleItem={toggleItem}
+          togglePriorityFilter={togglePriorityFilter}
+          visibleItemGroups={visibleItemGroups}
+        />
       </main>
 
       {editingItem ? (
@@ -2884,73 +2139,6 @@ export function ListApp({
   );
 }
 
-function ListsWorkspaceLoadingView({
-  canCreate,
-  mobileView,
-  onCreateList,
-  onShowMobileListIndex,
-}: {
-  canCreate: boolean;
-  mobileView: MobileView;
-  onCreateList: (() => void) | null;
-  onShowMobileListIndex: (() => void) | null;
-}) {
-  return (
-    <div className={`app-grid mobile-view-${mobileView}`}>
-      <aside className="sidebar panel">
-        <div className="toolbar">
-          <div>
-            <p className="eyebrow">Workspace</p>
-            <h2>Your lists</h2>
-          </div>
-          <button
-            aria-label="Create list"
-            className="icon-button"
-            disabled={!canCreate}
-            onClick={onCreateList ?? undefined}
-            type="button"
-          >
-            +
-          </button>
-        </div>
-        <nav className="list-nav" aria-label="Lists">
-          <LoadingSpinner label="Loading lists" />
-        </nav>
-      </aside>
-
-      <section className="panel list-detail-panel">
-        <ListDetailLoadingPanel onShowMobileListIndex={onShowMobileListIndex} />
-      </section>
-    </div>
-  );
-}
-
-function ListDetailLoadingPanel({
-  onShowMobileListIndex,
-}: {
-  onShowMobileListIndex: (() => void) | null;
-}) {
-  return (
-    <div className="loading-detail-layout">
-      <div className="toolbar">
-        <div>
-          <button
-            className="mobile-back-button"
-            disabled={!onShowMobileListIndex}
-            onClick={onShowMobileListIndex ?? undefined}
-            type="button"
-          >
-            &larr; Your lists
-          </button>
-          <p className="eyebrow">Current list</p>
-          <h1 className="list-title loading-title">List details</h1>
-        </div>
-      </div>
-      <LoadingSpinner label="Loading list details" />
-    </div>
-  );
-}
-
 function FriendsPanel({
   friendSummaries,
   isLoading,
@@ -3021,7 +2209,7 @@ function FriendsPanel({
             &larr; Friends
           </button>
           <div className="friend-heading">
-            <Avatar profile={selectedFriend.profile} />
+            <Avatar profile={selectedFriend.profile} size="large" />
             <div>
               <p className="eyebrow">Friend</p>
               <h1>{selectedFriend.profile.display_name}</h1>
@@ -3196,541 +2384,6 @@ function FriendDetailLoadingPanel({
         </div>
       </div>
     </div>
-  );
-}
-
-function LoadingSpinner({ label }: { label: string }) {
-  return (
-    <div aria-label={label} className="loading-region" role="status">
-      <span aria-hidden="true" className="loading-spinner" />
-    </div>
-  );
-}
-
-type ShellProps = {
-  acceptFriendRequest?: (friendshipId: string) => void;
-  acceptListInvite?: (collaboratorId: string) => void;
-  children: React.ReactNode;
-  headerAction?: React.ReactNode;
-  ignoreNotification?: (notification: Notification) => void;
-  isAccountLoading?: boolean;
-  notifications?: Notification[];
-  onSignOut: (() => void) | null;
-  profile: Profile | null;
-};
-
-function Shell({
-  acceptFriendRequest,
-  acceptListInvite,
-  children,
-  headerAction,
-  ignoreNotification,
-  isAccountLoading = false,
-  notifications = [],
-  onSignOut,
-  profile,
-}: ShellProps) {
-  return (
-    <div className="app-shell">
-      <header className="portfolio-header">
-        <a className="header-logo" href="/" aria-label="Lists home">
-          <span>Lists</span>
-        </a>
-        <nav className="header-nav" aria-label="Navigation">
-          {/* <a className="text-link portfolio-link" href={portfolioUrl}>
-            Portfolio
-          </a> */}
-          {headerAction}
-          {profile ? (
-            <div className="avatar-row">
-              {acceptFriendRequest && acceptListInvite && ignoreNotification ? (
-                <NotificationsMenu
-                  acceptFriendRequest={acceptFriendRequest}
-                  acceptListInvite={acceptListInvite}
-                  ignoreNotification={ignoreNotification}
-                  notifications={notifications}
-                />
-              ) : null}
-              <AvatarMenu onSignOut={onSignOut} profile={profile} />
-            </div>
-          ) : isAccountLoading ? (
-            <div aria-hidden="true" className="avatar-row account-loading">
-              <span className="account-loading-button" />
-              <span className="account-loading-avatar" />
-            </div>
-          ) : null}
-        </nav>
-      </header>
-      {children}
-    </div>
-  );
-}
-
-function AvatarMenu({
-  onSignOut,
-  profile,
-}: {
-  onSignOut: (() => void) | null;
-  profile: Profile;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement | null>(null);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    const closeOnOutsideClick = (event: PointerEvent) => {
-      if (!menuRef.current?.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-        buttonRef.current?.focus();
-      }
-    };
-
-    document.addEventListener("pointerdown", closeOnOutsideClick);
-    document.addEventListener("keydown", closeOnEscape);
-
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsideClick);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [isOpen]);
-
-  return (
-    <div className="avatar-menu" ref={menuRef}>
-      <button
-        aria-expanded={isOpen}
-        aria-haspopup="menu"
-        aria-label="Open account menu"
-        className="avatar-button"
-        onClick={() => setIsOpen((open) => !open)}
-        ref={buttonRef}
-        type="button"
-      >
-        <Avatar profile={profile} />
-      </button>
-      {isOpen ? (
-        <div aria-label="Account menu" className="avatar-menu-panel">
-          <div className="account-menu-identity">
-            <Avatar profile={profile} />
-            <span className="account-menu-text">
-              <strong>{profile.display_name}</strong>
-              <span className="muted">{profile.email}</span>
-            </span>
-          </div>
-          <div className="account-menu-divider" />
-          <a
-            className="account-menu-item"
-            href="/friends"
-            onClick={() => setIsOpen(false)}
-          >
-            Friends
-          </a>
-          <div className="account-menu-divider" />
-          <button
-            className="account-menu-item sign-out-menu-item"
-            onClick={() => {
-              setIsOpen(false);
-              onSignOut?.();
-            }}
-            type="button"
-          >
-            Sign out
-          </button>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function Avatar({ profile }: { profile: Profile }) {
-  return (
-    <span
-      className="avatar"
-      style={
-        profile.avatar_url
-          ? { backgroundImage: `url(${profile.avatar_url})` }
-          : undefined
-      }
-      title={profile.email}
-    >
-      {profile.avatar_url
-        ? null
-        : profile.display_name.slice(0, 2).toUpperCase()}
-    </span>
-  );
-}
-
-type NotificationsMenuProps = {
-  acceptFriendRequest: (friendshipId: string) => void;
-  acceptListInvite: (collaboratorId: string) => void;
-  ignoreNotification: (notification: Notification) => void;
-  notifications: Notification[];
-};
-
-function NotificationsMenu({
-  acceptFriendRequest,
-  acceptListInvite,
-  ignoreNotification,
-  notifications,
-}: NotificationsMenuProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const popoverRef = useRef<HTMLDivElement | null>(null);
-  const visibleNotifications = notifications.filter(
-    (notification) => !notification.read_at,
-  );
-  const unreadCount = visibleNotifications.length;
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    const closeOnOutsideClick = (event: PointerEvent) => {
-      if (!popoverRef.current?.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener("pointerdown", closeOnOutsideClick);
-
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsideClick);
-    };
-  }, [isOpen]);
-
-  return (
-    <div className="popover notification-popover" ref={popoverRef}>
-      <button
-        aria-label="Notifications"
-        className="notification-button"
-        onClick={() => setIsOpen((open) => !open)}
-        type="button"
-      >
-        <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
-          <path
-            d="M6.5 10.5a5.5 5.5 0 0 1 11 0v4.1l1.6 2.4H4.9l1.6-2.4v-4.1Z"
-            stroke="currentColor"
-            strokeLinejoin="round"
-            strokeWidth="2"
-          />
-          <path
-            d="M9.5 19a2.8 2.8 0 0 0 5 0"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeWidth="2"
-          />
-        </svg>
-        {unreadCount > 0 ? (
-          <span className="notification-badge">{unreadCount}</span>
-        ) : null}
-      </button>
-      {isOpen ? (
-        <div className="popover-panel">
-          <p className="eyebrow">Inbox</p>
-          <div className="notification-list">
-            {visibleNotifications.length === 0 ? (
-              <p className="muted">No notifications.</p>
-            ) : null}
-            {visibleNotifications.map((notification) => (
-              <div className="small-card" key={notification.id}>
-                <strong>{notificationLabel(notification)}</strong>
-                <span className="muted">
-                  {formatDateTime(notification.created_at)}
-                </span>
-                {notification.type === "friend_request" ? (
-                  <div className="inline-actions">
-                    <button
-                      className="secondary-button"
-                      onClick={() =>
-                        acceptFriendRequest(
-                          String(notification.payload.friendshipId),
-                        )
-                      }
-                      type="button"
-                    >
-                      Accept Friend
-                    </button>
-                    <button
-                      className="secondary-button"
-                      onClick={() => ignoreNotification(notification)}
-                      type="button"
-                    >
-                      Ignore
-                    </button>
-                  </div>
-                ) : null}
-                {notification.type === "list_invite" ? (
-                  <div className="inline-actions">
-                    <button
-                      className="secondary-button"
-                      onClick={() =>
-                        acceptListInvite(
-                          String(notification.payload.collaboratorId),
-                        )
-                      }
-                      type="button"
-                    >
-                      Accept List
-                    </button>
-                    <button
-                      className="secondary-button"
-                      onClick={() => ignoreNotification(notification)}
-                      type="button"
-                    >
-                      Ignore
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function ItemCard({
-  beginItemDrag,
-  canDrag,
-  canEdit,
-  collaborators,
-  completeItemDrop,
-  deleteItem,
-  draggedItemId,
-  dropIndicator,
-  finishItemDrag,
-  item,
-  itemFields,
-  listId,
-  setDropIndicator,
-  setEditingItem,
-  toggleCategoryFilter,
-  toggleItem,
-}: {
-  beginItemDrag: (itemId: string) => void;
-  canDrag: boolean;
-  canEdit: boolean;
-  collaborators: Collaborator[];
-  completeItemDrop: (
-    draggedId: string,
-    targetId: string,
-    placement: DropPlacement,
-  ) => void;
-  deleteItem: (item: ListItem) => void;
-  draggedItemId: string | null;
-  dropIndicator: { itemId: string; placement: DropPlacement } | null;
-  finishItemDrag: () => void;
-  item: ListItem;
-  itemFields: ListItemFields;
-  listId: string;
-  setDropIndicator: (
-    indicator: { itemId: string; placement: DropPlacement } | null,
-  ) => void;
-  setEditingItem: (item: ListItem) => void;
-  toggleCategoryFilter: (category: string) => void;
-  toggleItem: (item: ListItem) => void;
-}) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const assignee = collaborators.find(
-    (collaborator) => collaborator.user_id === item.assigned_to,
-  )?.profile;
-  const isDraggable = canEdit && canDrag;
-  const isDropTarget = dropIndicator?.itemId === item.id;
-
-  return (
-    <>
-      {isDropTarget && dropIndicator.placement === "before" ? (
-        <div className="drop-indicator" />
-      ) : null}
-      <article
-        className={`item-card ${item.completed ? "completed" : ""} ${
-          itemFields.notes && item.notes ? "has-note" : ""
-        } ${draggedItemId === item.id ? "dragging" : ""}`}
-        draggable={isDraggable}
-        onDragEnd={finishItemDrag}
-        onDragOver={(event) => {
-          if (isDraggable && draggedItemId && draggedItemId !== item.id) {
-            const rect = event.currentTarget.getBoundingClientRect();
-            const placement = getDropPlacement(event.clientY, rect);
-            event.preventDefault();
-            event.dataTransfer.dropEffect = "move";
-            setDropIndicator({ itemId: item.id, placement });
-          }
-        }}
-        onDragStart={(event) => {
-          if (!isDraggable) {
-            return;
-          }
-
-          beginItemDrag(item.id);
-          event.dataTransfer.effectAllowed = "move";
-          event.dataTransfer.setData("text/plain", item.id);
-        }}
-        onDrop={(event) => {
-          event.preventDefault();
-          const droppedId =
-            event.dataTransfer.getData("text/plain") || draggedItemId;
-          const placement = getDropPlacement(
-            event.clientY,
-            event.currentTarget.getBoundingClientRect(),
-          );
-
-          if (droppedId) {
-            completeItemDrop(droppedId, item.id, placement);
-          }
-        }}
-      >
-        <span
-          aria-hidden="true"
-          className={`drag-handle ${isDraggable ? "" : "disabled"}`}
-        >
-          ::
-        </span>
-        <input
-          checked={item.completed}
-          disabled={!canEdit}
-          onChange={() => toggleItem(item)}
-          type="checkbox"
-        />
-        <div className="item-main">
-          <div className="item-title">
-            <span>{item.title}</span>
-            {itemFields.quantity && item.quantity ? (
-              <span className="quantity-pill">Qty {item.quantity}</span>
-            ) : null}
-          </div>
-          {itemFields.notes && item.notes ? (
-            <p className="item-note">{item.notes}</p>
-          ) : null}
-        </div>
-        <div className="item-right">
-          <div className="item-meta">
-            {itemFields.category && item.category ? (
-              <button
-                className="category-pill"
-                onClick={() => toggleCategoryFilter(item.category ?? "")}
-                style={getCategoryStyle(listId, item.category)}
-                type="button"
-              >
-                {item.category}
-              </button>
-            ) : null}
-            {itemFields.priority && item.priority ? (
-              <span>{item.priority}</span>
-            ) : null}
-            {itemFields.dueDate && item.due_date ? (
-              <span>{formatDate(item.due_date)}</span>
-            ) : null}
-            {itemFields.assignee && assignee ? (
-              <span>{assignee.display_name}</span>
-            ) : null}
-          </div>
-          <div className="item-menu">
-            <button
-              aria-label={`Open actions for ${item.title}`}
-              className="icon-button"
-              disabled={!canEdit}
-              onBlur={() => window.setTimeout(() => setIsMenuOpen(false), 120)}
-              onClick={() => setIsMenuOpen((open) => !open)}
-              type="button"
-            >
-              ...
-            </button>
-            {isMenuOpen ? (
-              <div className="item-menu-panel">
-                <button
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    setEditingItem(item);
-                  }}
-                  type="button"
-                >
-                  Edit
-                </button>
-                <button
-                  className="danger-menu-item"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    void deleteItem(item);
-                  }}
-                  type="button"
-                >
-                  Delete
-                </button>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </article>
-      {isDropTarget && dropIndicator.placement === "after" ? (
-        <div className="drop-indicator" />
-      ) : null}
-    </>
-  );
-}
-
-function DropZone({
-  canDrop,
-  completeItemDrop,
-  draggedItemId,
-  itemId,
-  label,
-  placement,
-  setDropIndicator,
-}: {
-  canDrop: boolean;
-  completeItemDrop: (
-    draggedId: string,
-    targetId: string,
-    placement: DropPlacement,
-  ) => void;
-  draggedItemId: string | null;
-  itemId: string;
-  label: string;
-  placement: DropPlacement;
-  setDropIndicator: (
-    indicator: { itemId: string; placement: DropPlacement } | null,
-  ) => void;
-}) {
-  const [isActive, setIsActive] = useState(false);
-
-  if (!canDrop) {
-    return null;
-  }
-
-  return (
-    <div
-      aria-label={`Drop item at ${label}`}
-      className={`edge-drop-zone ${isActive && draggedItemId ? "active" : ""}`}
-      onDragLeave={() => setIsActive(false)}
-      onDragOver={(event) => {
-        if (draggedItemId && draggedItemId !== itemId) {
-          event.preventDefault();
-          event.dataTransfer.dropEffect = "move";
-          setIsActive(true);
-          setDropIndicator({ itemId, placement });
-        }
-      }}
-      onDrop={(event) => {
-        event.preventDefault();
-        const droppedId =
-          event.dataTransfer.getData("text/plain") || draggedItemId;
-        setIsActive(false);
-
-        if (droppedId) {
-          completeItemDrop(droppedId, itemId, placement);
-        }
-      }}
-    />
   );
 }
 
@@ -4091,23 +2744,6 @@ const getFriendsRouteState = (): {
     friendId: friendId ? decodeURIComponent(friendId) : null,
     section: "friends",
   };
-};
-
-const notificationLabel = (notification: Notification) => {
-  if (notification.type === "friend_request") {
-    return `${notification.actor?.display_name ?? "Someone"} sent a friend request.`;
-  }
-
-  if (notification.type === "list_invite") {
-    const listTitle =
-      typeof notification.payload.listTitle === "string"
-        ? notification.payload.listTitle
-        : "a list";
-
-    return `${notification.actor?.display_name ?? "Someone"} invited you to ${listTitle}.`;
-  }
-
-  return "Your role changed.";
 };
 
 const isMissingListOrderPreferencesError = (error: unknown) => {

@@ -1,0 +1,28 @@
+.loadingRegion {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: 180px;
+  width: 100%;
+}
+
+.spinner {
+  animation: loading-spinner-rotate 850ms linear infinite;
+  border: 2px solid #cbd5e1;
+  border-radius: 50%;
+  border-top-color: #0f172a;
+  height: 22px;
+  width: 22px;
+}
+
+@keyframes loading-spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
