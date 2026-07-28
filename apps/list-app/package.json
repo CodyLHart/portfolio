@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
-    "lint": "tsc --noEmit --pretty false"
+    "lint": "tsc --noEmit --pretty false",
+    "test": "node --test src/app/ListApp.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.89.0",

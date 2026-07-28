@@ -28,6 +28,7 @@ const portfolioUrl =
 const priorityOptions: Priority[] = ["low", "medium", "high", "urgent"];
 type DropPlacement = "before" | "after";
 type ActiveListModal = "collaboration" | "owner" | "history" | null;
+type MobileView = "lists" | "detail";
 const defaultItemFields: ListItemFields = {
   assignee: true,
   category: true,
@@ -172,6 +173,8 @@ export function ListApp() {
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const dropHandledRef = useRef(false);
+  const mobileDetailHistoryRef = useRef(false);
+  const [mobileView, setMobileView] = useState<MobileView>("lists");
 
   const user = session?.user ?? null;
   const activeList = lists.find((list) => list.id === activeListId) ?? null;
@@ -642,11 +645,43 @@ export function ListApp() {
     };
   }, [activeListId, loadListData, loadLists, profile, user]);
 
+  useEffect(() => {
+    const handlePopState = () => {
+      mobileDetailHistoryRef.current = false;
+      setMobileView("lists");
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
   const selectActiveList = (listId: string) => {
     setSelectedCategories([]);
     setSelectedPriorities([]);
     setDeleteListConfirmation("");
     setActiveListId(listId);
+    setMobileView("detail");
+
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 860px)").matches &&
+      !mobileDetailHistoryRef.current
+    ) {
+      window.history.pushState({ listAppView: "detail", listId }, "", "");
+      mobileDetailHistoryRef.current = true;
+    }
+  };
+
+  const showMobileListIndex = () => {
+    if (mobileDetailHistoryRef.current) {
+      window.history.back();
+      return;
+    }
+
+    setMobileView("lists");
   };
 
   const openOwnerSettings = () => {
@@ -1552,33 +1587,73 @@ export function ListApp() {
 
   if (!session) {
     return (
-      <Shell onSignOut={null} profile={null}>
-        <main className="app-main bg-yellow-500/50">
-          <section className="landing">
-            <div className="panel">
-              <p className="eyebrow">List App</p>
-              <h1>Lists App</h1>
-            </div>
-            <div className="panel">
+      <Shell
+        headerAction={
+          <button className="secondary-button" onClick={signIn} type="button">
+            Continue with Google
+          </button>
+        }
+        onSignOut={null}
+        profile={null}
+      >
+        <main className="app-main signed-out-main">
+          <section className="landing" aria-labelledby="landing-title">
+            <div className="landing-copy">
+              <p className="eyebrow">Lists</p>
+              <h1 id="landing-title">Keep the things you need in one place.</h1>
               <p>
-                Sign in with Google to create collaborative lists, add friends,
-                assign items, restore old versions, and reuse suggestions from
-                each list&apos;s history.
+                Create simple lists for errands, projects, trips, ideas, and
+                anything else you want to keep organized.
               </p>
-              <div className="inline-actions" style={{ marginTop: 16 }}>
+              <div className="inline-actions landing-actions">
                 <button
-                  className="primary-button"
+                  className="primary-button google-button"
                   onClick={signIn}
                   type="button"
                 >
-                  Sign in with Google
+                  Continue with Google
                 </button>
+                <span className="muted">Your lists stay with your account.</span>
               </div>
               {statusMessage ? (
-                <p className="status-message" style={{ marginTop: 16 }}>
+                <p className="status-message" role="status">
                   {statusMessage}
                 </p>
               ) : null}
+            </div>
+            <div className="product-preview" aria-label="App preview">
+              <div className="preview-sidebar">
+                <span className="preview-brand">Lists</span>
+                <button className="preview-list active" type="button">
+                  <span>Weekend errands</span>
+                  <small>5 items</small>
+                </button>
+                <button className="preview-list" type="button">
+                  <span>Trip planning</span>
+                  <small>8 items</small>
+                </button>
+                <button className="preview-list" type="button">
+                  <span>House projects</span>
+                  <small>3 items</small>
+                </button>
+              </div>
+              <div className="preview-detail">
+                <div>
+                  <p className="eyebrow">Current list</p>
+                  <h2>Weekend errands</h2>
+                </div>
+                <div className="preview-input">Add an item</div>
+                <ul className="preview-items">
+                  <li><span /> Pick up coffee</li>
+                  <li><span /> Return library books</li>
+                  <li className="done"><span /> Water plants</li>
+                </ul>
+              </div>
+            </div>
+            <div className="landing-benefits">
+              <span>Separate lists for every part of life</span>
+              <span>Shared editing with people you trust</span>
+              <span>Fast add, complete, edit, and restore</span>
             </div>
           </section>
         </main>
@@ -1595,12 +1670,13 @@ export function ListApp() {
       onSignOut={signOut}
       profile={profile}
     >
-      <main className="app-main bg-yellow-500/50">
-        <div className="app-grid">
+      <main className="app-main signed-in-main">
+        <div className={`app-grid mobile-view-${mobileView}`}>
           <aside className="sidebar panel">
             <div className="toolbar">
               <div>
-                <p className="eyebrow">Lists</p>
+                <p className="eyebrow">Workspace</p>
+                <h1>Your lists</h1>
               </div>
               <button
                 aria-label="Create list"
@@ -1611,9 +1687,27 @@ export function ListApp() {
                 +
               </button>
             </div>
+            {!isLoading && lists.length === 0 ? (
+              <div className="empty-state list-index-empty">
+                <h2>No lists yet</h2>
+                <p>Create your first list to start keeping things organized.</p>
+                <button
+                  className="primary-button"
+                  onClick={() => setIsCreateListOpen(true)}
+                  type="button"
+                >
+                  Create list
+                </button>
+              </div>
+            ) : null}
             <nav className="list-nav" aria-label="Lists">
               {lists.map((list) => {
                 const isDropTarget = listDropIndicator?.listId === list.id;
+                const isSelected = list.id === activeListId;
+                const itemCount = isSelected ? items.length : null;
+                const completedCount = isSelected
+                  ? items.filter((item) => item.completed).length
+                  : null;
 
                 return (
                   <div key={list.id}>
@@ -1673,7 +1767,7 @@ export function ListApp() {
                         aria-hidden="true"
                         className={`drag-handle ${lists.length > 1 ? "" : "disabled"}`}
                       >
-                        ⋮⋮
+                        ::
                       </span>
                       <button
                         className="list-nav-title"
@@ -1681,7 +1775,19 @@ export function ListApp() {
                         type="button"
                       >
                         <strong>{list.title}</strong>
+                        <span>
+                          {itemCount === null
+                            ? `Updated ${formatDate(list.updated_at)}`
+                            : `${itemCount} item${itemCount === 1 ? "" : "s"}${
+                                completedCount
+                                  ? `, ${completedCount} completed`
+                                  : ""
+                              }`}
+                        </span>
                       </button>
+                      <span aria-hidden="true" className="list-row-chevron">
+                        &rsaquo;
+                      </span>
                     </div>
                     {isDropTarget && listDropIndicator.placement === "after" ? (
                       <div className="drop-indicator" />
@@ -1692,18 +1798,37 @@ export function ListApp() {
             </nav>
           </aside>
 
-          <section className="panel">
+          <section className="panel list-detail-panel">
             {!activeList ? (
               <div className="empty-state">
-                {isLoading
-                  ? "Loading lists..."
-                  : "Create a list to get started."}
+                {isLoading ? (
+                  "Loading lists..."
+                ) : (
+                  <>
+                    <h2>No lists yet</h2>
+                    <p>Create your first list to start keeping things organized.</p>
+                    <button
+                      className="primary-button"
+                      onClick={() => setIsCreateListOpen(true)}
+                      type="button"
+                    >
+                      Create list
+                    </button>
+                  </>
+                )}
               </div>
             ) : (
               <>
                 <div className="toolbar">
                   <div>
-                    <p className="eyebrow">Active List</p>
+                    <button
+                      className="mobile-back-button"
+                      onClick={showMobileListIndex}
+                      type="button"
+                    >
+                      &larr; Your lists
+                    </button>
+                    <p className="eyebrow">Current list</p>
                     <h1 className="list-title">{activeList.title}</h1>
                     <div className="presence">
                       {presenceUsers.map((presenceUser) => (
@@ -1861,9 +1986,10 @@ export function ListApp() {
 
                 {isAddItemOpen ? (
                   <div className="panel add-item-panel">
-                    <p className="eyebrow">Add Item</p>
+                    <p className="eyebrow">Add item</p>
                     <div className="item-form">
                       <input
+                        aria-label="Item name"
                         disabled={!canEdit}
                         onChange={(event) =>
                           setDraft((current) => ({
@@ -2040,11 +2166,11 @@ export function ListApp() {
                       ) : null}
                       <button
                         className="primary-button"
-                        disabled={!canEdit}
+                        disabled={!canEdit || !draft.title.trim()}
                         onClick={addItem}
                         type="button"
                       >
-                        Add Item
+                        Add item
                       </button>
                     </div>
                   </div>
@@ -2052,7 +2178,18 @@ export function ListApp() {
 
                 <div className="items">
                   {items.length === 0 ? (
-                    <div className="empty-state">This list is empty.</div>
+                    <div className="empty-state">
+                      <h2>This list is empty</h2>
+                      <p>Add the first item whenever you&apos;re ready.</p>
+                      <button
+                        className="secondary-button"
+                        disabled={!canEdit}
+                        onClick={() => setIsAddItemOpen(true)}
+                        type="button"
+                      >
+                        Add item
+                      </button>
+                    </div>
                   ) : (
                     visibleItemGroups.map((group) => (
                       <div
@@ -2213,7 +2350,7 @@ export function ListApp() {
               onClick={inviteCollaborator}
               type="button"
             >
-              Invite to List
+              Invite to list
             </button>
           </div>
           <div className="field-grid">
@@ -2244,7 +2381,7 @@ export function ListApp() {
 
       {activeList && activeListModal === "owner" ? (
         <ListToolModal
-          title="List Settings"
+          title="List settings"
           onClose={() => setActiveListModal(null)}
         >
           <p className="muted">
@@ -2272,7 +2409,7 @@ export function ListApp() {
               onClick={updateListName}
               type="button"
             >
-              Save Name
+              Save name
             </button>
           </div>
           <p className="eyebrow">Item Fields</p>
@@ -2302,7 +2439,7 @@ export function ListApp() {
               onClick={removeCompleted}
               type="button"
             >
-              Remove Completed
+              Remove completed
             </button>
             <button
               className="danger-button"
@@ -2310,10 +2447,10 @@ export function ListApp() {
               onClick={clearAll}
               type="button"
             >
-              Clear All
+              Clear all
             </button>
           </div>
-          <p className="eyebrow">Delete List</p>
+          <p className="eyebrow">Delete list</p>
           <div className="danger-zone">
             <p className="muted">
               Type <strong>{activeList.title}</strong> to permanently delete
@@ -2332,7 +2469,7 @@ export function ListApp() {
               onClick={deleteActiveList}
               type="button"
             >
-              Delete List
+              Delete list
             </button>
           </div>
         </ListToolModal>
@@ -2369,7 +2506,7 @@ export function ListApp() {
 
       {isCreateListOpen ? (
         <ListToolModal
-          title="Create List"
+          title="Create list"
           onClose={() => setIsCreateListOpen(false)}
         >
           <div className="field-grid">
@@ -2464,7 +2601,7 @@ export function ListApp() {
               onClick={createList}
               type="button"
             >
-              Create List
+              Create list
             </button>
             <button
               className="secondary-button"
@@ -2484,6 +2621,7 @@ type ShellProps = {
   acceptFriendRequest?: (friendshipId: string) => void;
   acceptListInvite?: (collaboratorId: string) => void;
   children: React.ReactNode;
+  headerAction?: React.ReactNode;
   ignoreNotification?: (notification: Notification) => void;
   notifications?: Notification[];
   onSignOut: (() => void) | null;
@@ -2494,6 +2632,7 @@ function Shell({
   acceptFriendRequest,
   acceptListInvite,
   children,
+  headerAction,
   ignoreNotification,
   notifications = [],
   onSignOut,
@@ -2504,16 +2643,16 @@ function Shell({
       <header className="portfolio-header">
         <a
           className="header-logo"
-          href={portfolioUrl}
-          aria-label="Cody Hart home"
+          href="/"
+          aria-label="Lists home"
         >
-          <span>CODY</span>
-          <span>HART</span>
+          <span>Lists</span>
         </a>
         <nav className="header-nav" aria-label="Navigation">
-          <a className="text-link" href={portfolioUrl}>
+          <a className="text-link portfolio-link" href={portfolioUrl}>
             Portfolio
           </a>
+          {headerAction}
           {profile ? (
             <div className="avatar-row">
               {acceptFriendRequest && acceptListInvite && ignoreNotification ? (
@@ -2654,7 +2793,7 @@ function NotificationsMenu({
           <p className="eyebrow">Inbox</p>
           <div className="notification-list">
             {visibleNotifications.length === 0 ? (
-              <p className="muted">No relevant notifications.</p>
+              <p className="muted">No notifications.</p>
             ) : null}
             {visibleNotifications.map((notification) => (
               <div className="small-card" key={notification.id}>

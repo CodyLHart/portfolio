@@ -59,23 +59,23 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="mt-8 flex flex-wrap gap-3">
+                <div className="mt-8 flex flex-wrap justify-end gap-3">
                   <Link
-                    className="bg-black px-4 py-2 font-sans text-sm font-semibold text-white hover:bg-neutral-800"
+                    className="border border-black px-4 py-2 font-sans text-sm font-semibold hover:bg-neutral-50"
                     href={`/projects/${project.slug}`}
                   >
-                    View details
+                    More Details
                   </Link>
                   {project.href ? (
                     <a
-                      className="border border-black bg-white px-4 py-2 font-sans text-sm font-semibold text-black hover:bg-neutral-50"
+                      className=" bg-black text-white px-4 py-2 font-sans text-sm font-semibold hover:bg-neutral-800"
                       href={project.href}
                       aria-label={`Open ${project.name} project`}
                       rel={
                         isExternalHref(project.href) ? "noreferrer" : undefined
                       }
                     >
-                      Open project
+                      View Site
                     </a>
                   ) : null}
                 </div>

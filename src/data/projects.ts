@@ -101,7 +101,7 @@ export const allProjects: PortfolioProject[] = [
   },
   {
     slug: "portfolio-shell",
-    name: "Shell",
+    name: "Portfolio Shell",
     summary:
       "My central Next.js launchpad for the apps, design work, and experiments that are growing out of this portfolio.",
     kind: "Portfolio infrastructure",
