@@ -6,6 +6,9 @@ import ts from "typescript";
 const component = await readFile(new URL("./ListApp.tsx", import.meta.url), {
   encoding: "utf8",
 });
+const rootLayout = await readFile(new URL("./layout.tsx", import.meta.url), {
+  encoding: "utf8",
+});
 const styles = await readFile(new URL("./globals.css", import.meta.url), {
   encoding: "utf8",
 });
@@ -41,6 +44,12 @@ const loadingSpinnerComponent = await readFile(
 );
 const loadingSpinnerStyles = await readFile(
   new URL("../components/ui/LoadingSpinner.module.css", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const appIconComponent = await readFile(
+  new URL("../components/ui/AppIcon.tsx", import.meta.url),
   {
     encoding: "utf8",
   },
@@ -375,6 +384,15 @@ const modalStyles = await readFile(
 const collaborationModal = await readFile(
   new URL(
     "../features/lists/components/modals/CollaborationModal.tsx",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const listToolModal = await readFile(
+  new URL(
+    "../features/lists/components/modals/ListToolModal.tsx",
     import.meta.url,
   ),
   {
@@ -810,6 +828,22 @@ test("shared shell, avatar, spinner, and landing live outside the app controller
   assert.match(avatarStyles, /\.large/);
   assert.doesNotMatch(styles, /\.app-shell/);
   assert.doesNotMatch(styles, /\.notification-button/);
+});
+
+test("Font Awesome icons use the class-based free stylesheet accessibly", () => {
+  assert.match(rootLayout, /@fortawesome\/fontawesome-free\/css\/all\.min\.css/);
+  assert.doesNotMatch(rootLayout, /fontawesome-svg-core|config\.autoAddCss/);
+  assert.match(appIconComponent, /<i/);
+  assert.match(appIconComponent, /aria-hidden="true"/);
+  assert.match(appIconComponent, /fa-fw/);
+  assert.match(appShellComponent, /fa-solid fa-user-group/);
+  assert.match(appShellComponent, /fa-solid fa-arrow-right-from-bracket/);
+  assert.match(notificationMenuComponent, /fa-solid fa-bell/);
+  assert.match(notificationMenuComponent, /aria-label="Notifications"/);
+  assert.match(listsIndexComponent, /aria-label="Create list"/);
+  assert.match(listItemRowComponent, /aria-label=\{`Open actions for/);
+  assert.match(listToolModal, /aria-label=\{`Close \$\{title\}`\}/);
+  assert.doesNotMatch(rootLayout, /library\.add|autoAddCss/);
 });
 
 test("lists feature UI and pure helpers live outside the app controller", () => {

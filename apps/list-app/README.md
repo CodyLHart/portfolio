@@ -62,7 +62,7 @@ behavior intact.
 - `src/components/layout`: reusable shell pieces such as the authenticated
   header and account menu.
 - `src/components/ui`: shared leaf UI such as avatars and persistent loading
-  spinners.
+  spinners, plus the Font Awesome icon wrapper.
 - `src/features/landing`: the signed-out landing experience and its colocated
   CSS Module.
 - `src/features/profile`: auth API helpers, local/prod OAuth redirect handling,
@@ -86,6 +86,14 @@ behavior intact.
 CSS that belongs to standalone components is colocated in `.module.css` files.
 `globals.css` remains for app-wide tokens, base elements, shared button/form
 primitives, and layout utilities shared across feature surfaces.
+
+The List App uses the free Font Awesome webfont package for interface icons.
+The root layout imports `@fortawesome/fontawesome-free/css/all.min.css` once,
+and icons render with class names such as `fa-solid fa-trash`, usually through
+the shared `AppIcon` wrapper. Decorative icons remain `aria-hidden`, while
+icon-only controls keep clear button `aria-label`s. This intentionally favors a
+simple class-based setup over per-icon React imports; Pro icons, kits, and CDN
+usage are not required.
 
 `src/app/ListApp.tsx` is intentionally kept as a top-level composer. It owns the
 remaining cross-feature state needed to connect Lists, Friends, profile,

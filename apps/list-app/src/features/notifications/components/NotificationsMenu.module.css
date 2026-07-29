@@ -15,9 +15,8 @@
   width: 44px;
 }
 
-.button svg {
-  height: 30px;
-  width: 30px;
+.button :global(.fa-solid) {
+  font-size: 1.9rem;
 }
 
 .badge {

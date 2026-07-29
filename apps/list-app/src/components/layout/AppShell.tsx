@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { NotificationsMenu } from "../../features/notifications/components/NotificationsMenu";
 import type { Notification, Profile } from "../../lib/types";
+import { AppIcon } from "../ui/AppIcon";
 import { Avatar } from "../ui/Avatar";
 import styles from "./AppShell.module.css";
 
@@ -128,6 +129,7 @@ function AccountMenu({
             href="/friends"
             onClick={() => setIsOpen(false)}
           >
+            <AppIcon fixedWidth icon="fa-solid fa-user-group" />
             Friends
           </a>
           <div className={styles.divider} />
@@ -139,6 +141,7 @@ function AccountMenu({
             }}
             type="button"
           >
+            <AppIcon fixedWidth icon="fa-solid fa-arrow-right-from-bracket" />
             Sign out
           </button>
         </div>

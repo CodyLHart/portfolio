@@ -116,7 +116,6 @@ export const allProjects: PortfolioProject[] = [
     ],
     status: "live",
     featured: true,
-    href: "/",
     sourcePath: ".",
     notes:
       "This is the front door for the whole workspace: a Vercel-friendly root app that keeps the portfolio easy to deploy while each larger project can live as its own app. I use it as a launchpad, a project registry, and a place to explain why I am rebuilding everyday tools in a way that gives me more control over the features and the data.",

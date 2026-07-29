@@ -1,3 +1,4 @@
+import { AppIcon } from "../../../components/ui/AppIcon";
 import { formatDateTime } from "../../../lib/format";
 import type { Notification } from "../../../lib/types";
 import { getNotificationLabel } from "../lib/notification-utils";
@@ -27,6 +28,7 @@ export function NotificationRow({
             }
             type="button"
           >
+            <AppIcon fixedWidth icon="fa-solid fa-check" />
             Accept Friend
           </button>
           <button
@@ -34,6 +36,7 @@ export function NotificationRow({
             onClick={() => ignoreNotification(notification)}
             type="button"
           >
+            <AppIcon fixedWidth icon="fa-solid fa-xmark" />
             Ignore
           </button>
         </div>
@@ -47,6 +50,7 @@ export function NotificationRow({
             }
             type="button"
           >
+            <AppIcon fixedWidth icon="fa-solid fa-check" />
             Accept List
           </button>
           <button
@@ -54,6 +58,7 @@ export function NotificationRow({
             onClick={() => ignoreNotification(notification)}
             type="button"
           >
+            <AppIcon fixedWidth icon="fa-solid fa-xmark" />
             Ignore
           </button>
         </div>

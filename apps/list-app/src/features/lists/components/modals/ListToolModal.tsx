@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { AppIcon } from "../../../../components/ui/AppIcon";
 import styles from "./ListModals.module.css";
 
 export function ListToolModal({
@@ -20,8 +21,13 @@ export function ListToolModal({
       >
         <div className={styles.header}>
           <h2>{title}</h2>
-          <button className="icon-button" onClick={onClose} type="button">
-            x
+          <button
+            aria-label={`Close ${title}`}
+            className="icon-button"
+            onClick={onClose}
+            type="button"
+          >
+            <AppIcon icon="fa-solid fa-xmark" />
           </button>
         </div>
         <div className={styles.content}>{children}</div>

@@ -1,3 +1,4 @@
+import { AppIcon } from "../../../components/ui/AppIcon";
 import { formatDate } from "../../../lib/format";
 import type { List } from "../../../lib/types";
 import { getDropPlacement } from "../lib/list-utils";
@@ -86,7 +87,7 @@ export function ListRow({
           aria-hidden="true"
           className={`drag-handle ${listCount > 1 ? "" : "disabled"}`}
         >
-          ::
+          <AppIcon fixedWidth icon="fa-solid fa-grip-vertical" />
         </span>
         <button
           className="list-nav-title"
@@ -103,7 +104,7 @@ export function ListRow({
           </span>
         </button>
         <span aria-hidden="true" className="list-row-chevron">
-          &rsaquo;
+          <AppIcon icon="fa-solid fa-chevron-right" />
         </span>
       </div>
       {isDropTarget && listDropIndicator.placement === "after" ? (

@@ -1,3 +1,4 @@
+import { AppIcon } from "../../../components/ui/AppIcon";
 import { LoadingSpinner } from "../../../components/ui/LoadingSpinner";
 
 export function ListDetailLoadingPanel({
@@ -15,7 +16,8 @@ export function ListDetailLoadingPanel({
             onClick={onShowMobileListIndex ?? undefined}
             type="button"
           >
-            &larr; Your lists
+            <AppIcon icon="fa-solid fa-arrow-left" />
+            Your lists
           </button>
           <p className="eyebrow">Current list</p>
           <h1 className="list-title loading-title">List details</h1>

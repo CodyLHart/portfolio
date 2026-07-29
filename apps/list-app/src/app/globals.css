@@ -280,12 +280,14 @@ textarea {
 }
 
 .mobile-back-button {
+  align-items: center;
   background: transparent;
   border: 0;
   color: #334155;
   display: none;
   font-size: 0.9rem;
   font-weight: 850;
+  gap: 8px;
   margin: 0 0 10px;
   min-height: 40px;
   padding: 0;

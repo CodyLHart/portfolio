@@ -1,3 +1,4 @@
+import { AppIcon } from "../../../components/ui/AppIcon";
 import { Avatar } from "../../../components/ui/Avatar";
 import type { FriendSummary } from "../lib/friend-utils";
 import { SharedListRow } from "./SharedListRow";
@@ -21,7 +22,8 @@ export function FriendDetail({
           onClick={onBackToFriends}
           type="button"
         >
-          &larr; Friends
+          <AppIcon icon="fa-solid fa-arrow-left" />
+          Friends
         </button>
         <div className={styles.heading}>
           <Avatar profile={selectedFriend.profile} size="large" />
@@ -75,7 +77,8 @@ export function FriendNotFound({
         onClick={onBackToFriends}
         type="button"
       >
-        &larr; Friends
+        <AppIcon icon="fa-solid fa-arrow-left" />
+        Friends
       </button>
       <div className={styles.emptyState}>
         <h2>No shared lists</h2>

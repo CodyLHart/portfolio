@@ -1,3 +1,4 @@
+import { AppIcon } from "../../../components/ui/AppIcon";
 import { Avatar } from "../../../components/ui/Avatar";
 import {
   formatSharedListCount,
@@ -27,7 +28,7 @@ export function FriendRow({
         <span>{formatSharedListCount(friend.sharedLists.length)}</span>
       </span>
       <span aria-hidden="true" className="list-row-chevron">
-        &rsaquo;
+        <AppIcon icon="fa-solid fa-chevron-right" />
       </span>
     </a>
   );

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AppIcon } from "../../../components/ui/AppIcon";
 import { formatDate } from "../../../lib/format";
 import type {
   Collaborator,
@@ -101,7 +102,7 @@ export function ListItemRow({
           aria-hidden="true"
           className={`drag-handle ${isDraggable ? "" : "disabled"}`}
         >
-          ::
+          <AppIcon fixedWidth icon="fa-solid fa-grip-vertical" />
         </span>
         <input
           checked={item.completed}
@@ -151,7 +152,7 @@ export function ListItemRow({
               onClick={() => setIsMenuOpen((open) => !open)}
               type="button"
             >
-              ...
+              <AppIcon icon="fa-solid fa-ellipsis" />
             </button>
             {isMenuOpen ? (
               <div className="item-menu-panel">
@@ -162,6 +163,7 @@ export function ListItemRow({
                   }}
                   type="button"
                 >
+                  <AppIcon fixedWidth icon="fa-solid fa-pen" />
                   Edit
                 </button>
                 <button
@@ -172,6 +174,7 @@ export function ListItemRow({
                   }}
                   type="button"
                 >
+                  <AppIcon fixedWidth icon="fa-solid fa-trash" />
                   Delete
                 </button>
               </div>

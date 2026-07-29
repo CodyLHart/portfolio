@@ -1,3 +1,4 @@
+import { AppIcon } from "../../../components/ui/AppIcon";
 import { LoadingSpinner } from "../../../components/ui/LoadingSpinner";
 import styles from "./FriendsPage.module.css";
 
@@ -15,7 +16,8 @@ export function FriendsIndexLoadingPanel({
           onClick={showLists ?? undefined}
           type="button"
         >
-          &larr; Your lists
+          <AppIcon icon="fa-solid fa-arrow-left" />
+          Your lists
         </button>
         <div>
           <p className="eyebrow">People</p>
@@ -44,7 +46,8 @@ export function FriendDetailLoadingPanel({
           onClick={onBackToFriends}
           type="button"
         >
-          &larr; Friends
+          <AppIcon icon="fa-solid fa-arrow-left" />
+          Friends
         </button>
         <div>
           <p className="eyebrow">Friend</p>

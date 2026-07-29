@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { AppIcon } from "../../../components/ui/AppIcon";
 import type { Notification } from "../../../lib/types";
 import {
   getUnreadNotificationCount,
@@ -62,20 +63,7 @@ export function NotificationsMenu({
         ref={buttonRef}
         type="button"
       >
-        <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
-          <path
-            d="M6.5 10.5a5.5 5.5 0 0 1 11 0v4.1l1.6 2.4H4.9l1.6-2.4v-4.1Z"
-            stroke="currentColor"
-            strokeLinejoin="round"
-            strokeWidth="2"
-          />
-          <path
-            d="M9.5 19a2.8 2.8 0 0 0 5 0"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeWidth="2"
-          />
-        </svg>
+        <AppIcon icon="fa-solid fa-bell" />
         {unreadCount > 0 ? (
           <span className={styles.badge}>{unreadCount}</span>
         ) : null}

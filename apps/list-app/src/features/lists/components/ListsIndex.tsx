@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
+import { AppIcon } from "../../../components/ui/AppIcon";
 import type { List, ListItem } from "../../../lib/types";
 import { LoadingSpinner } from "../../../components/ui/LoadingSpinner";
 import type { DropPlacement, ListDropIndicator } from "../types";
@@ -39,7 +40,6 @@ export function ListsIndex({
     <>
       <div className="toolbar">
         <div>
-          <p className="eyebrow">Workspace</p>
           <h2>Your lists</h2>
         </div>
         <button
@@ -49,7 +49,7 @@ export function ListsIndex({
           onClick={onCreateList ?? undefined}
           type="button"
         >
-          +
+          <AppIcon icon="fa-solid fa-plus" />
         </button>
       </div>
       {!isLoading && lists.length === 0 ? (

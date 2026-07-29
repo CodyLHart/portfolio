@@ -1,3 +1,4 @@
+import { AppIcon } from "../../../components/ui/AppIcon";
 import type { FriendSummary } from "../lib/friend-utils";
 import { FriendRow } from "./FriendRow";
 import styles from "./FriendsPage.module.css";
@@ -19,7 +20,8 @@ export function FriendsIndex({
           onClick={showLists}
           type="button"
         >
-          &larr; Your lists
+          <AppIcon icon="fa-solid fa-arrow-left" />
+          Your lists
         </button>
         <div>
           <p className="eyebrow">People</p>

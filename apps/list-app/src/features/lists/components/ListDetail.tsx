@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
+import { AppIcon } from "../../../components/ui/AppIcon";
 import type { ItemDraft, ListItem, Priority } from "../../../lib/types";
 import { getCategoryStyle } from "../lib/list-utils";
 import type { ListsWorkspaceProps } from "../types";
@@ -177,7 +178,9 @@ function ListFilters({
         onClick={() => setIsAddItemOpen((open) => !open)}
         type="button"
       >
-        +
+        <AppIcon
+          icon={isAddItemOpen ? "fa-solid fa-xmark" : "fa-solid fa-plus"}
+        />
       </button>
       {hasFilterOptions ? (
         <div className="filter-box">

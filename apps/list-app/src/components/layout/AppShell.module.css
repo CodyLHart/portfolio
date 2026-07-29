@@ -130,10 +130,12 @@
   background: transparent;
   border: 0;
   color: #0f172a;
-  display: flex;
+  display: grid;
   font: inherit;
   font-weight: 850;
-  justify-content: flex-start;
+  gap: 10px;
+  grid-template-columns: 20px minmax(0, 1fr);
+  justify-content: stretch;
   min-height: 44px;
   padding: 0 10px;
   text-align: left;

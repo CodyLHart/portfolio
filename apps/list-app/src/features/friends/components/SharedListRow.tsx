@@ -1,3 +1,4 @@
+import { AppIcon } from "../../../components/ui/AppIcon";
 import type { SharedListSummary } from "../lib/friend-utils";
 import { ParticipantList } from "./ParticipantList";
 import styles from "./SharedListRow.module.css";
@@ -23,7 +24,7 @@ export function SharedListRow({
         <ParticipantList participants={sharedList.participants} />
       </span>
       <span aria-hidden="true" className="list-row-chevron">
-        &rsaquo;
+        <AppIcon icon="fa-solid fa-chevron-right" />
       </span>
     </a>
   );
