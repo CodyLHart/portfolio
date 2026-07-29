@@ -270,12 +270,69 @@ const historyApiSource = await readFile(
     encoding: "utf8",
   },
 );
+const sharingApiSource = await readFile(
+  new URL("../features/lists/lib/sharing-api.ts", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
 const listModalStateHook = await readFile(
   new URL("../features/lists/hooks/useListModalState.ts", import.meta.url),
   {
     encoding: "utf8",
   },
 );
+const listItemMutationsHook = await readFile(
+  new URL("../features/lists/hooks/useListItemMutations.ts", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const listItemReorderingHook = await readFile(
+  new URL("../features/lists/hooks/useListItemReordering.ts", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const listHistoryControllerHook = await readFile(
+  new URL(
+    "../features/lists/hooks/useListHistoryController.ts",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const listSettingsControllerHook = await readFile(
+  new URL(
+    "../features/lists/hooks/useListSettingsController.ts",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const profileApiSource = await readFile(
+  new URL("../features/profile/lib/profile-api.ts", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const authApiSource = await readFile(
+  new URL("../features/profile/lib/auth-api.ts", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const authHelpersSource = await readFile(
+  new URL("../features/profile/lib/auth-helpers.ts", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const errorsSource = await readFile(new URL("../lib/errors.ts", import.meta.url), {
+  encoding: "utf8",
+});
 const modalStyles = await readFile(
   new URL(
     "../features/lists/components/modals/ListModals.module.css",
@@ -752,15 +809,44 @@ test("list API modules and modal state hook keep orchestration out of the app", 
   assert.match(component, /loadSharedCandidateLists\(/);
   assert.match(component, /loadListWorkspaceData\(supabase, listId\)/);
   assert.match(component, /createListWithOwner\(supabase/);
-  assert.match(component, /createListSnapshot\(supabase/);
-  assert.match(component, /buildSnapshotRestoreRows/);
+  assert.match(component, /useListItemMutations/);
+  assert.match(component, /useListItemReordering/);
+  assert.match(component, /useListHistoryController/);
+  assert.match(component, /useListSettingsController/);
   assert.match(component, /useListModalState\(\)/);
   assert.match(listApiSource, /export async function loadAccessibleLists/);
   assert.match(listApiSource, /export async function createListWithOwner/);
+  assert.match(listApiSource, /export async function saveListOrderPreferences/);
   assert.match(itemApiSource, /export async function loadListWorkspaceData/);
+  assert.match(itemApiSource, /export async function createListItem/);
+  assert.match(itemApiSource, /export async function updateListItem/);
+  assert.match(itemApiSource, /export async function updateListItemPositions/);
   assert.match(historyApiSource, /export async function createListSnapshot/);
+  assert.match(listHistoryControllerHook, /createListSnapshot\(supabase/);
+  assert.match(listHistoryControllerHook, /buildSnapshotRestoreRows/);
+  assert.match(listItemMutationsHook, /upsertListItemSuggestion/);
+  assert.match(listItemReorderingHook, /updateListItemPositions/);
+  assert.match(listSettingsControllerHook, /deleteListById/);
+  assert.match(listSettingsControllerHook, /updateListItemFields/);
+  assert.match(sharingApiSource, /export async function acceptShareLink/);
+  assert.match(sharingApiSource, /export async function inviteListCollaborator/);
   assert.match(listModalStateHook, /export function useListModalState/);
   assert.match(listModalStateHook, /type ActiveListModal/);
+  assert.doesNotMatch(component, /\.from\("list_items"\)/);
+  assert.doesNotMatch(component, /\.from\("lists"\)/);
+  assert.doesNotMatch(component, /\.rpc\("accept_share_link"/);
+});
+
+test("profile and auth helpers live outside the app controller", () => {
+  assert.match(component, /loadProfileForUser\(supabase, authUser\)/);
+  assert.match(component, /signInWithGoogle\(supabase\)/);
+  assert.match(component, /signOutUser\(supabase\)/);
+  assert.match(profileApiSource, /profiles"\)\.upsert/);
+  assert.match(authApiSource, /signInWithOAuth/);
+  assert.match(authHelpersSource, /hostname === "127\.0\.0\.1"/);
+  assert.match(errorsSource, /export const getErrorMessage/);
+  assert.doesNotMatch(component, /const getOAuthRedirectUrl/);
+  assert.doesNotMatch(component, /function getErrorMessage/);
 });
 
 test("friends feature components own friends UI outside the app controller", () => {

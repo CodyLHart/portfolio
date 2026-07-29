@@ -31,20 +31,24 @@ import {
   isMissingListOrderPreferencesError,
   loadAccessibleLists,
   loadSharedCandidateLists,
+  saveListOrderPreferences,
 } from "../features/lists/lib/list-api";
 import {
-  deleteListItems,
-  insertSnapshotItems,
   loadListWorkspaceData,
 } from "../features/lists/lib/item-api";
-import {
-  buildSnapshotRestoreRows,
-  createListSnapshot,
-} from "../features/lists/lib/history-api";
 import {
   useListModalState,
   type ActiveListModal,
 } from "../features/lists/hooks/useListModalState";
+import { useListItemReordering } from "../features/lists/hooks/useListItemReordering";
+import { useListItemMutations } from "../features/lists/hooks/useListItemMutations";
+import { useListHistoryController } from "../features/lists/hooks/useListHistoryController";
+import { useListSettingsController } from "../features/lists/hooks/useListSettingsController";
+import {
+  acceptShareLink,
+  inviteListCollaborator,
+  updateListCollaboratorRole,
+} from "../features/lists/lib/sharing-api";
 import {
   buildVisibleItemGroups,
   emptyNewListDraft,
@@ -65,6 +69,8 @@ import {
   loadAccountInboxData,
 } from "../features/notifications/lib/notifications-api";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import { signInWithGoogle, signOutUser } from "../features/profile/lib/auth-api";
+import { loadProfileForUser } from "../features/profile/lib/profile-api";
 import {
   Collaborator,
   emptyItemDraft,
@@ -80,23 +86,10 @@ import {
   Profile,
   Suggestion,
 } from "../lib/types";
+import { getErrorMessage } from "../lib/errors";
 
 type AppSection = "lists" | "friends";
 type AuthStatus = "loading" | "authenticated" | "unauthenticated";
-
-const getOAuthRedirectUrl = () => {
-  if (typeof window === "undefined") {
-    return undefined;
-  }
-
-  const url = new URL(window.location.href);
-
-  if (url.hostname === "127.0.0.1" && url.port === "3001") {
-    url.hostname = "localhost";
-  }
-
-  return url.toString();
-};
 
 export function ListApp({
   initialFriendId = null,
@@ -142,17 +135,11 @@ export function ListApp({
   const [isAddItemOpen, setIsAddItemOpen] = useState(false);
   const [listNameDraft, setListNameDraft] = useState("");
   const [deleteListConfirmation, setDeleteListConfirmation] = useState("");
-  const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
-  const [dropIndicator, setDropIndicator] = useState<{
-    itemId: string;
-    placement: DropPlacement;
-  } | null>(null);
   const [draggedListId, setDraggedListId] = useState<string | null>(null);
   const [listDropIndicator, setListDropIndicator] =
     useState<ListDropIndicator>(null);
   const [authStatus, setAuthStatus] = useState<AuthStatus>("loading");
   const [isLoading, setIsLoading] = useState(true);
-  const dropHandledRef = useRef(false);
   const mobileDetailHistoryRef = useRef(false);
   const [mobileView, setMobileView] = useState<MobileView>("lists");
   const [appSection, setAppSection] = useState<AppSection>(initialSection);
@@ -266,38 +253,7 @@ export function ListApp({
   }, []);
 
   const loadProfile = useCallback(async (authUser: User) => {
-    const metadata = authUser.user_metadata;
-    const nextProfile = {
-      avatar_url: (metadata.avatar_url as string | undefined) ?? null,
-      display_name:
-        (metadata.full_name as string | undefined) ??
-        (metadata.name as string | undefined) ??
-        authUser.email ??
-        "List App User",
-      email: authUser.email ?? "",
-      id: authUser.id,
-      updated_at: new Date().toISOString(),
-    };
-
-    const { error } = await supabase.from("profiles").upsert(nextProfile, {
-      onConflict: "id",
-    });
-
-    if (error) {
-      throw error;
-    }
-
-    const { data, error: profileError } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", authUser.id)
-      .single();
-
-    if (profileError) {
-      throw profileError;
-    }
-
-    setProfile(data as Profile);
+    setProfile(await loadProfileForUser(supabase, authUser));
   }, []);
 
   const loadUserData = useCallback(
@@ -351,6 +307,82 @@ export function ListApp({
     }
   }, []);
 
+  const {
+    beginItemDrag,
+    completeItemDrop,
+    draggedItemId,
+    dropIndicator,
+    finishItemDrag,
+    setDropIndicator,
+  } = useListItemReordering({
+    activeListId,
+    canEdit,
+    items,
+    loadListData,
+    setItems,
+    setStatusMessage,
+    supabase,
+  });
+  const {
+    addItem,
+    deleteItem,
+    saveItemDetails,
+    toggleItem,
+    upsertSuggestion,
+  } = useListItemMutations({
+    activeList,
+    canEdit,
+    draft,
+    editingItem,
+    items,
+    setDraft,
+    setEditingItem,
+    setIsAddItemOpen,
+    setItems,
+    setStatusMessage,
+    suggestions,
+    supabase,
+    user,
+  });
+  const { clearAll, removeCompleted, restoreList } = useListHistoryController({
+    activeList,
+    isOwner,
+    items,
+    loadListData,
+    setItems,
+    setRestoreSnapshot,
+    setStatusMessage,
+    supabase,
+    upsertSuggestion,
+    user,
+  });
+  const {
+    deleteActiveList,
+    openOwnerSettings,
+    updateItemFieldSetting,
+    updateListName,
+  } = useListSettingsController({
+    activeList,
+    deleteListConfirmation,
+    isOwner,
+    itemFields,
+    lists,
+    listNameDraft,
+    setActiveListId,
+    setActiveListModal,
+    setCollaborators,
+    setDeleteListConfirmation,
+    setItems,
+    setListNameDraft,
+    setLists,
+    setSelectedCategories,
+    setSelectedPriorities,
+    setSnapshots,
+    setStatusMessage,
+    setSuggestions,
+    supabase,
+  });
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session?.user) {
@@ -401,9 +433,9 @@ export function ListApp({
       return;
     }
 
-    const acceptShareLink = async () => {
-      const { data, error } = await supabase.rpc("accept_share_link", {
-        requested_role: requestedRole,
+    const acceptShareLinkFromUrl = async () => {
+      const { data, error } = await acceptShareLink(supabase, {
+        requestedRole,
         token: joinToken,
       });
 
@@ -422,7 +454,7 @@ export function ListApp({
       setStatusMessage("You joined the shared list.");
     };
 
-    void acceptShareLink();
+    void acceptShareLinkFromUrl();
   }, [loadLists, user]);
 
   useEffect(() => {
@@ -625,24 +657,13 @@ export function ListApp({
     selectActiveList(listId, true);
   };
 
-  const openOwnerSettings = () => {
-    setListNameDraft(activeList?.title ?? "");
-    setActiveListModal("owner");
-  };
-
   const signIn = async () => {
     if (!isSupabaseConfigured) {
       setStatusMessage("Supabase environment variables are missing.");
       return;
     }
 
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      options: {
-        redirectTo: getOAuthRedirectUrl(),
-        skipBrowserRedirect: true,
-      },
-      provider: "google",
-    });
+    const { data, error } = await signInWithGoogle(supabase);
 
     if (error) {
       setStatusMessage(error.message);
@@ -658,7 +679,7 @@ export function ListApp({
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await signOutUser(supabase);
   };
 
   const createList = async () => {
@@ -700,382 +721,6 @@ export function ListApp({
     setIsCreateListOpen(false);
     await loadLists(user.id);
     setActiveListId(data.id);
-  };
-
-  const addItem = async () => {
-    if (!activeList || !user || !draft.title.trim() || !canEdit) {
-      return;
-    }
-
-    const nextPosition =
-      Math.max(0, ...items.map((item) => Number(item.position))) + 1;
-    const { data, error } = await supabase
-      .from("list_items")
-      .insert({
-        assigned_to: draft.assigned_to || null,
-        category: draft.category.trim() || null,
-        created_by: user.id,
-        due_date: draft.due_date || null,
-        list_id: activeList.id,
-        notes: draft.notes.trim() || null,
-        position: nextPosition,
-        priority: draft.priority || null,
-        quantity: draft.quantity.trim() || null,
-        title: draft.title.trim(),
-      })
-      .select("*, assignee:profiles!list_items_assigned_to_fkey(*)")
-      .single();
-
-    if (error) {
-      setStatusMessage(error.message);
-      return;
-    }
-
-    setItems((current) => [...current, data as ListItem]);
-    await upsertSuggestion(activeList.id, draft.title, draft.category);
-    setDraft(emptyItemDraft);
-    setIsAddItemOpen(false);
-  };
-
-  const updateItem = async (item: ListItem, patch: Partial<ListItem>) => {
-    if (!canEdit) {
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("list_items")
-      .update({
-        ...patch,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", item.id)
-      .select("*, assignee:profiles!list_items_assigned_to_fkey(*)")
-      .single();
-
-    if (error) {
-      setStatusMessage(error.message);
-      return;
-    }
-
-    setItems((current) =>
-      current.map((currentItem) =>
-        currentItem.id === item.id ? (data as ListItem) : currentItem,
-      ),
-    );
-  };
-
-  const deleteItem = async (item: ListItem) => {
-    if (!canEdit) {
-      return;
-    }
-
-    const { error } = await supabase
-      .from("list_items")
-      .delete()
-      .eq("id", item.id);
-
-    if (error) {
-      setStatusMessage(error.message);
-      return;
-    }
-
-    setItems((current) =>
-      current.filter((currentItem) => currentItem.id !== item.id),
-    );
-  };
-
-  const toggleItem = async (item: ListItem) => {
-    await updateItem(item, {
-      completed: !item.completed,
-      completed_at: item.completed ? null : new Date().toISOString(),
-      position: item.completed
-        ? item.position
-        : Math.max(0, ...items.map((entry) => Number(entry.position))) + 1,
-    });
-  };
-
-  const reorderItem = async (
-    draggedId: string,
-    targetId: string,
-    placement: DropPlacement,
-  ) => {
-    if (!canEdit || draggedId === targetId) {
-      return;
-    }
-
-    const draggedItem = items.find((item) => item.id === draggedId);
-    const targetItem = items.find((item) => item.id === targetId);
-
-    if (!draggedItem || !targetItem) {
-      return;
-    }
-
-    const orderedItems = items
-      .filter((entry) => entry.completed === draggedItem.completed)
-      .sort((first, second) => first.position - second.position);
-    const fromIndex = orderedItems.findIndex((entry) => entry.id === draggedId);
-
-    if (fromIndex < 0) {
-      return;
-    }
-
-    const nextOrderedItems = [...orderedItems];
-    const [movedItem] = nextOrderedItems.splice(fromIndex, 1);
-    const targetIndexAfterRemoval = nextOrderedItems.findIndex(
-      (entry) => entry.id === targetId,
-    );
-
-    if (
-      targetIndexAfterRemoval < 0 &&
-      draggedItem.completed === targetItem.completed
-    ) {
-      return;
-    }
-
-    const insertionIndex =
-      targetIndexAfterRemoval < 0
-        ? nextOrderedItems.length
-        : placement === "after"
-          ? targetIndexAfterRemoval + 1
-          : targetIndexAfterRemoval;
-    nextOrderedItems.splice(insertionIndex, 0, movedItem);
-
-    const updatedItems = nextOrderedItems.map((item, index) => ({
-      ...item,
-      position: index + 1,
-    }));
-
-    setItems((current) =>
-      current.map(
-        (item) =>
-          updatedItems.find((updatedItem) => updatedItem.id === item.id) ??
-          item,
-      ),
-    );
-
-    const results = await Promise.all(
-      updatedItems.map((item) =>
-        supabase
-          .from("list_items")
-          .update({ position: item.position })
-          .eq("id", item.id),
-      ),
-    );
-
-    const failedResult = results.find((result) => result.error);
-    if (failedResult?.error) {
-      setStatusMessage(failedResult.error.message);
-      void loadListData(activeListId ?? "");
-      return;
-    }
-  };
-
-  const beginItemDrag = (itemId: string) => {
-    dropHandledRef.current = false;
-    setDraggedItemId(itemId);
-  };
-
-  const finishItemDrag = () => {
-    if (!dropHandledRef.current && draggedItemId && dropIndicator) {
-      void reorderItem(
-        draggedItemId,
-        dropIndicator.itemId,
-        dropIndicator.placement,
-      );
-    }
-
-    dropHandledRef.current = false;
-    setDraggedItemId(null);
-    setDropIndicator(null);
-  };
-
-  const completeItemDrop = (
-    draggedId: string,
-    targetId: string,
-    placement: DropPlacement,
-  ) => {
-    dropHandledRef.current = true;
-    setDraggedItemId(null);
-    setDropIndicator(null);
-    void reorderItem(draggedId, targetId, placement);
-  };
-
-  const saveItemDetails = async () => {
-    if (!editingItem) {
-      return;
-    }
-
-    await updateItem(editingItem, {
-      assigned_to: editingItem.assigned_to || null,
-      category: editingItem.category?.trim() || null,
-      due_date: editingItem.due_date || null,
-      notes: editingItem.notes?.trim() || null,
-      priority: editingItem.priority || null,
-      quantity: editingItem.quantity?.trim() || null,
-      title: editingItem.title.trim(),
-    });
-    setEditingItem(null);
-  };
-
-  const removeCompleted = async () => {
-    if (!activeList || !isOwner) {
-      return;
-    }
-
-    await createSnapshot("Before removing completed");
-    const completed = items.filter((item) => item.completed);
-    await Promise.all(
-      completed.map((item) =>
-        upsertSuggestion(activeList.id, item.title, item.category ?? ""),
-      ),
-    );
-    const { error } = await supabase
-      .from("list_items")
-      .delete()
-      .eq("list_id", activeList.id)
-      .eq("completed", true);
-
-    if (error) {
-      setStatusMessage(error.message);
-      return;
-    }
-
-    setItems((current) => current.filter((item) => !item.completed));
-  };
-
-  const clearAll = async () => {
-    if (!activeList || !isOwner) {
-      return;
-    }
-
-    await createSnapshot("Before clearing all");
-    await Promise.all(
-      items.map((item) =>
-        upsertSuggestion(activeList.id, item.title, item.category ?? ""),
-      ),
-    );
-    const { error } = await supabase
-      .from("list_items")
-      .delete()
-      .eq("list_id", activeList.id);
-
-    if (error) {
-      setStatusMessage(error.message);
-      return;
-    }
-
-    setItems([]);
-  };
-
-  const deleteActiveList = async () => {
-    if (
-      !activeList ||
-      !isOwner ||
-      deleteListConfirmation !== activeList.title
-    ) {
-      return;
-    }
-
-    const { error } = await supabase
-      .from("lists")
-      .delete()
-      .eq("id", activeList.id);
-
-    if (error) {
-      setStatusMessage(error.message);
-      return;
-    }
-
-    const remainingLists = lists.filter((list) => list.id !== activeList.id);
-    setLists(remainingLists);
-    setActiveListId(remainingLists[0]?.id ?? null);
-    setItems([]);
-    setCollaborators([]);
-    setSnapshots([]);
-    setSuggestions([]);
-    setDeleteListConfirmation("");
-    setActiveListModal(null);
-  };
-
-  const createSnapshot = async (label: string) => {
-    if (!activeList || !user || items.length === 0) {
-      return null;
-    }
-
-    try {
-      return await createListSnapshot(supabase, {
-        createdBy: user.id,
-        items,
-        label,
-        listId: activeList.id,
-      });
-    } catch (error) {
-      setStatusMessage(getErrorMessage(error));
-      return null;
-    }
-  };
-
-  const restoreList = async (snapshot: ListSnapshot) => {
-    if (!activeList || !user || !isOwner) {
-      return;
-    }
-
-    if (items.length > 0) {
-      await createSnapshot("Before restoring snapshot");
-    }
-
-    await deleteListItems(supabase, activeList.id);
-    const rows = buildSnapshotRestoreRows({
-      createdBy: user.id,
-      listId: activeList.id,
-      snapshot,
-    });
-
-    if (rows.length > 0) {
-      const { error } = await insertSnapshotItems(supabase, rows);
-
-      if (error) {
-        setStatusMessage(error.message);
-        return;
-      }
-    }
-
-    setRestoreSnapshot(null);
-    void loadListData(activeList.id);
-  };
-
-  const upsertSuggestion = async (
-    listId: string,
-    title: string,
-    category: string,
-  ) => {
-    const cleanTitle = title.trim();
-    if (!cleanTitle) {
-      return;
-    }
-
-    const existing = suggestions.find(
-      (suggestion) =>
-        suggestion.title.toLowerCase() === cleanTitle.toLowerCase(),
-    );
-
-    if (existing) {
-      await supabase
-        .from("list_item_suggestions")
-        .update({
-          category: category.trim() || existing.category,
-          last_used_at: new Date().toISOString(),
-          usage_count: existing.usage_count + 1,
-        })
-        .eq("id", existing.id);
-      return;
-    }
-
-    await supabase.from("list_item_suggestions").insert({
-      category: category.trim() || null,
-      list_id: listId,
-      title: cleanTitle,
-    });
   };
 
   const sendFriendRequest = async () => {
@@ -1126,47 +771,19 @@ export function ListApp({
       return;
     }
 
-    const { data: target } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("email", inviteEmail.trim().toLowerCase())
-      .maybeSingle();
-
-    if (!target) {
-      setStatusMessage("No account found for that exact email.");
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("list_collaborators")
-      .upsert(
-        {
-          invited_by: user.id,
-          list_id: activeList.id,
-          role: inviteRole,
-          status: "pending",
-          user_id: target.id,
-        },
-        { onConflict: "list_id,user_id" },
-      )
-      .select("*")
-      .single();
-
-    if (error) {
-      setStatusMessage(error.message);
-      return;
-    }
-
-    await supabase.from("notifications").insert({
-      actor_id: user.id,
-      payload: {
-        collaboratorId: data.id,
+    try {
+      await inviteListCollaborator(supabase, {
+        invitedBy: user.id,
         listId: activeList.id,
         listTitle: activeList.title,
-      },
-      recipient_id: target.id,
-      type: "list_invite",
-    });
+        role: inviteRole,
+        targetEmail: inviteEmail,
+      });
+    } catch (error) {
+      setStatusMessage(getErrorMessage(error));
+      return;
+    }
+
     setInviteEmail("");
   };
 
@@ -1230,10 +847,10 @@ export function ListApp({
       return;
     }
 
-    const { error } = await supabase
-      .from("list_collaborators")
-      .update({ role, updated_at: new Date().toISOString() })
-      .eq("id", collaboratorId);
+    const { error } = await updateListCollaboratorRole(supabase, {
+      collaboratorId,
+      role,
+    });
 
     if (error) {
       setStatusMessage(error.message);
@@ -1267,21 +884,13 @@ export function ListApp({
       return;
     }
 
-    const timestamp = new Date().toISOString();
     let error: unknown = null;
 
     try {
-      const { error: orderError } = await supabase
-        .from("list_order_preferences")
-        .upsert(
-          orderedLists.map((list, index) => ({
-            list_id: list.id,
-            position: index + 1,
-            updated_at: timestamp,
-            user_id: user.id,
-          })),
-          { onConflict: "user_id,list_id" },
-        );
+      const { error: orderError } = await saveListOrderPreferences(supabase, {
+        lists: orderedLists,
+        userId: user.id,
+      });
 
       error = orderError;
     } catch (orderError) {
@@ -1328,68 +937,6 @@ export function ListApp({
     orderedLists.splice(insertionIndex, 0, movedList);
     setLists(orderedLists);
     void persistListOrder(orderedLists);
-  };
-
-  const updateListName = async () => {
-    if (!activeList || !isOwner || !listNameDraft.trim()) {
-      return;
-    }
-
-    const nextTitle = listNameDraft.trim();
-    const { error } = await supabase
-      .from("lists")
-      .update({ title: nextTitle, updated_at: new Date().toISOString() })
-      .eq("id", activeList.id);
-
-    if (error) {
-      setStatusMessage(error.message);
-      return;
-    }
-
-    setLists((current) =>
-      current.map((list) =>
-        list.id === activeList.id ? { ...list, title: nextTitle } : list,
-      ),
-    );
-    setDeleteListConfirmation("");
-  };
-
-  const updateItemFieldSetting = async (
-    field: keyof ListItemFields,
-    value: boolean,
-  ) => {
-    if (!activeList || !isOwner) {
-      return;
-    }
-
-    const nextFields = {
-      ...itemFields,
-      [field]: value,
-    };
-
-    const { error } = await supabase
-      .from("lists")
-      .update({ item_fields: nextFields, updated_at: new Date().toISOString() })
-      .eq("id", activeList.id);
-
-    if (error) {
-      setStatusMessage(error.message);
-      return;
-    }
-
-    setLists((current) =>
-      current.map((list) =>
-        list.id === activeList.id ? { ...list, item_fields: nextFields } : list,
-      ),
-    );
-
-    if (field === "category" && !value) {
-      setSelectedCategories([]);
-    }
-
-    if (field === "priority" && !value) {
-      setSelectedPriorities([]);
-    }
   };
 
   if (authStatus === "loading") {
@@ -1636,17 +1183,4 @@ const getCurrentRole = (
     collaborators.find((collaborator) => collaborator.user_id === userId)
       ?.role ?? null
   );
-};
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  const maybeError = error as { message?: unknown };
-  if (typeof maybeError?.message === "string") {
-    return maybeError.message;
-  }
-
-  return "Something went wrong.";
 };

@@ -256,3 +256,65 @@ export async function createListWithOwner(
 
   return { collaboratorLookupFailed, list, orderError };
 }
+
+export async function deleteListById(
+  supabase: SupabaseClient,
+  listId: string,
+) {
+  return supabase.from("lists").delete().eq("id", listId);
+}
+
+export async function renameList(
+  supabase: SupabaseClient,
+  {
+    listId,
+    title,
+  }: {
+    listId: string;
+    title: string;
+  },
+) {
+  return supabase
+    .from("lists")
+    .update({ title, updated_at: new Date().toISOString() })
+    .eq("id", listId);
+}
+
+export async function updateListItemFields(
+  supabase: SupabaseClient,
+  {
+    itemFields,
+    listId,
+  }: {
+    itemFields: ListItemFields;
+    listId: string;
+  },
+) {
+  return supabase
+    .from("lists")
+    .update({ item_fields: itemFields, updated_at: new Date().toISOString() })
+    .eq("id", listId);
+}
+
+export async function saveListOrderPreferences(
+  supabase: SupabaseClient,
+  {
+    lists,
+    userId,
+  }: {
+    lists: List[];
+    userId: string;
+  },
+) {
+  const timestamp = new Date().toISOString();
+
+  return supabase.from("list_order_preferences").upsert(
+    lists.map((list, index) => ({
+      list_id: list.id,
+      position: index + 1,
+      updated_at: timestamp,
+      user_id: userId,
+    })),
+    { onConflict: "user_id,list_id" },
+  );
+}
