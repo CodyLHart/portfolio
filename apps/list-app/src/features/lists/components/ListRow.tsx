@@ -83,26 +83,28 @@ export function ListRow({
           onDragEnd();
         }}
       >
-        <span
-          aria-hidden="true"
-          className={`drag-handle ${listCount > 1 ? "" : "disabled"}`}
-        >
-          <AppIcon fixedWidth icon="fa-solid fa-grip-vertical" />
-        </span>
-        <button
-          className="list-nav-title"
-          onClick={() => onSelect(list.id)}
-          type="button"
-        >
-          <strong>{list.title}</strong>
-          <span>
-            {itemCount === null
-              ? `Updated ${formatDate(list.updated_at)}`
-              : `${itemCount} item${itemCount === 1 ? "" : "s"}${
-                  completedCount ? `, ${completedCount} completed` : ""
-                }`}
+        <div className="flex items-center">
+          <span
+            aria-hidden="true"
+            className={`drag-handle ${listCount > 1 ? "" : "disabled"}`}
+          >
+            <AppIcon fixedWidth icon="fa-solid fa-grip-vertical" />
           </span>
-        </button>
+          <button
+            className="list-nav-title"
+            onClick={() => onSelect(list.id)}
+            type="button"
+          >
+            <strong>{list.title}</strong>
+            <span>
+              {itemCount === null
+                ? `Updated ${formatDate(list.updated_at)}`
+                : `${itemCount} item${itemCount === 1 ? "" : "s"}${
+                    completedCount ? `, ${completedCount} completed` : ""
+                  }`}
+            </span>
+          </button>
+        </div>
         <span aria-hidden="true" className="list-row-chevron">
           <AppIcon icon="fa-solid fa-chevron-right" />
         </span>

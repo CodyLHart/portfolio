@@ -8,15 +8,15 @@
   border: 0;
   color: #0f172a;
   display: inline-flex;
-  height: 44px;
+  height: 24px;
+  width: 24px;
   justify-content: center;
   padding: 0;
   position: relative;
-  width: 44px;
 }
 
 .button :global(.fa-solid) {
-  font-size: 1.9rem;
+  font-size: 1.5rem;
 }
 
 .badge {
