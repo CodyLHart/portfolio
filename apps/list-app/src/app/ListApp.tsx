@@ -208,13 +208,12 @@ export function ListApp({
     showLists,
     showMobileListIndex,
   } = useAppRouteController({
+    clearFilters,
     initialFriendId,
     initialSection,
     refreshLists: refreshListsForCurrentUser,
     setActiveListId,
     setDeleteListConfirmation,
-    setSelectedCategories,
-    setSelectedPriorities,
   });
 
   const handleAuthenticated = useCallback(

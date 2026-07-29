@@ -1,27 +1,24 @@
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Priority } from "../../../lib/types";
 import { getFriendsRouteState } from "../../friends/lib/friend-routes";
 import type { MobileView } from "../../lists/types";
 
 export type AppSection = "lists" | "friends";
 
 export function useAppRouteController({
+  clearFilters,
   initialFriendId,
   initialSection,
   refreshLists,
   setActiveListId,
   setDeleteListConfirmation,
-  setSelectedCategories,
-  setSelectedPriorities,
 }: {
+  clearFilters: () => void;
   initialFriendId: string | null;
   initialSection: AppSection;
   refreshLists: () => void;
   setActiveListId: Dispatch<SetStateAction<string | null>>;
   setDeleteListConfirmation: Dispatch<SetStateAction<string>>;
-  setSelectedCategories: Dispatch<SetStateAction<string[]>>;
-  setSelectedPriorities: Dispatch<SetStateAction<Priority[]>>;
 }) {
   const mobileDetailHistoryRef = useRef(false);
   const [appSection, setAppSection] = useState<AppSection>(initialSection);
@@ -64,8 +61,7 @@ export function useAppRouteController({
 
   const selectActiveList = useCallback(
     (listId: string, skipMobileHistory = false) => {
-      setSelectedCategories([]);
-      setSelectedPriorities([]);
+      clearFilters();
       setDeleteListConfirmation("");
       setAppSection("lists");
       setSelectedFriendId(null);
@@ -83,10 +79,9 @@ export function useAppRouteController({
       }
     },
     [
+      clearFilters,
       setActiveListId,
       setDeleteListConfirmation,
-      setSelectedCategories,
-      setSelectedPriorities,
     ],
   );
 

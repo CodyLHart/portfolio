@@ -1029,8 +1029,8 @@ test("sharing and status action controllers own remaining app actions", () => {
   assert.match(listSharingControllerHook, /sendFriendRequestByEmail\(supabase/);
   assert.match(listSharingControllerHook, /inviteListCollaborator\(supabase/);
   assert.match(listSharingControllerHook, /updateListCollaboratorRole\(supabase/);
-  assert.match(appStatusHook, /getErrorMessage/);
   assert.match(appStatusHook, /setStatusMessage/);
+  assert.match(appStatusHook, /statusMessage/);
   assert.doesNotMatch(component, /sendFriendRequestByEmail\(supabase/);
   assert.doesNotMatch(component, /inviteListCollaborator\(supabase/);
   assert.doesNotMatch(component, /updateListCollaboratorRole\(supabase/);

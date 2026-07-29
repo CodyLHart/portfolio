@@ -1,5 +1,5 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import type { NewListDraft } from "../components/modals/CreateListModal";
 import {
@@ -30,12 +30,14 @@ export function useCreateListAction({
   const [newListDraft, setNewListDraft] =
     useState<NewListDraft>(emptyNewListDraft);
   const [isCreatingList, setIsCreatingList] = useState(false);
+  const isCreatingListRef = useRef(false);
 
   const createList = useCallback(async () => {
-    if (isCreatingList || !user || !newListDraft.title.trim()) {
+    if (isCreatingListRef.current || !user || !newListDraft.title.trim()) {
       return;
     }
 
+    isCreatingListRef.current = true;
     setIsCreatingList(true);
 
     let data: List;
@@ -61,6 +63,7 @@ export function useCreateListAction({
       }
     } catch (error) {
       setStatusMessage(getErrorMessage(error));
+      isCreatingListRef.current = false;
       setIsCreatingList(false);
       return;
     }
@@ -71,11 +74,14 @@ export function useCreateListAction({
 
     setNewListDraft(emptyNewListDraft);
     setIsCreateListOpen(false);
-    await loadLists(user.id);
-    setActiveListId(data.id);
-    setIsCreatingList(false);
+    try {
+      await loadLists(user.id);
+      setActiveListId(data.id);
+    } finally {
+      isCreatingListRef.current = false;
+      setIsCreatingList(false);
+    }
   }, [
-    isCreatingList,
     lists,
     loadLists,
     newListDraft,

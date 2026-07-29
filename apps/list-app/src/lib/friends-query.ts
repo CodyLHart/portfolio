@@ -1,6 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
-import { buildFriendSummaries, findFriendSummary } from "./friends";
-import type { FriendSummary } from "./friends";
+import {
+  buildFriendSummaries,
+  findFriendSummary,
+  type FriendSummary,
+} from "../features/friends/lib/friend-utils";
 import type { Collaborator, List } from "./types";
 
 type SharedFriendsResult =

@@ -81,7 +81,7 @@ behavior intact.
 - `src/features/sharing`: collaborator invitation, friend request, collaborator
   role update, and share-link URL acceptance controllers.
 - `src/lib`: Supabase client setup, shared types, formatting helpers, error
-  helpers, compatibility re-exports, and server query helpers.
+  helpers, and server query helpers.
 
 CSS that belongs to standalone components is colocated in `.module.css` files.
 `globals.css` remains for app-wide tokens, base elements, shared button/form

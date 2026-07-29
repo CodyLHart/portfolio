@@ -36,11 +36,6 @@ export function useNotificationsController({
     }
   }, [supabase]);
 
-  const clearAccountInbox = useCallback(() => {
-    setFriends([]);
-    setNotifications([]);
-  }, []);
-
   const acceptFriendRequest = useCallback(
     async (friendshipId: string) => {
       if (!user) {
@@ -130,12 +125,9 @@ export function useNotificationsController({
   return {
     acceptFriendRequest,
     acceptListInvite,
-    clearAccountInbox,
     friends,
     ignoreNotification,
     loadFriendsAndNotifications,
     notifications,
-    setFriends,
-    setNotifications,
   };
 }
