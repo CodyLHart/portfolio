@@ -11,15 +11,40 @@ import {
   ListsWorkspace,
   ListsWorkspaceLoadingView,
 } from "../features/lists/components/ListsWorkspace";
+import { CollaborationModal } from "../features/lists/components/modals/CollaborationModal";
+import {
+  CreateListModal,
+  type NewListDraft,
+} from "../features/lists/components/modals/CreateListModal";
+import { EditItemModal } from "../features/lists/components/modals/EditItemModal";
+import { ListHistoryModal } from "../features/lists/components/modals/ListHistoryModal";
+import { ListSettingsModal } from "../features/lists/components/modals/ListSettingsModal";
+import { RestoreListModal } from "../features/lists/components/modals/RestoreListModal";
+import {
+  createListWithOwner,
+  isMissingListOrderPreferencesError,
+  loadAccessibleLists,
+  loadSharedCandidateLists,
+} from "../features/lists/lib/list-api";
+import {
+  deleteListItems,
+  insertSnapshotItems,
+  loadListWorkspaceData,
+} from "../features/lists/lib/item-api";
+import {
+  buildSnapshotRestoreRows,
+  createListSnapshot,
+} from "../features/lists/lib/history-api";
+import {
+  useListModalState,
+  type ActiveListModal,
+} from "../features/lists/hooks/useListModalState";
 import {
   buildVisibleItemGroups,
   emptyNewListDraft,
   getCategoryOptions,
-  getCategoryStyle,
   getPriorityFilterOptions,
-  itemFieldOptions,
   normalizeItemFields,
-  priorityOptions,
   sortListsByPreference,
 } from "../features/lists/lib/list-utils";
 import type {
@@ -27,7 +52,6 @@ import type {
   ListDropIndicator,
   MobileView,
 } from "../features/lists/types";
-import { formatDateTime } from "../lib/format";
 import {
   buildFriendSummaries,
   findFriendSummary,
@@ -43,17 +67,14 @@ import {
   List,
   ListItemFields,
   ListItem,
-  ListOrderPreference,
   ListRole,
   ListSnapshot,
   Notification,
   Priority,
   Profile,
-  SnapshotItem,
   Suggestion,
 } from "../lib/types";
 
-type ActiveListModal = "collaboration" | "owner" | "history" | null;
 type AppSection = "lists" | "friends";
 type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
@@ -93,21 +114,26 @@ export function ListApp({
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [presenceUsers, setPresenceUsers] = useState<Profile[]>([]);
   const [draft, setDraft] = useState<ItemDraft>(emptyItemDraft);
-  const [newListDraft, setNewListDraft] = useState(emptyNewListDraft);
-  const [isCreateListOpen, setIsCreateListOpen] = useState(false);
+  const [newListDraft, setNewListDraft] =
+    useState<NewListDraft>(emptyNewListDraft);
+  const {
+    activeListModal,
+    editingItem,
+    isCreateListOpen,
+    restoreSnapshot,
+    setActiveListModal,
+    setEditingItem,
+    setIsCreateListOpen,
+    setRestoreSnapshot,
+  } = useListModalState();
   const [friendEmail, setFriendEmail] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<ListRole>("editor");
   const [shareRole, setShareRole] = useState<ListRole>("viewer");
-  const [editingItem, setEditingItem] = useState<ListItem | null>(null);
-  const [restoreSnapshot, setRestoreSnapshot] = useState<ListSnapshot | null>(
-    null,
-  );
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedPriorities, setSelectedPriorities] = useState<Priority[]>([]);
   const [isAddItemOpen, setIsAddItemOpen] = useState(false);
-  const [activeListModal, setActiveListModal] = useState<ActiveListModal>(null);
   const [listNameDraft, setListNameDraft] = useState("");
   const [deleteListConfirmation, setDeleteListConfirmation] = useState("");
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
@@ -217,137 +243,24 @@ export function ListApp({
   }, [categoryOptions, draft.category]);
 
   const loadLists = useCallback(async (userId: string) => {
-    const [ownedResult, collabResult, orderResult] = await Promise.all([
-      supabase
-        .from("lists")
-        .select("*")
-        .eq("owner_id", userId)
-        .order("updated_at", { ascending: false }),
-      supabase
-        .from("list_collaborators")
-        .select("list_id, lists(*)")
-        .eq("user_id", userId)
-        .eq("status", "accepted"),
-      supabase.from("list_order_preferences").select("*").eq("user_id", userId),
-    ]);
-
-    if (ownedResult.error) {
-      throw ownedResult.error;
-    }
-
-    if (collabResult.error) {
-      throw collabResult.error;
-    }
-
-    if (
-      orderResult.error &&
-      !isMissingListOrderPreferencesError(orderResult.error)
-    ) {
-      throw orderResult.error;
-    }
-
-    const ownedLists = (ownedResult.data ?? []) as List[];
-    const collaboratorLists = (collabResult.data ?? [])
-      .map((row) => row.lists as unknown as List | null)
-      .filter(Boolean) as List[];
-    const uniqueLists = Array.from(
-      new Map(
-        [...ownedLists, ...collaboratorLists].map((list) => [list.id, list]),
-      ).values(),
+    const { allCollaborators, lists } = await loadAccessibleLists(
+      supabase,
+      userId,
     );
-    const orderPreferences = orderResult.error
-      ? []
-      : ((orderResult.data ?? []) as ListOrderPreference[]);
-    const sortedLists = sortListsByPreference(uniqueLists, orderPreferences);
-    const listIds = sortedLists.map((list) => list.id);
 
-    setLists(sortedLists);
-    setActiveListId((current) => current ?? sortedLists[0]?.id ?? null);
-
-    if (listIds.length === 0) {
-      setAllListCollaborators([]);
-      return;
-    }
-
-    const { data: allCollaboratorsData, error: allCollaboratorsError } =
-      await supabase
-        .from("list_collaborators")
-        .select("*, profile:profiles!list_collaborators_user_id_fkey(*)")
-        .in("list_id", listIds);
-
-    if (allCollaboratorsError) {
-      throw allCollaboratorsError;
-    }
-
-    setAllListCollaborators((allCollaboratorsData ?? []) as Collaborator[]);
+    setLists(lists);
+    setActiveListId((current) => current ?? lists[0]?.id ?? null);
+    setAllListCollaborators(allCollaborators);
   }, []);
 
   const loadFriendsWorkspaceData = useCallback(async (userId: string) => {
-    const [ownedResult, collabResult] = await Promise.all([
-      supabase
-        .from("lists")
-        .select("*")
-        .eq("owner_id", userId)
-        .order("updated_at", { ascending: false }),
-      supabase
-        .from("list_collaborators")
-        .select("list_id, lists(*)")
-        .eq("user_id", userId)
-        .eq("status", "accepted"),
-    ]);
-
-    if (ownedResult.error) {
-      throw ownedResult.error;
-    }
-
-    if (collabResult.error) {
-      throw collabResult.error;
-    }
-
-    const ownedLists = (ownedResult.data ?? []) as List[];
-    const collaboratorLists = (collabResult.data ?? [])
-      .map((row) => row.lists as unknown as List | null)
-      .filter(Boolean) as List[];
-    const sharedCandidateLists = Array.from(
-      new Map(
-        [...ownedLists, ...collaboratorLists].map((list) => [list.id, list]),
-      ).values(),
-    );
-    const listIds = sharedCandidateLists.map((list) => list.id);
-
-    if (listIds.length === 0) {
-      setLists([]);
-      setAllListCollaborators([]);
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("list_collaborators")
-      .select("*, profile:profiles!list_collaborators_user_id_fkey(*)")
-      .in("list_id", listIds)
-      .eq("status", "accepted");
-
-    if (error) {
-      throw error;
-    }
-
-    const acceptedCollaborators = (data ?? []) as Collaborator[];
-    const sharedListIds = new Set(
-      acceptedCollaborators
-        .filter(
-          (collaborator) =>
-            collaborator.user_id !== userId &&
-            listIds.includes(collaborator.list_id),
-        )
-        .map((collaborator) => collaborator.list_id),
+    const { allCollaborators, lists } = await loadSharedCandidateLists(
+      supabase,
+      userId,
     );
 
-    setLists(sharedCandidateLists.filter((list) => sharedListIds.has(list.id)));
-    setAllListCollaborators(
-      acceptedCollaborators.filter((collaborator) =>
-        sharedListIds.has(collaborator.list_id),
-      ),
-    );
+    setLists(lists);
+    setAllListCollaborators(allCollaborators);
   }, []);
 
   const loadProfile = useCallback(async (authUser: User) => {
@@ -430,47 +343,22 @@ export function ListApp({
   }, []);
 
   const loadListData = useCallback(async (listId: string) => {
-    const [
-      itemsResult,
-      collaboratorsResult,
-      snapshotsResult,
-      suggestionsResult,
-    ] = await Promise.all([
-      supabase
-        .from("list_items")
-        .select("*, assignee:profiles!list_items_assigned_to_fkey(*)")
-        .eq("list_id", listId)
-        .order("position", { ascending: true }),
-      supabase
-        .from("list_collaborators")
-        .select("*, profile:profiles!list_collaborators_user_id_fkey(*)")
-        .eq("list_id", listId),
-      supabase
-        .from("list_snapshots")
-        .select("*")
-        .eq("list_id", listId)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("list_item_suggestions")
-        .select("*")
-        .eq("list_id", listId)
-        .order("usage_count", { ascending: false }),
-    ]);
+    const data = await loadListWorkspaceData(supabase, listId);
 
-    if (!itemsResult.error) {
-      setItems((itemsResult.data ?? []) as ListItem[]);
+    if (data.items) {
+      setItems(data.items);
     }
 
-    if (!collaboratorsResult.error) {
-      setCollaborators((collaboratorsResult.data ?? []) as Collaborator[]);
+    if (data.collaborators) {
+      setCollaborators(data.collaborators);
     }
 
-    if (!snapshotsResult.error) {
-      setSnapshots((snapshotsResult.data ?? []) as ListSnapshot[]);
+    if (data.snapshots) {
+      setSnapshots(data.snapshots);
     }
 
-    if (!suggestionsResult.error) {
-      setSuggestions((suggestionsResult.data ?? []) as Suggestion[]);
+    if (data.suggestions) {
+      setSuggestions(data.suggestions);
     }
   }, []);
 
@@ -789,90 +677,30 @@ export function ListApp({
       return;
     }
 
-    const { data, error } = await supabase
-      .from("lists")
-      .insert({
-        item_fields: newListDraft.itemFields,
-        owner_id: user.id,
+    let data: List;
+    let orderError: unknown = null;
+
+    try {
+      const result = await createListWithOwner(supabase, {
+        collaboratorEmail: newListDraft.collaboratorEmail,
+        collaboratorRole: newListDraft.collaboratorRole,
+        itemFields: newListDraft.itemFields,
+        lists,
+        ownerId: user.id,
         title: newListDraft.title.trim(),
-      })
-      .select("*")
-      .single();
+      });
 
-    if (error) {
-      setStatusMessage(error.message);
-      return;
-    }
+      data = result.list;
+      orderError = result.orderError;
 
-    await supabase.from("list_collaborators").insert({
-      list_id: data.id,
-      role: "owner",
-      status: "accepted",
-      user_id: user.id,
-    });
-
-    const collaboratorEmail = newListDraft.collaboratorEmail
-      .trim()
-      .toLowerCase();
-    if (collaboratorEmail) {
-      const { data: target } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("email", collaboratorEmail)
-        .maybeSingle();
-
-      if (target && target.id !== user.id) {
-        const { data: collaborator } = await supabase
-          .from("list_collaborators")
-          .upsert(
-            {
-              invited_by: user.id,
-              list_id: data.id,
-              role: newListDraft.collaboratorRole,
-              status: "pending",
-              user_id: target.id,
-            },
-            { onConflict: "list_id,user_id" },
-          )
-          .select("*")
-          .single();
-
-        if (collaborator) {
-          await supabase.from("notifications").insert({
-            actor_id: user.id,
-            payload: {
-              collaboratorId: collaborator.id,
-              listId: data.id,
-              listTitle: data.title,
-            },
-            recipient_id: target.id,
-            type: "list_invite",
-          });
-        }
-      } else {
+      if (result.collaboratorLookupFailed) {
         setStatusMessage(
           "List created, but no account was found for that collaborator email.",
         );
       }
-    }
-
-    const timestamp = new Date().toISOString();
-    let orderError: unknown = null;
-
-    try {
-      const { error } = await supabase.from("list_order_preferences").upsert(
-        [data as List, ...lists].map((list, index) => ({
-          list_id: list.id,
-          position: index + 1,
-          updated_at: timestamp,
-          user_id: user.id,
-        })),
-        { onConflict: "user_id,list_id" },
-      );
-
-      orderError = error;
     } catch (error) {
-      orderError = error;
+      setStatusMessage(getErrorMessage(error));
+      return;
     }
 
     if (orderError && !isMissingListOrderPreferencesError(orderError)) {
@@ -1185,35 +1013,17 @@ export function ListApp({
       return null;
     }
 
-    const snapshotItems: SnapshotItem[] = items.map((item) => ({
-      assigned_to: item.assigned_to,
-      category: item.category,
-      completed: item.completed,
-      due_date: item.due_date,
-      notes: item.notes,
-      position: item.position,
-      priority: item.priority,
-      quantity: item.quantity,
-      title: item.title,
-    }));
-
-    const { data, error } = await supabase
-      .from("list_snapshots")
-      .insert({
-        created_by: user.id,
-        items: snapshotItems,
+    try {
+      return await createListSnapshot(supabase, {
+        createdBy: user.id,
+        items,
         label,
-        list_id: activeList.id,
-      })
-      .select("*")
-      .single();
-
-    if (error) {
-      setStatusMessage(error.message);
+        listId: activeList.id,
+      });
+    } catch (error) {
+      setStatusMessage(getErrorMessage(error));
       return null;
     }
-
-    return data as ListSnapshot;
   };
 
   const restoreList = async (snapshot: ListSnapshot) => {
@@ -1225,18 +1035,15 @@ export function ListApp({
       await createSnapshot("Before restoring snapshot");
     }
 
-    await supabase.from("list_items").delete().eq("list_id", activeList.id);
-    const rows = snapshot.items.map((item, index) => ({
-      ...item,
-      assigned_to: item.assigned_to || null,
-      completed_at: item.completed ? new Date().toISOString() : null,
-      created_by: user.id,
-      list_id: activeList.id,
-      position: index + 1,
-    }));
+    await deleteListItems(supabase, activeList.id);
+    const rows = buildSnapshotRestoreRows({
+      createdBy: user.id,
+      listId: activeList.id,
+      snapshot,
+    });
 
     if (rows.length > 0) {
-      const { error } = await supabase.from("list_items").insert(rows);
+      const { error } = await insertSnapshotItems(supabase, rows);
 
       if (error) {
         setStatusMessage(error.message);
@@ -1789,7 +1596,7 @@ export function ListApp({
       </main>
 
       {editingItem ? (
-        <ItemModal
+        <EditItemModal
           categoryOptions={categoryOptions}
           collaborators={collaborators}
           itemFields={itemFields}
@@ -1801,7 +1608,7 @@ export function ListApp({
       ) : null}
 
       {restoreSnapshot ? (
-        <RestoreModal
+        <RestoreListModal
           currentHasItems={items.length > 0}
           restoreList={restoreList}
           setRestoreSnapshot={setRestoreSnapshot}
@@ -1810,330 +1617,67 @@ export function ListApp({
       ) : null}
 
       {activeList && activeListModal === "collaboration" ? (
-        <ListToolModal
-          title="Collaboration"
+        <CollaborationModal
+          acceptedFriendProfiles={acceptedFriendProfiles}
+          activeList={activeList}
+          appOrigin={appOrigin}
+          collaborators={collaborators}
+          friendEmail={friendEmail}
+          friends={friends}
+          inviteCollaborator={inviteCollaborator}
+          inviteEmail={inviteEmail}
+          inviteRole={inviteRole}
+          isOwner={isOwner}
           onClose={() => setActiveListModal(null)}
-        >
-          <p className="eyebrow">Friends</p>
-          <div className="field-grid">
-            <input
-              onChange={(event) => setFriendEmail(event.target.value)}
-              placeholder="Friend email"
-              value={friendEmail}
-            />
-            <button
-              className="secondary-button"
-              onClick={sendFriendRequest}
-              type="button"
-            >
-              Add Friend
-            </button>
-          </div>
-          <FriendList friends={friends} userId={session.user.id} />
-          <p className="eyebrow">Invite To List</p>
-          <div className="field-grid">
-            {acceptedFriendProfiles.length > 0 ? (
-              <select
-                disabled={!isOwner}
-                onChange={(event) => {
-                  if (event.target.value) {
-                    setInviteEmail(event.target.value);
-                  }
-                }}
-                value=""
-              >
-                <option value="">Select existing friend</option>
-                {acceptedFriendProfiles.map((friend) => (
-                  <option key={friend.id} value={friend.email}>
-                    {friend.display_name} ({friend.email})
-                  </option>
-                ))}
-              </select>
-            ) : null}
-            <input
-              disabled={!isOwner}
-              onChange={(event) => setInviteEmail(event.target.value)}
-              placeholder="Invite exact email"
-              value={inviteEmail}
-            />
-            <select
-              disabled={!isOwner}
-              onChange={(event) =>
-                setInviteRole(event.target.value as ListRole)
-              }
-              value={inviteRole}
-            >
-              <option value="editor">Editor</option>
-              <option value="viewer">Viewer</option>
-            </select>
-            <button
-              className="secondary-button"
-              disabled={!isOwner}
-              onClick={inviteCollaborator}
-              type="button"
-            >
-              Invite to list
-            </button>
-          </div>
-          <div className="field-grid">
-            <label>
-              Share role
-              <select
-                onChange={(event) =>
-                  setShareRole(event.target.value as ListRole)
-                }
-                value={shareRole}
-              >
-                <option value="viewer">Viewer</option>
-                <option value="editor">Editor</option>
-              </select>
-            </label>
-            <input
-              readOnly
-              value={`${appOrigin}?join=${activeList.share_token}&role=${shareRole}`}
-            />
-          </div>
-          <CollaboratorList
-            collaborators={collaborators}
-            isOwner={isOwner}
-            updateCollaboratorRole={updateCollaboratorRole}
-          />
-        </ListToolModal>
+          sendFriendRequest={sendFriendRequest}
+          setFriendEmail={setFriendEmail}
+          setInviteEmail={setInviteEmail}
+          setInviteRole={setInviteRole}
+          setShareRole={setShareRole}
+          shareRole={shareRole}
+          updateCollaboratorRole={updateCollaboratorRole}
+          userId={session.user.id}
+        />
       ) : null}
 
       {activeList && activeListModal === "owner" ? (
-        <ListToolModal
-          title="List settings"
+        <ListSettingsModal
+          activeList={activeList}
+          clearAll={clearAll}
+          deleteActiveList={deleteActiveList}
+          deleteListConfirmation={deleteListConfirmation}
+          isOwner={isOwner}
+          itemFields={itemFields}
+          listNameDraft={listNameDraft}
           onClose={() => setActiveListModal(null)}
-        >
-          <p className="muted">
-            These actions change the current list for every collaborator.
-          </p>
-          <p className="eyebrow">List Name</p>
-          <div className="field-grid">
-            <input
-              disabled={!isOwner}
-              onChange={(event) => setListNameDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  void updateListName();
-                }
-              }}
-              value={listNameDraft}
-            />
-            <button
-              className="secondary-button"
-              disabled={
-                !isOwner ||
-                !listNameDraft.trim() ||
-                listNameDraft.trim() === activeList.title
-              }
-              onClick={updateListName}
-              type="button"
-            >
-              Save name
-            </button>
-          </div>
-          <p className="eyebrow">Item Fields</p>
-          <div className="field-toggle-grid">
-            {itemFieldOptions.map((fieldOption) => (
-              <label className="field-toggle" key={fieldOption.key}>
-                <input
-                  checked={itemFields[fieldOption.key]}
-                  disabled={!isOwner}
-                  onChange={(event) =>
-                    updateItemFieldSetting(
-                      fieldOption.key,
-                      event.target.checked,
-                    )
-                  }
-                  type="checkbox"
-                />
-                <span>{fieldOption.label}</span>
-              </label>
-            ))}
-          </div>
-          <p className="eyebrow">List Actions</p>
-          <div className="inline-actions">
-            <button
-              className="danger-button"
-              disabled={!isOwner}
-              onClick={removeCompleted}
-              type="button"
-            >
-              Remove completed
-            </button>
-            <button
-              className="danger-button"
-              disabled={!isOwner}
-              onClick={clearAll}
-              type="button"
-            >
-              Clear all
-            </button>
-          </div>
-          <p className="eyebrow">Delete list</p>
-          <div className="danger-zone">
-            <p className="muted">
-              Type <strong>{activeList.title}</strong> to permanently delete
-              this list.
-            </p>
-            <input
-              disabled={!isOwner}
-              onChange={(event) =>
-                setDeleteListConfirmation(event.target.value)
-              }
-              value={deleteListConfirmation}
-            />
-            <button
-              className="danger-button"
-              disabled={!isOwner || deleteListConfirmation !== activeList.title}
-              onClick={deleteActiveList}
-              type="button"
-            >
-              Delete list
-            </button>
-          </div>
-        </ListToolModal>
+          removeCompleted={removeCompleted}
+          setDeleteListConfirmation={setDeleteListConfirmation}
+          setListNameDraft={setListNameDraft}
+          updateItemFieldSetting={updateItemFieldSetting}
+          updateListName={updateListName}
+        />
       ) : null}
 
       {activeList && activeListModal === "history" ? (
-        <ListToolModal title="History" onClose={() => setActiveListModal(null)}>
-          <div className="history-list">
-            {snapshots.length === 0 ? (
-              <p className="muted">No saved history yet.</p>
-            ) : null}
-            {snapshots.map((snapshot) => (
-              <div className="small-card" key={snapshot.id}>
-                <strong>{snapshot.label}</strong>
-                <span className="muted">
-                  {formatDateTime(snapshot.created_at)}
-                </span>
-                <button
-                  className="secondary-button"
-                  disabled={!isOwner}
-                  onClick={() => {
-                    setActiveListModal(null);
-                    setRestoreSnapshot(snapshot);
-                  }}
-                  type="button"
-                >
-                  Restore
-                </button>
-              </div>
-            ))}
-          </div>
-        </ListToolModal>
+        <ListHistoryModal
+          isOwner={isOwner}
+          onClose={() => setActiveListModal(null)}
+          openRestoreSnapshot={(snapshot) => {
+            setActiveListModal(null);
+            setRestoreSnapshot(snapshot);
+          }}
+          snapshots={snapshots}
+        />
       ) : null}
 
       {isCreateListOpen ? (
-        <ListToolModal
-          title="Create list"
+        <CreateListModal
+          acceptedFriendProfiles={acceptedFriendProfiles}
+          createList={createList}
+          newListDraft={newListDraft}
           onClose={() => setIsCreateListOpen(false)}
-        >
-          <div className="field-grid">
-            <label>
-              List name
-              <input
-                autoFocus
-                onChange={(event) =>
-                  setNewListDraft((current) => ({
-                    ...current,
-                    title: event.target.value,
-                  }))
-                }
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    void createList();
-                  }
-                }}
-                value={newListDraft.title}
-              />
-            </label>
-          </div>
-          <p className="eyebrow">Item Fields</p>
-          <div className="field-toggle-grid">
-            {itemFieldOptions.map((fieldOption) => (
-              <label className="field-toggle" key={fieldOption.key}>
-                <input
-                  checked={newListDraft.itemFields[fieldOption.key]}
-                  onChange={(event) =>
-                    setNewListDraft((current) => ({
-                      ...current,
-                      itemFields: {
-                        ...current.itemFields,
-                        [fieldOption.key]: event.target.checked,
-                      },
-                    }))
-                  }
-                  type="checkbox"
-                />
-                <span>{fieldOption.label}</span>
-              </label>
-            ))}
-          </div>
-          <p className="eyebrow">Optional Collaborator</p>
-          <div className="field-grid">
-            {acceptedFriendProfiles.length > 0 ? (
-              <select
-                onChange={(event) => {
-                  if (event.target.value) {
-                    setNewListDraft((current) => ({
-                      ...current,
-                      collaboratorEmail: event.target.value,
-                    }));
-                  }
-                }}
-                value=""
-              >
-                <option value="">Select existing friend</option>
-                {acceptedFriendProfiles.map((friend) => (
-                  <option key={friend.id} value={friend.email}>
-                    {friend.display_name} ({friend.email})
-                  </option>
-                ))}
-              </select>
-            ) : null}
-            <input
-              onChange={(event) =>
-                setNewListDraft((current) => ({
-                  ...current,
-                  collaboratorEmail: event.target.value,
-                }))
-              }
-              placeholder="Exact email"
-              value={newListDraft.collaboratorEmail}
-            />
-            <select
-              onChange={(event) =>
-                setNewListDraft((current) => ({
-                  ...current,
-                  collaboratorRole: event.target.value as ListRole,
-                }))
-              }
-              value={newListDraft.collaboratorRole}
-            >
-              <option value="editor">Editor</option>
-              <option value="viewer">Viewer</option>
-            </select>
-          </div>
-          <div className="inline-actions">
-            <button
-              className="primary-button"
-              onClick={createList}
-              type="button"
-            >
-              Create list
-            </button>
-            <button
-              className="secondary-button"
-              onClick={() => setIsCreateListOpen(false)}
-              type="button"
-            >
-              Cancel
-            </button>
-          </div>
-        </ListToolModal>
+          setNewListDraft={setNewListDraft}
+        />
       ) : null}
     </Shell>
   );
@@ -2387,326 +1931,6 @@ function FriendDetailLoadingPanel({
   );
 }
 
-function ListToolModal({
-  children,
-  onClose,
-  title,
-}: {
-  children: React.ReactNode;
-  onClose: () => void;
-  title: string;
-}) {
-  return (
-    <div className="modal-backdrop" onMouseDown={onClose}>
-      <div
-        className="modal tool-modal"
-        onMouseDown={(event) => event.stopPropagation()}
-      >
-        <div className="modal-header">
-          <h2>{title}</h2>
-          <button className="icon-button" onClick={onClose} type="button">
-            x
-          </button>
-        </div>
-        <div className="tool-modal-content">{children}</div>
-      </div>
-    </div>
-  );
-}
-
-function ItemModal({
-  categoryOptions,
-  collaborators,
-  itemFields,
-  item,
-  listId,
-  saveItemDetails,
-  setEditingItem,
-}: {
-  categoryOptions: string[];
-  collaborators: Collaborator[];
-  itemFields: ListItemFields;
-  item: ListItem;
-  listId: string | null;
-  saveItemDetails: () => void;
-  setEditingItem: (item: ListItem | null) => void;
-}) {
-  const categoryQuery = item.category?.trim().toLowerCase() ?? "";
-  const matchingCategories = categoryQuery
-    ? categoryOptions.filter((category) =>
-        category.toLowerCase().includes(categoryQuery),
-      )
-    : categoryOptions;
-
-  return (
-    <div className="modal-backdrop" onMouseDown={() => setEditingItem(null)}>
-      <div className="modal" onMouseDown={(event) => event.stopPropagation()}>
-        <h2>Edit item</h2>
-        <div className="field-grid">
-          <label>
-            Title
-            <input
-              onChange={(event) =>
-                setEditingItem({ ...item, title: event.target.value })
-              }
-              value={item.title}
-            />
-          </label>
-          {itemFields.quantity || itemFields.category ? (
-            <div className="field-grid two">
-              {itemFields.quantity ? (
-                <label>
-                  Quantity
-                  <input
-                    onChange={(event) =>
-                      setEditingItem({ ...item, quantity: event.target.value })
-                    }
-                    value={item.quantity ?? ""}
-                  />
-                </label>
-              ) : null}
-              {itemFields.category ? (
-                <label>
-                  Category
-                  <input
-                    list="edit-item-categories"
-                    onChange={(event) =>
-                      setEditingItem({ ...item, category: event.target.value })
-                    }
-                    value={item.category ?? ""}
-                  />
-                </label>
-              ) : null}
-            </div>
-          ) : null}
-          {itemFields.category ? (
-            <datalist id="edit-item-categories">
-              {categoryOptions.map((category) => (
-                <option key={category} value={category} />
-              ))}
-            </datalist>
-          ) : null}
-          {itemFields.category && matchingCategories.length > 0 ? (
-            <div className="category-options">
-              {matchingCategories.slice(0, 8).map((category) => (
-                <button
-                  key={category}
-                  onClick={() => setEditingItem({ ...item, category })}
-                  style={getCategoryStyle(listId, category)}
-                  type="button"
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
-          ) : null}
-          {itemFields.dueDate || itemFields.priority ? (
-            <div className="field-grid two">
-              {itemFields.dueDate ? (
-                <label>
-                  Due date
-                  <input
-                    onChange={(event) =>
-                      setEditingItem({ ...item, due_date: event.target.value })
-                    }
-                    type="date"
-                    value={item.due_date ?? ""}
-                  />
-                </label>
-              ) : null}
-              {itemFields.priority ? (
-                <label>
-                  Priority
-                  <select
-                    onChange={(event) =>
-                      setEditingItem({
-                        ...item,
-                        priority: event.target.value
-                          ? (event.target.value as Priority)
-                          : null,
-                      })
-                    }
-                    value={item.priority ?? ""}
-                  >
-                    <option value="">None</option>
-                    {priorityOptions.map((priority) => (
-                      <option key={priority} value={priority}>
-                        {priority}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
-            </div>
-          ) : null}
-          {itemFields.assignee ? (
-            <label>
-              Assignee
-              <select
-                onChange={(event) =>
-                  setEditingItem({ ...item, assigned_to: event.target.value })
-                }
-                value={item.assigned_to ?? ""}
-              >
-                <option value="">Unassigned</option>
-                {collaborators
-                  .filter((collaborator) => collaborator.status === "accepted")
-                  .map((collaborator) => (
-                    <option
-                      key={collaborator.user_id}
-                      value={collaborator.user_id}
-                    >
-                      {collaborator.profile?.display_name ??
-                        collaborator.user_id}
-                    </option>
-                  ))}
-              </select>
-            </label>
-          ) : null}
-          {itemFields.notes ? (
-            <label>
-              Notes
-              <textarea
-                onChange={(event) =>
-                  setEditingItem({ ...item, notes: event.target.value })
-                }
-                value={item.notes ?? ""}
-              />
-            </label>
-          ) : null}
-        </div>
-        <div className="inline-actions">
-          <button
-            className="primary-button"
-            onClick={saveItemDetails}
-            type="button"
-          >
-            Save
-          </button>
-          <button
-            className="secondary-button"
-            onClick={() => setEditingItem(null)}
-            type="button"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function RestoreModal({
-  currentHasItems,
-  restoreList,
-  setRestoreSnapshot,
-  snapshot,
-}: {
-  currentHasItems: boolean;
-  restoreList: (snapshot: ListSnapshot) => void;
-  setRestoreSnapshot: (snapshot: ListSnapshot | null) => void;
-  snapshot: ListSnapshot;
-}) {
-  return (
-    <div
-      className="modal-backdrop"
-      onMouseDown={() => setRestoreSnapshot(null)}
-    >
-      <div className="modal" onMouseDown={(event) => event.stopPropagation()}>
-        <h2>Restore list</h2>
-        <p>
-          {currentHasItems
-            ? "Restoring this snapshot will overwrite the current list. A snapshot of the current list will be saved first."
-            : "Restoring this snapshot will refill the empty list."}
-        </p>
-        <div className="inline-actions">
-          <button
-            className="danger-button"
-            onClick={() => restoreList(snapshot)}
-            type="button"
-          >
-            Restore
-          </button>
-          <button
-            className="secondary-button"
-            onClick={() => setRestoreSnapshot(null)}
-            type="button"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FriendList({
-  friends,
-  userId,
-}: {
-  friends: FriendRequest[];
-  userId: string;
-}) {
-  const accepted = friends.filter((friend) => friend.status === "accepted");
-
-  return (
-    <div className="friend-list">
-      <p className="eyebrow">Friends</p>
-      {accepted.length === 0 ? (
-        <p className="muted">No accepted friends yet.</p>
-      ) : null}
-      {accepted.map((friend) => {
-        const other =
-          friend.requester_id === userId ? friend.addressee : friend.requester;
-        return (
-          <div className="small-card" key={friend.id}>
-            <strong>{other?.display_name ?? "Friend"}</strong>
-            <span className="muted">{other?.email}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function CollaboratorList({
-  collaborators,
-  isOwner,
-  updateCollaboratorRole,
-}: {
-  collaborators: Collaborator[];
-  isOwner: boolean;
-  updateCollaboratorRole: (collaboratorId: string, role: ListRole) => void;
-}) {
-  return (
-    <div className="collaborator-list">
-      <p className="eyebrow">Collaborators</p>
-      {collaborators.map((collaborator) => (
-        <div className="small-card" key={collaborator.id}>
-          <strong>
-            {collaborator.profile?.display_name ?? collaborator.user_id}
-          </strong>
-          <span className="muted">{collaborator.status}</span>
-          <select
-            disabled={!isOwner || collaborator.role === "owner"}
-            onChange={(event) =>
-              updateCollaboratorRole(
-                collaborator.id,
-                event.target.value as ListRole,
-              )
-            }
-            value={collaborator.role}
-          >
-            <option value="owner">Owner</option>
-            <option value="editor">Editor</option>
-            <option value="viewer">Viewer</option>
-          </select>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 const getCurrentRole = (
   activeList: List | null,
   collaborators: Collaborator[],
@@ -2744,16 +1968,6 @@ const getFriendsRouteState = (): {
     friendId: friendId ? decodeURIComponent(friendId) : null,
     section: "friends",
   };
-};
-
-const isMissingListOrderPreferencesError = (error: unknown) => {
-  const maybeError = error as { code?: unknown; message?: unknown };
-
-  return (
-    maybeError?.code === "PGRST205" &&
-    typeof maybeError.message === "string" &&
-    maybeError.message.includes("list_order_preferences")
-  );
 };
 
 const getErrorMessage = (error: unknown) => {

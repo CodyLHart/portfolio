@@ -114,6 +114,93 @@ const listUtilsSource = await readFile(
     encoding: "utf8",
   },
 );
+const listApiSource = await readFile(
+  new URL("../features/lists/lib/list-api.ts", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const itemApiSource = await readFile(
+  new URL("../features/lists/lib/item-api.ts", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const historyApiSource = await readFile(
+  new URL("../features/lists/lib/history-api.ts", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const listModalStateHook = await readFile(
+  new URL("../features/lists/hooks/useListModalState.ts", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const modalStyles = await readFile(
+  new URL(
+    "../features/lists/components/modals/ListModals.module.css",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const collaborationModal = await readFile(
+  new URL(
+    "../features/lists/components/modals/CollaborationModal.tsx",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const createListModal = await readFile(
+  new URL(
+    "../features/lists/components/modals/CreateListModal.tsx",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const editItemModal = await readFile(
+  new URL(
+    "../features/lists/components/modals/EditItemModal.tsx",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const listHistoryModal = await readFile(
+  new URL(
+    "../features/lists/components/modals/ListHistoryModal.tsx",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const listSettingsModal = await readFile(
+  new URL(
+    "../features/lists/components/modals/ListSettingsModal.tsx",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const restoreListModal = await readFile(
+  new URL(
+    "../features/lists/components/modals/RestoreListModal.tsx",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
 const listTypesSource = await readFile(
   new URL("../features/lists/types.ts", import.meta.url),
   {
@@ -451,6 +538,76 @@ test("lists feature UI and pure helpers live outside the app controller", () => 
   assert.doesNotMatch(component, /function DropZone/);
   assert.doesNotMatch(styles, /\.item-card/);
   assert.doesNotMatch(styles, /\.app-grid/);
+});
+
+test("list modals live in feature components with modal CSS modules", () => {
+  assert.match(component, /<EditItemModal/);
+  assert.match(component, /<RestoreListModal/);
+  assert.match(component, /<CollaborationModal/);
+  assert.match(component, /<ListSettingsModal/);
+  assert.match(component, /<ListHistoryModal/);
+  assert.match(component, /<CreateListModal/);
+  assert.doesNotMatch(component, /function ListToolModal/);
+  assert.doesNotMatch(component, /function ItemModal/);
+  assert.doesNotMatch(component, /function RestoreModal/);
+  assert.doesNotMatch(component, /function FriendList/);
+  assert.doesNotMatch(component, /function CollaboratorList/);
+  assert.match(modalStyles, /\.backdrop/);
+  assert.match(modalStyles, /\.toolModal/);
+  assert.match(modalStyles, /\.dangerZone/);
+  assert.match(modalStyles, /\.fieldToggleGrid/);
+  assert.match(modalStyles, /\.historyList/);
+  assert.doesNotMatch(styles, /\.modal-backdrop/);
+  assert.doesNotMatch(styles, /\.modal-header/);
+  assert.doesNotMatch(styles, /\.tool-modal/);
+  assert.doesNotMatch(styles, /\.danger-zone/);
+  assert.doesNotMatch(styles, /\.field-toggle-grid/);
+  assert.doesNotMatch(styles, /\.history-list/);
+  assert.doesNotMatch(styles, /\.friend-list/);
+  assert.doesNotMatch(styles, /\.collaborator-list/);
+});
+
+test("extracted modals preserve list tools and accessibility hooks", () => {
+  assert.match(createListModal, /export type NewListDraft/);
+  assert.match(createListModal, /autoFocus/);
+  assert.match(createListModal, /event\.key === "Enter"/);
+  assert.match(createListModal, /Create list/);
+  assert.match(createListModal, /Select existing friend/);
+  assert.match(collaborationModal, /Share role/);
+  assert.match(collaborationModal, /Invite to list/);
+  assert.match(collaborationModal, /Collaborators/);
+  assert.match(listSettingsModal, /Save name/);
+  assert.match(listSettingsModal, /Remove completed/);
+  assert.match(listSettingsModal, /Clear all/);
+  assert.match(listSettingsModal, /Delete list/);
+  assert.match(listSettingsModal, /deleteListConfirmation/);
+  assert.match(listHistoryModal, /No saved history yet/);
+  assert.match(listHistoryModal, /formatDateTime/);
+  assert.match(editItemModal, /Edit item/);
+  assert.match(editItemModal, /saveItemDetails/);
+  assert.match(editItemModal, /priorityOptions/);
+  assert.match(editItemModal, /categoryOptions/);
+  assert.match(restoreListModal, /Restoring this snapshot/);
+  assert.match(
+    editItemModal,
+    /onMouseDown=\{\(event\) => event\.stopPropagation\(\)\}/,
+  );
+});
+
+test("list API modules and modal state hook keep orchestration out of the app", () => {
+  assert.match(component, /loadAccessibleLists\(\s*supabase,\s*userId,\s*\)/);
+  assert.match(component, /loadSharedCandidateLists\(/);
+  assert.match(component, /loadListWorkspaceData\(supabase, listId\)/);
+  assert.match(component, /createListWithOwner\(supabase/);
+  assert.match(component, /createListSnapshot\(supabase/);
+  assert.match(component, /buildSnapshotRestoreRows/);
+  assert.match(component, /useListModalState\(\)/);
+  assert.match(listApiSource, /export async function loadAccessibleLists/);
+  assert.match(listApiSource, /export async function createListWithOwner/);
+  assert.match(itemApiSource, /export async function loadListWorkspaceData/);
+  assert.match(historyApiSource, /export async function createListSnapshot/);
+  assert.match(listModalStateHook, /export function useListModalState/);
+  assert.match(listModalStateHook, /type ActiveListModal/);
 });
 
 test("friends routes and server query hooks are present", () => {
