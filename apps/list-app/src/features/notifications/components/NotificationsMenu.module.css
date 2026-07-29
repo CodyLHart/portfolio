@@ -1,0 +1,65 @@
+.popover {
+  position: relative;
+}
+
+.button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: #0f172a;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  padding: 0;
+  position: relative;
+  width: 44px;
+}
+
+.button svg {
+  height: 30px;
+  width: 30px;
+}
+
+.badge {
+  align-items: center;
+  background: #dc2626;
+  color: #fff;
+  display: inline-flex;
+  font-size: 0.65rem;
+  font-weight: 950;
+  height: 17px;
+  justify-content: center;
+  min-width: 17px;
+  padding: 0 5px;
+  position: absolute;
+  right: 0;
+  top: 3px;
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 18px 40px -28px #0f172a;
+  display: grid;
+  gap: 12px;
+  max-width: calc(100vw - 24px);
+  min-width: min(360px, calc(100vw - 24px));
+  padding: 16px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 40;
+}
+
+.list {
+  display: grid;
+  gap: 8px;
+}
+
+.row {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}

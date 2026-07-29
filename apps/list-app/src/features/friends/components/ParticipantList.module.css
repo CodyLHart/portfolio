@@ -1,0 +1,28 @@
+.participants {
+  display: grid;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.participant {
+  color: #475569;
+  display: block;
+  font-size: 0.86rem;
+  font-weight: 750;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.name {
+  color: #334155;
+}
+
+.name::after {
+  color: #94a3b8;
+  content: " - ";
+}
+
+.access {
+  color: #64748b;
+  font-weight: 650;
+}

@@ -3,8 +3,14 @@
 import type { Session, User } from "@supabase/supabase-js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppShell as Shell } from "../components/layout/AppShell";
-import { Avatar } from "../components/ui/Avatar";
-import { LoadingSpinner } from "../components/ui/LoadingSpinner";
+import { FriendsPage } from "../features/friends/components/FriendsPage";
+import {
+  FriendDetailLoadingPanel,
+  FriendsIndexLoadingPanel,
+} from "../features/friends/components/FriendsLoadingRegion";
+import { useFriendsController } from "../features/friends/hooks/useFriendsController";
+import { sendFriendRequestByEmail } from "../features/friends/lib/friends-api";
+import { getFriendsRouteState } from "../features/friends/lib/friend-routes";
 import { LandingPage } from "../features/landing/components/LandingPage";
 import { ListDetailLoadingPanel } from "../features/lists/components/ListDetailLoadingPanel";
 import {
@@ -53,11 +59,11 @@ import type {
   MobileView,
 } from "../features/lists/types";
 import {
-  buildFriendSummaries,
-  findFriendSummary,
-  getRoleForList,
-  type FriendSummary,
-} from "../lib/friends";
+  acceptFriendRequestNotification,
+  acceptListInviteNotification,
+  ignoreAccountNotification,
+  loadAccountInboxData,
+} from "../features/notifications/lib/notifications-api";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import {
   Collaborator,
@@ -171,16 +177,12 @@ export function ListApp({
         ),
     [friends, user?.id],
   );
-  const friendSummaries = useMemo<FriendSummary[]>(
-    () =>
-      buildFriendSummaries({
-        collaborators: allListCollaborators,
-        currentUserId: user?.id ?? null,
-        lists,
-      }),
-    [allListCollaborators, lists, user?.id],
-  );
-  const selectedFriend = findFriendSummary(friendSummaries, selectedFriendId);
+  const { friendSummaries, selectedFriend } = useFriendsController({
+    allListCollaborators,
+    currentUserId: user?.id ?? null,
+    lists,
+    selectedFriendId,
+  });
   const currentRole = getCurrentRole(
     activeList,
     collaborators,
@@ -318,27 +320,14 @@ export function ListApp({
   );
 
   const loadFriendsAndNotifications = useCallback(async (userId: string) => {
-    const [friendsResult, notificationsResult] = await Promise.all([
-      supabase
-        .from("friendships")
-        .select(
-          "*, requester:profiles!friendships_requester_id_fkey(*), addressee:profiles!friendships_addressee_id_fkey(*)",
-        )
-        .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`)
-        .order("updated_at", { ascending: false }),
-      supabase
-        .from("notifications")
-        .select("*, actor:profiles!notifications_actor_id_fkey(*)")
-        .eq("recipient_id", userId)
-        .order("created_at", { ascending: false }),
-    ]);
+    const data = await loadAccountInboxData(supabase, userId);
 
-    if (!friendsResult.error) {
-      setFriends((friendsResult.data ?? []) as FriendRequest[]);
+    if (data.friends) {
+      setFriends(data.friends);
     }
 
-    if (!notificationsResult.error) {
-      setNotifications((notificationsResult.data ?? []) as Notification[]);
+    if (data.notifications) {
+      setNotifications(data.notifications);
     }
   }, []);
 
@@ -1094,43 +1083,16 @@ export function ListApp({
       return;
     }
 
-    const { data: target, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("email", friendEmail.trim().toLowerCase())
-      .maybeSingle();
-
-    if (error || !target) {
-      setStatusMessage("No account found for that exact email.");
+    try {
+      await sendFriendRequestByEmail(supabase, {
+        email: friendEmail,
+        userId: user.id,
+      });
+    } catch (error) {
+      setStatusMessage(getErrorMessage(error));
       return;
     }
 
-    if (target.id === user.id) {
-      setStatusMessage("You cannot add yourself as a friend.");
-      return;
-    }
-
-    const { data: friendship, error: friendshipError } = await supabase
-      .from("friendships")
-      .insert({
-        addressee_id: target.id,
-        requester_id: user.id,
-        status: "pending",
-      })
-      .select("*")
-      .single();
-
-    if (friendshipError) {
-      setStatusMessage(friendshipError.message);
-      return;
-    }
-
-    await supabase.from("notifications").insert({
-      actor_id: user.id,
-      payload: { friendshipId: friendship.id },
-      recipient_id: target.id,
-      type: "friend_request",
-    });
     setFriendEmail("");
   };
 
@@ -1139,22 +1101,22 @@ export function ListApp({
       return;
     }
 
-    const { error } = await supabase
-      .from("friendships")
-      .update({ status: "accepted", updated_at: new Date().toISOString() })
-      .eq("id", friendshipId);
+    let error: unknown = null;
 
-    if (error) {
-      setStatusMessage(error.message);
-      return;
+    try {
+      const result = await acceptFriendRequestNotification(supabase, {
+        friendshipId,
+        userId: user.id,
+      });
+      error = result.error;
+    } catch (requestError) {
+      error = requestError;
     }
 
-    await supabase
-      .from("notifications")
-      .update({ read_at: new Date().toISOString() })
-      .eq("recipient_id", user.id)
-      .eq("type", "friend_request")
-      .contains("payload", { friendshipId });
+    if (error) {
+      setStatusMessage(getErrorMessage(error));
+      return;
+    }
 
     await loadFriendsAndNotifications(user.id);
   };
@@ -1213,22 +1175,22 @@ export function ListApp({
       return;
     }
 
-    const { error } = await supabase
-      .from("list_collaborators")
-      .update({ status: "accepted", updated_at: new Date().toISOString() })
-      .eq("id", collaboratorId);
+    let error: unknown = null;
 
-    if (error) {
-      setStatusMessage(error.message);
-      return;
+    try {
+      const result = await acceptListInviteNotification(supabase, {
+        collaboratorId,
+        userId: user.id,
+      });
+      error = result.error;
+    } catch (requestError) {
+      error = requestError;
     }
 
-    await supabase
-      .from("notifications")
-      .update({ read_at: new Date().toISOString() })
-      .eq("recipient_id", user.id)
-      .eq("type", "list_invite")
-      .contains("payload", { collaboratorId });
+    if (error) {
+      setStatusMessage(getErrorMessage(error));
+      return;
+    }
 
     await loadLists(user.id);
     await loadFriendsAndNotifications(user.id);
@@ -1239,46 +1201,20 @@ export function ListApp({
       return;
     }
 
-    if (notification.type === "friend_request") {
-      const friendshipId = String(notification.payload.friendshipId ?? "");
-      if (friendshipId) {
-        const { error } = await supabase
-          .from("friendships")
-          .update({ status: "blocked", updated_at: new Date().toISOString() })
-          .eq("id", friendshipId)
-          .eq("status", "pending");
+    let error: unknown = null;
 
-        if (error) {
-          setStatusMessage(error.message);
-          return;
-        }
-      }
+    try {
+      const result = await ignoreAccountNotification(supabase, {
+        notification,
+        userId: user.id,
+      });
+      error = result.error;
+    } catch (requestError) {
+      error = requestError;
     }
-
-    if (notification.type === "list_invite") {
-      const collaboratorId = String(notification.payload.collaboratorId ?? "");
-      if (collaboratorId) {
-        const { error } = await supabase
-          .from("list_collaborators")
-          .update({ status: "declined", updated_at: new Date().toISOString() })
-          .eq("id", collaboratorId)
-          .eq("status", "pending");
-
-        if (error) {
-          setStatusMessage(error.message);
-          return;
-        }
-      }
-    }
-
-    const { error } = await supabase
-      .from("notifications")
-      .update({ read_at: new Date().toISOString() })
-      .eq("id", notification.id)
-      .eq("recipient_id", user.id);
 
     if (error) {
-      setStatusMessage(error.message);
+      setStatusMessage(getErrorMessage(error));
       return;
     }
 
@@ -1510,7 +1446,7 @@ export function ListApp({
         profile={profile}
       >
         <main className="app-main friends-main">
-          <FriendsPanel
+          <FriendsPage
             friendSummaries={friendSummaries}
             isLoading={isLoading}
             onBackToFriends={showFriendsIndex}
@@ -1683,254 +1619,6 @@ export function ListApp({
   );
 }
 
-function FriendsPanel({
-  friendSummaries,
-  isLoading,
-  onBackToFriends,
-  onOpenFriend,
-  onOpenList,
-  selectedFriendId,
-  selectedFriend,
-  showLists,
-}: {
-  friendSummaries: FriendSummary[];
-  isLoading: boolean;
-  onBackToFriends: () => void;
-  onOpenFriend: (friendId: string) => void;
-  onOpenList: (listId: string) => void;
-  selectedFriendId: string | null;
-  selectedFriend: FriendSummary | null;
-  showLists: () => void;
-}) {
-  const shouldShowLoading =
-    isLoading &&
-    (selectedFriendId ? !selectedFriend : friendSummaries.length === 0);
-
-  if (shouldShowLoading) {
-    return selectedFriendId ? (
-      <FriendDetailLoadingPanel onBackToFriends={onBackToFriends} />
-    ) : (
-      <FriendsIndexLoadingPanel showLists={showLists} />
-    );
-  }
-
-  if (selectedFriendId && !selectedFriend) {
-    return (
-      <div className="friends-screen">
-        <button
-          aria-label="Back to friends"
-          className="mobile-back-button friends-back-button"
-          onClick={onBackToFriends}
-          type="button"
-        >
-          &larr; Friends
-        </button>
-        <div className="empty-state">
-          <h2>No shared lists</h2>
-          <p>You no longer share any lists with this person.</p>
-          <button
-            className="secondary-button"
-            onClick={onBackToFriends}
-            type="button"
-          >
-            Back to friends
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (selectedFriend) {
-    return (
-      <div className="friends-screen friend-detail-screen">
-        <div className="friends-screen-header">
-          <button
-            aria-label="Back to friends"
-            className="mobile-back-button friends-back-button"
-            onClick={onBackToFriends}
-            type="button"
-          >
-            &larr; Friends
-          </button>
-          <div className="friend-heading">
-            <Avatar profile={selectedFriend.profile} size="large" />
-            <div>
-              <p className="eyebrow">Friend</p>
-              <h1>{selectedFriend.profile.display_name}</h1>
-              <p className="muted">{selectedFriend.profile.email}</p>
-            </div>
-          </div>
-        </div>
-        <div className="friends-section">
-          <div>
-            <h2>Lists shared with {selectedFriend.profile.display_name}</h2>
-            <p className="muted">
-              Open a shared list to manage it with the existing list tools.
-            </p>
-          </div>
-          {selectedFriend.sharedLists.length === 0 ? (
-            <div className="empty-state">
-              <h2>No shared lists</h2>
-              <p>
-                You don&apos;t currently have any lists shared with this person.
-              </p>
-            </div>
-          ) : (
-            <div className="shared-list-rows">
-              {selectedFriend.sharedLists.map((sharedList) => (
-                <button
-                  className="shared-list-row"
-                  key={sharedList.list.id}
-                  onClick={() => onOpenList(sharedList.list.id)}
-                  type="button"
-                >
-                  <span className="shared-list-main">
-                    <strong>{sharedList.list.title}</strong>
-                    <span className="shared-list-participants">
-                      {sharedList.participants.map((participant) => (
-                        <span
-                          className="shared-list-participant"
-                          key={participant.profile.id}
-                        >
-                          <span className="participant-name">
-                            {participant.profile.display_name}
-                          </span>
-                          <span className="participant-access">
-                            {participant.accessLabel}
-                          </span>
-                        </span>
-                      ))}
-                    </span>
-                  </span>
-                  <span aria-hidden="true" className="list-row-chevron">
-                    &rsaquo;
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="friends-screen">
-      <div className="friends-screen-header">
-        <button
-          className="mobile-back-button friends-back-button"
-          onClick={showLists}
-          type="button"
-        >
-          &larr; Your lists
-        </button>
-        <div>
-          <p className="eyebrow">People</p>
-          <h1>Friends</h1>
-        </div>
-      </div>
-      {friendSummaries.length === 0 ? (
-        <div className="empty-state">
-          <h2>No friends yet</h2>
-          <p>People you share lists with will appear here.</p>
-        </div>
-      ) : (
-        <div className="friend-rows">
-          {friendSummaries.map((friend) => {
-            const sharedListCount = friend.sharedLists.length;
-
-            return (
-              <button
-                className="friend-row"
-                key={friend.profile.id}
-                onClick={() => onOpenFriend(friend.profile.id)}
-                type="button"
-              >
-                <Avatar profile={friend.profile} />
-                <span className="friend-row-main">
-                  <strong>{friend.profile.display_name}</strong>
-                  <span>
-                    {sharedListCount} shared list
-                    {sharedListCount === 1 ? "" : "s"}
-                  </span>
-                </span>
-                <span aria-hidden="true" className="list-row-chevron">
-                  &rsaquo;
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function FriendsIndexLoadingPanel({
-  showLists,
-}: {
-  showLists: (() => void) | null;
-}) {
-  return (
-    <div className="friends-screen">
-      <div className="friends-screen-header">
-        <button
-          className="mobile-back-button friends-back-button"
-          disabled={!showLists}
-          onClick={showLists ?? undefined}
-          type="button"
-        >
-          &larr; Your lists
-        </button>
-        <div>
-          <p className="eyebrow">People</p>
-          <h1>Friends</h1>
-        </div>
-      </div>
-      <div className="friend-rows">
-        <LoadingSpinner label="Loading friends" />
-      </div>
-    </div>
-  );
-}
-
-function FriendDetailLoadingPanel({
-  onBackToFriends,
-}: {
-  onBackToFriends?: () => void;
-}) {
-  return (
-    <div className="friends-screen friend-detail-screen">
-      <div className="friends-screen-header">
-        <button
-          aria-label="Back to friends"
-          className="mobile-back-button friends-back-button"
-          disabled={!onBackToFriends}
-          onClick={onBackToFriends}
-          type="button"
-        >
-          &larr; Friends
-        </button>
-        <div>
-          <p className="eyebrow">Friend</p>
-          <h1>Friend details</h1>
-        </div>
-      </div>
-      <div className="friends-section">
-        <div>
-          <h2>Shared lists</h2>
-          <p className="muted">
-            Open a shared list to manage it with the existing list tools.
-          </p>
-        </div>
-        <div className="shared-list-rows">
-          <LoadingSpinner label="Loading shared lists" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 const getCurrentRole = (
   activeList: List | null,
   collaborators: Collaborator[],
@@ -1948,26 +1636,6 @@ const getCurrentRole = (
     collaborators.find((collaborator) => collaborator.user_id === userId)
       ?.role ?? null
   );
-};
-
-const getFriendsRouteState = (): {
-  friendId: string | null;
-  section: AppSection;
-} => {
-  if (typeof window === "undefined") {
-    return { friendId: null, section: "lists" };
-  }
-
-  const [, segment, friendId] = window.location.pathname.split("/");
-
-  if (segment !== "friends") {
-    return { friendId: null, section: "lists" };
-  }
-
-  return {
-    friendId: friendId ? decodeURIComponent(friendId) : null,
-    section: "friends",
-  };
 };
 
 const getErrorMessage = (error: unknown) => {

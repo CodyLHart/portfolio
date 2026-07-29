@@ -1,0 +1,73 @@
+.screen {
+  display: grid;
+  gap: 18px;
+  margin: 0 auto;
+  max-width: 960px;
+}
+
+.header {
+  display: grid;
+  gap: 12px;
+}
+
+.backButton {
+  display: inline-flex;
+  justify-self: start;
+}
+
+.section {
+  display: grid;
+  gap: 14px;
+}
+
+.section h2 {
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+.heading {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+}
+
+.heading h1 {
+  font-size: var(--app-h1-size);
+}
+
+.heading h1,
+.heading :global(.muted) {
+  overflow-wrap: anywhere;
+}
+
+.rows {
+  display: grid;
+  gap: 8px;
+}
+
+.emptyState {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  color: #64748b;
+  display: grid;
+  gap: 10px;
+  font-weight: 750;
+  padding: 18px;
+}
+
+.emptyState h2 {
+  color: #0f172a;
+  font-size: 1.1rem;
+}
+
+.emptyState p {
+  line-height: 1.45;
+  margin: 0;
+}
+
+@media (max-width: 860px) {
+  .screen {
+    gap: 16px;
+  }
+}

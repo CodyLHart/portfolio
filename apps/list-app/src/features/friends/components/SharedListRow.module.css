@@ -1,0 +1,40 @@
+.row {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 68px;
+  padding: 12px;
+  text-align: left;
+  text-decoration: none;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
+}
+
+.row:hover,
+.row:focus-visible {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.main strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 860px) {
+  .row {
+    min-height: 68px;
+  }
+}

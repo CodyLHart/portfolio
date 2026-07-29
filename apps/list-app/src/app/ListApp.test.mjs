@@ -45,6 +45,144 @@ const loadingSpinnerStyles = await readFile(
     encoding: "utf8",
   },
 );
+const friendsPageComponent = await readFile(
+  new URL("../features/friends/components/FriendsPage.tsx", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const friendsIndexComponent = await readFile(
+  new URL("../features/friends/components/FriendsIndex.tsx", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const friendRowComponent = await readFile(
+  new URL("../features/friends/components/FriendRow.tsx", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const friendDetailComponent = await readFile(
+  new URL("../features/friends/components/FriendDetail.tsx", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const sharedListRowComponent = await readFile(
+  new URL("../features/friends/components/SharedListRow.tsx", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const participantListComponent = await readFile(
+  new URL("../features/friends/components/ParticipantList.tsx", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const friendsLoadingComponent = await readFile(
+  new URL(
+    "../features/friends/components/FriendsLoadingRegion.tsx",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const friendsPageStyles = await readFile(
+  new URL(
+    "../features/friends/components/FriendsPage.module.css",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const friendRowStyles = await readFile(
+  new URL(
+    "../features/friends/components/FriendRow.module.css",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const sharedListRowStyles = await readFile(
+  new URL(
+    "../features/friends/components/SharedListRow.module.css",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const participantListStyles = await readFile(
+  new URL(
+    "../features/friends/components/ParticipantList.module.css",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const friendsApiSource = await readFile(
+  new URL("../features/friends/lib/friends-api.ts", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const friendsControllerSource = await readFile(
+  new URL("../features/friends/hooks/useFriendsController.ts", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const notificationMenuComponent = await readFile(
+  new URL(
+    "../features/notifications/components/NotificationsMenu.tsx",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const notificationRowComponent = await readFile(
+  new URL(
+    "../features/notifications/components/NotificationRow.tsx",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const notificationMenuStyles = await readFile(
+  new URL(
+    "../features/notifications/components/NotificationsMenu.module.css",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const notificationsApiSource = await readFile(
+  new URL(
+    "../features/notifications/lib/notifications-api.ts",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const notificationUtilsSource = await readFile(
+  new URL(
+    "../features/notifications/lib/notification-utils.ts",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
 const landingComponent = await readFile(
   new URL("../features/landing/components/LandingPage.tsx", import.meta.url),
   {
@@ -207,9 +345,12 @@ const listTypesSource = await readFile(
     encoding: "utf8",
   },
 );
-const friendsSource = await readFile(new URL("../lib/friends.ts", import.meta.url), {
-  encoding: "utf8",
-});
+const friendsSource = await readFile(
+  new URL("../features/friends/lib/friend-utils.ts", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
 const friendsQuerySource = await readFile(
   new URL("../lib/friends-query.ts", import.meta.url),
   {
@@ -281,17 +422,26 @@ test("loading lists renders static workspace UI with localized spinners", () => 
 
 test("loading lists keeps existing content during background refreshes", () => {
   assert.match(listsIndexComponent, /isLoading && lists\.length === 0/);
-  assert.match(component, /selectedFriendId \? !selectedFriend : friendSummaries\.length === 0/);
+  assert.match(
+    friendsPageComponent,
+    /selectedFriendId \? !selectedFriend : friendSummaries\.length === 0/,
+  );
   assert.doesNotMatch(component, /setLists\(\[\]\);\n\s*setIsLoading\(true\)/);
 });
 
 test("loading Friends uses static Friends UI with localized spinners", () => {
-  assert.match(component, /function FriendsIndexLoadingPanel/);
-  assert.match(component, /function FriendDetailLoadingPanel/);
-  assert.match(component, /<h1>Friends<\/h1>/);
-  assert.match(component, /<h2>Shared lists<\/h2>/);
-  assert.match(component, /<LoadingSpinner label="Loading friends" \/>/);
-  assert.match(component, /<LoadingSpinner label="Loading shared lists" \/>/);
+  assert.match(component, /<FriendsIndexLoadingPanel showLists=\{null\} \/>/);
+  assert.match(component, /<FriendDetailLoadingPanel \/>/);
+  assert.match(friendsLoadingComponent, /<h1>Friends<\/h1>/);
+  assert.match(friendsLoadingComponent, /<h2>Shared lists<\/h2>/);
+  assert.match(
+    friendsLoadingComponent,
+    /<LoadingSpinner label="Loading friends" \/>/,
+  );
+  assert.match(
+    friendsLoadingComponent,
+    /<LoadingSpinner label="Loading shared lists" \/>/,
+  );
   assert.doesNotMatch(component, /FriendsIndexSkeleton/);
   assert.doesNotMatch(component, /FriendDetailSkeleton/);
   assert.doesNotMatch(component, /Loading shared lists\.\.\./);
@@ -468,18 +618,18 @@ test("shared list participant model renders owner first with text access labels"
 });
 
 test("friends navigation and empty states are present in the app UI", () => {
-  assert.match(component, /FriendsPanel/);
-  assert.match(component, /No friends yet/);
-  assert.match(component, /No shared lists/);
-  assert.match(component, /Lists shared with/);
+  assert.match(component, /<FriendsPage/);
+  assert.match(friendsIndexComponent, /No friends yet/);
+  assert.match(friendDetailComponent, /No shared lists/);
+  assert.match(friendDetailComponent, /Lists shared with/);
   assert.ok(appShellComponent.includes('href="/friends"'));
-  assert.match(styles, /\.friend-row/);
-  assert.match(styles, /\.shared-list-row/);
-  assert.match(styles, /\.shared-list-participants/);
-  assert.match(styles, /\.participant-access/);
+  assert.match(friendRowStyles, /\.row/);
+  assert.match(sharedListRowStyles, /\.row/);
+  assert.match(participantListStyles, /\.participants/);
+  assert.match(participantListStyles, /\.access/);
   assert.doesNotMatch(
-    component,
-    /className="shared-list-row"[\s\S]*Updated/,
+    sharedListRowComponent,
+    /Updated/,
   );
   assert.doesNotMatch(component, /permission-pills/);
   assert.doesNotMatch(styles, /permission-pills/);
@@ -491,6 +641,8 @@ test("friends routes render outside the list workspace", () => {
   assert.match(component, /appSection === "friends"/);
   assert.match(component, /className="app-main friends-main"/);
   assert.match(component, /loadFriendsWorkspaceData/);
+  assert.match(friendsPageComponent, /function FriendsPage/);
+  assert.match(friendsPageStyles, /\.screen/);
   assert.doesNotMatch(friendsRoute, /app-grid|sidebar|Your lists/);
   assert.doesNotMatch(friendDetailRoute, /app-grid|sidebar|Your lists/);
   assert.match(styles, /\.friends-main/);
@@ -513,11 +665,12 @@ test("avatar menu is structured as an account menu", () => {
 
 test("shared shell, avatar, spinner, and landing live outside the app controller", () => {
   assert.match(component, /import \{ AppShell as Shell \}/);
-  assert.match(component, /import \{ Avatar \}/);
-  assert.match(component, /import \{ LoadingSpinner \}/);
+  assert.doesNotMatch(component, /import \{ Avatar \}/);
+  assert.doesNotMatch(component, /import \{ LoadingSpinner \}/);
   assert.match(component, /import \{ LandingPage \}/);
   assert.match(appShellStyles, /\.appShell/);
-  assert.match(appShellStyles, /\.notificationButton/);
+  assert.match(appShellComponent, /<NotificationsMenu/);
+  assert.match(notificationMenuStyles, /\.button/);
   assert.match(avatarComponent, /size\?: "default" \| "large"/);
   assert.match(avatarStyles, /\.large/);
   assert.doesNotMatch(styles, /\.app-shell/);
@@ -608,6 +761,44 @@ test("list API modules and modal state hook keep orchestration out of the app", 
   assert.match(historyApiSource, /export async function createListSnapshot/);
   assert.match(listModalStateHook, /export function useListModalState/);
   assert.match(listModalStateHook, /type ActiveListModal/);
+});
+
+test("friends feature components own friends UI outside the app controller", () => {
+  assert.match(component, /useFriendsController/);
+  assert.match(component, /<FriendsPage/);
+  assert.doesNotMatch(component, /function FriendsPanel/);
+  assert.doesNotMatch(component, /function FriendsIndexLoadingPanel/);
+  assert.doesNotMatch(component, /function FriendDetailLoadingPanel/);
+  assert.match(friendsControllerSource, /buildFriendSummaries/);
+  assert.ok(friendRowComponent.includes('href={`/friends/${friend.profile.id}`}'));
+  assert.match(sharedListRowComponent, /onOpenList\(sharedList\.list\.id\)/);
+  assert.match(participantListComponent, /participant\.accessLabel/);
+  assert.match(friendsApiSource, /sendFriendRequestByEmail/);
+  assert.match(friendsPageStyles, /\.emptyState/);
+  assert.doesNotMatch(styles, /\.friends-screen/);
+  assert.doesNotMatch(styles, /\.friend-row/);
+  assert.doesNotMatch(styles, /\.shared-list-row/);
+  assert.doesNotMatch(styles, /\.shared-list-participants/);
+  assert.doesNotMatch(styles, /\.participant-access/);
+});
+
+test("notifications feature owns notification menu UI and API helpers", () => {
+  assert.match(appShellComponent, /from "\.\.\/\.\.\/features\/notifications/);
+  assert.match(notificationMenuComponent, /aria-label="Notifications"/);
+  assert.match(notificationMenuComponent, /event\.key === "Escape"/);
+  assert.match(notificationMenuComponent, /getUnreadNotificationCount/);
+  assert.match(notificationRowComponent, /Accept Friend/);
+  assert.match(notificationRowComponent, /Accept List/);
+  assert.match(notificationRowComponent, /ignoreNotification/);
+  assert.match(notificationUtilsSource, /getNotificationLabel/);
+  assert.match(notificationsApiSource, /loadAccountInboxData/);
+  assert.match(notificationsApiSource, /acceptFriendRequestNotification/);
+  assert.match(notificationsApiSource, /acceptListInviteNotification/);
+  assert.match(notificationsApiSource, /ignoreAccountNotification/);
+  assert.match(notificationMenuStyles, /\.panel/);
+  assert.doesNotMatch(appShellComponent, /function NotificationsMenu/);
+  assert.doesNotMatch(styles, /\.notification-list/);
+  assert.doesNotMatch(styles, /\.popover-panel/);
 });
 
 test("friends routes and server query hooks are present", () => {
