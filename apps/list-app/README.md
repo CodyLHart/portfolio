@@ -57,7 +57,8 @@ behavior intact.
 - `src/app/api/friends`: authenticated API routes for Friends summaries and
   detail data.
 - `src/features/app`: authenticated route state, browser history, mobile detail
-  navigation, and shared-list route handoff helpers.
+  navigation, shared-list route handoff helpers, and app-wide status message
+  state.
 - `src/components/layout`: reusable shell pieces such as the authenticated
   header and account menu.
 - `src/components/ui`: shared leaf UI such as avatars and persistent loading
@@ -69,19 +70,28 @@ behavior intact.
 - `src/features/realtime`: Supabase Realtime subscriptions for account inbox,
   list detail, collaborator changes, list refreshes, and presence.
 - `src/features/notifications`: notification menu UI, notification rows,
-  account inbox API helpers, and notification-label utilities.
+  account inbox API helpers, notification action controller, and
+  notification-label utilities.
 - `src/features/friends`: Friends page UI, shared-list rows, participant lists,
   Friends controller hooks, client API helpers, and Friends domain derivation.
 - `src/features/lists`: the signed-in list workspace, list navigation, selected
   list detail, item entry, item rows, drag/drop zones, list-related modals,
-  list/item/history/settings/sharing controllers, feature API helpers,
-  list-specific types, and pure list utilities.
+  list creation, list ordering, list/item/history/settings controllers, feature
+  API helpers, list-specific types, and pure list utilities.
+- `src/features/sharing`: collaborator invitation, friend request, collaborator
+  role update, and share-link URL acceptance controllers.
 - `src/lib`: Supabase client setup, shared types, formatting helpers, error
   helpers, compatibility re-exports, and server query helpers.
 
 CSS that belongs to standalone components is colocated in `.module.css` files.
 `globals.css` remains for app-wide tokens, base elements, shared button/form
 primitives, and layout utilities shared across feature surfaces.
+
+`src/app/ListApp.tsx` is intentionally kept as a top-level composer. It owns the
+remaining cross-feature state needed to connect Lists, Friends, profile,
+realtime, and routing, while feature hooks own mutation/action orchestration.
+Share-link acceptance lives in `src/features/sharing`, and notification actions
+live in `src/features/notifications`.
 
 ## Local Development
 

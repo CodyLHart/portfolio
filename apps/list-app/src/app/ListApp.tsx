@@ -1,19 +1,19 @@
 "use client";
 
 import type { User } from "@supabase/supabase-js";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { AppShell as Shell } from "../components/layout/AppShell";
 import {
   useAppRouteController,
   type AppSection,
 } from "../features/app/hooks/useAppRouteController";
+import { useAppStatus } from "../features/app/hooks/useAppStatus";
 import { FriendsPage } from "../features/friends/components/FriendsPage";
 import {
   FriendDetailLoadingPanel,
   FriendsIndexLoadingPanel,
 } from "../features/friends/components/FriendsLoadingRegion";
 import { useFriendsController } from "../features/friends/hooks/useFriendsController";
-import { sendFriendRequestByEmail } from "../features/friends/lib/friends-api";
 import { LandingPage } from "../features/landing/components/LandingPage";
 import { ListDetailLoadingPanel } from "../features/lists/components/ListDetailLoadingPanel";
 import {
@@ -21,70 +21,48 @@ import {
   ListsWorkspaceLoadingView,
 } from "../features/lists/components/ListsWorkspace";
 import { CollaborationModal } from "../features/lists/components/modals/CollaborationModal";
-import {
-  CreateListModal,
-  type NewListDraft,
-} from "../features/lists/components/modals/CreateListModal";
+import { CreateListModal } from "../features/lists/components/modals/CreateListModal";
 import { EditItemModal } from "../features/lists/components/modals/EditItemModal";
 import { ListHistoryModal } from "../features/lists/components/modals/ListHistoryModal";
 import { ListSettingsModal } from "../features/lists/components/modals/ListSettingsModal";
 import { RestoreListModal } from "../features/lists/components/modals/RestoreListModal";
 import {
-  createListWithOwner,
-  isMissingListOrderPreferencesError,
   loadAccessibleLists,
   loadSharedCandidateLists,
-  saveListOrderPreferences,
 } from "../features/lists/lib/list-api";
 import { loadListWorkspaceData } from "../features/lists/lib/item-api";
 import {
   useListModalState,
   type ActiveListModal,
 } from "../features/lists/hooks/useListModalState";
+import { useCreateListAction } from "../features/lists/hooks/useCreateListAction";
+import { useListFilters } from "../features/lists/hooks/useListFilters";
 import { useListItemReordering } from "../features/lists/hooks/useListItemReordering";
 import { useListItemMutations } from "../features/lists/hooks/useListItemMutations";
 import { useListHistoryController } from "../features/lists/hooks/useListHistoryController";
+import { useListOrderController } from "../features/lists/hooks/useListOrderController";
 import { useListSettingsController } from "../features/lists/hooks/useListSettingsController";
 import {
-  acceptShareLink,
-  inviteListCollaborator,
-  updateListCollaboratorRole,
-} from "../features/lists/lib/sharing-api";
-import {
-  buildVisibleItemGroups,
-  emptyNewListDraft,
-  getCategoryOptions,
-  getPriorityFilterOptions,
   normalizeItemFields,
   sortListsByPreference,
 } from "../features/lists/lib/list-utils";
-import type {
-  DropPlacement,
-  ListDropIndicator,
-} from "../features/lists/types";
-import {
-  acceptFriendRequestNotification,
-  acceptListInviteNotification,
-  ignoreAccountNotification,
-  loadAccountInboxData,
-} from "../features/notifications/lib/notifications-api";
+import { useNotificationsController } from "../features/notifications/hooks/useNotificationsController";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { signInWithGoogle, signOutUser } from "../features/profile/lib/auth-api";
 import { useAuthSession } from "../features/profile/hooks/useAuthSession";
 import { useProfileController } from "../features/profile/hooks/useProfileController";
 import { useAppRealtimeSubscriptions } from "../features/realtime/hooks/useAppRealtimeSubscriptions";
+import { useListSharingController } from "../features/sharing/hooks/useListSharingController";
+import { useShareLinkAcceptance } from "../features/sharing/hooks/useShareLinkAcceptance";
 import {
   Collaborator,
   emptyItemDraft,
-  FriendRequest,
   ItemDraft,
   List,
   ListItemFields,
   ListItem,
   ListRole,
   ListSnapshot,
-  Notification,
-  Priority,
   Profile,
   Suggestion,
 } from "../lib/types";
@@ -104,14 +82,10 @@ export function ListApp({
   const [allListCollaborators, setAllListCollaborators] = useState<
     Collaborator[]
   >([]);
-  const [friends, setFriends] = useState<FriendRequest[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [snapshots, setSnapshots] = useState<ListSnapshot[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [presenceUsers, setPresenceUsers] = useState<Profile[]>([]);
   const [draft, setDraft] = useState<ItemDraft>(emptyItemDraft);
-  const [newListDraft, setNewListDraft] =
-    useState<NewListDraft>(emptyNewListDraft);
   const {
     activeListModal,
     editingItem,
@@ -122,19 +96,10 @@ export function ListApp({
     setIsCreateListOpen,
     setRestoreSnapshot,
   } = useListModalState();
-  const [friendEmail, setFriendEmail] = useState("");
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<ListRole>("editor");
-  const [shareRole, setShareRole] = useState<ListRole>("viewer");
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedPriorities, setSelectedPriorities] = useState<Priority[]>([]);
+  const { setStatusMessage, statusMessage } = useAppStatus();
   const [isAddItemOpen, setIsAddItemOpen] = useState(false);
   const [listNameDraft, setListNameDraft] = useState("");
   const [deleteListConfirmation, setDeleteListConfirmation] = useState("");
-  const [draggedListId, setDraggedListId] = useState<string | null>(null);
-  const [listDropIndicator, setListDropIndicator] =
-    useState<ListDropIndicator>(null);
   const [isLoading, setIsLoading] = useState(true);
   const authenticatedUserRef = useRef<User | null>(null);
   const { clearProfile, loadProfile, profile } = useProfileController({
@@ -142,6 +107,29 @@ export function ListApp({
   });
 
   const activeList = lists.find((list) => list.id === activeListId) ?? null;
+  const itemFields = useMemo(
+    () => normalizeItemFields(activeList?.item_fields),
+    [activeList?.item_fields],
+  );
+  const {
+    categoryOptions,
+    clearFilters,
+    hasFilterOptions,
+    matchingCategoryOptions,
+    priorityFilterOptions,
+    selectedCategories,
+    selectedPriorities,
+    setSelectedCategories,
+    setSelectedPriorities,
+    toggleCategoryFilter,
+    togglePriorityFilter,
+    visibleItemGroups,
+  } = useListFilters({
+    draftCategory: draft.category,
+    itemFields,
+    items,
+    suggestions,
+  });
 
   const loadLists = useCallback(async (userId: string) => {
     const { allCollaborators, lists } = await loadAccessibleLists(
@@ -182,18 +170,6 @@ export function ListApp({
     },
     [initialSection, loadFriendsWorkspaceData, loadLists, loadProfile],
   );
-
-  const loadFriendsAndNotifications = useCallback(async (userId: string) => {
-    const data = await loadAccountInboxData(supabase, userId);
-
-    if (data.friends) {
-      setFriends(data.friends);
-    }
-
-    if (data.notifications) {
-      setNotifications(data.notifications);
-    }
-  }, []);
 
   const loadListData = useCallback(async (listId: string) => {
     const data = await loadListWorkspaceData(supabase, listId);
@@ -262,6 +238,42 @@ export function ListApp({
     supabase,
   });
   authenticatedUserRef.current = user;
+  const {
+    acceptFriendRequest,
+    acceptListInvite,
+    friends,
+    ignoreNotification,
+    loadFriendsAndNotifications,
+    notifications,
+  } = useNotificationsController({
+    loadLists,
+    setStatusMessage,
+    supabase,
+    user,
+  });
+  const { createList, newListDraft, setNewListDraft } = useCreateListAction({
+    lists,
+    loadLists,
+    setActiveListId,
+    setIsCreateListOpen,
+    setStatusMessage,
+    supabase,
+    user,
+  });
+  const {
+    draggedListId,
+    listDropIndicator,
+    reorderListByDrop,
+    setDraggedListId,
+    setListDropIndicator,
+  } = useListOrderController({
+    lists,
+    loadLists,
+    setLists,
+    setStatusMessage,
+    supabase,
+    user,
+  });
 
   const acceptedFriendProfiles = useMemo(
     () =>
@@ -291,21 +303,26 @@ export function ListApp({
   );
   const canEdit = currentRole === "owner" || currentRole === "editor";
   const isOwner = currentRole === "owner";
-  const itemFields = useMemo(
-    () => normalizeItemFields(activeList?.item_fields),
-    [activeList?.item_fields],
-  );
+  const {
+    friendEmail,
+    inviteCollaborator,
+    inviteEmail,
+    inviteRole,
+    sendFriendRequest,
+    setFriendEmail,
+    setInviteEmail,
+    setInviteRole,
+    setShareRole,
+    shareRole,
+    updateCollaboratorRole,
+  } = useListSharingController({
+    activeList,
+    isOwner,
+    setStatusMessage,
+    supabase,
+    user,
+  });
   const appOrigin = typeof window === "undefined" ? "" : window.location.origin;
-
-  const visibleItemGroups = useMemo(
-    () =>
-      buildVisibleItemGroups({
-        items,
-        selectedCategories,
-        selectedPriorities,
-      }),
-    [items, selectedCategories, selectedPriorities],
-  );
 
   const matchingSuggestions = useMemo(() => {
     const query = draft.title.trim().toLowerCase();
@@ -317,33 +334,6 @@ export function ListApp({
       .filter((suggestion) => suggestion.title.toLowerCase().includes(query))
       .slice(0, 6);
   }, [activeList, draft.title, suggestions]);
-
-  const categoryOptions = useMemo(
-    () => getCategoryOptions({ itemFields, items, suggestions }),
-    [itemFields, items, suggestions],
-  );
-
-  const priorityFilterOptions = useMemo(
-    () => getPriorityFilterOptions({ itemFields, items }),
-    [itemFields, items],
-  );
-  const hasFilterOptions =
-    categoryOptions.length > 0 ||
-    priorityFilterOptions.length > 0 ||
-    selectedCategories.length > 0 ||
-    selectedPriorities.length > 0;
-
-  const matchingCategoryOptions = useMemo(() => {
-    const query = draft.category.trim().toLowerCase();
-
-    if (!query) {
-      return categoryOptions;
-    }
-
-    return categoryOptions.filter((category) =>
-      category.toLowerCase().includes(query),
-    );
-  }, [categoryOptions, draft.category]);
 
   const {
     beginItemDrag,
@@ -436,43 +426,13 @@ export function ListApp({
     supabase,
     user,
   });
-
-  useEffect(() => {
-    if (!user || typeof window === "undefined") {
-      return;
-    }
-
-    const params = new URLSearchParams(window.location.search);
-    const joinToken = params.get("join");
-    const requestedRole = params.get("role") === "editor" ? "editor" : "viewer";
-
-    if (!joinToken) {
-      return;
-    }
-
-    const acceptShareLinkFromUrl = async () => {
-      const { data, error } = await acceptShareLink(supabase, {
-        requestedRole,
-        token: joinToken,
-      });
-
-      if (error) {
-        setStatusMessage(error.message);
-        return;
-      }
-
-      const nextUrl = new URL(window.location.href);
-      nextUrl.searchParams.delete("join");
-      nextUrl.searchParams.delete("role");
-      window.history.replaceState({}, "", nextUrl.toString());
-
-      await loadLists(user.id);
-      setActiveListId(data as string);
-      setStatusMessage("You joined the shared list.");
-    };
-
-    void acceptShareLinkFromUrl();
-  }, [loadLists, user]);
+  useShareLinkAcceptance({
+    loadLists,
+    setActiveListId,
+    setStatusMessage,
+    supabase,
+    user,
+  });
 
   const signIn = async () => {
     if (!isSupabaseConfigured) {
@@ -499,262 +459,6 @@ export function ListApp({
     await signOutUser(supabase);
   };
 
-  const createList = async () => {
-    if (!user || !newListDraft.title.trim()) {
-      return;
-    }
-
-    let data: List;
-    let orderError: unknown = null;
-
-    try {
-      const result = await createListWithOwner(supabase, {
-        collaboratorEmail: newListDraft.collaboratorEmail,
-        collaboratorRole: newListDraft.collaboratorRole,
-        itemFields: newListDraft.itemFields,
-        lists,
-        ownerId: user.id,
-        title: newListDraft.title.trim(),
-      });
-
-      data = result.list;
-      orderError = result.orderError;
-
-      if (result.collaboratorLookupFailed) {
-        setStatusMessage(
-          "List created, but no account was found for that collaborator email.",
-        );
-      }
-    } catch (error) {
-      setStatusMessage(getErrorMessage(error));
-      return;
-    }
-
-    if (orderError && !isMissingListOrderPreferencesError(orderError)) {
-      setStatusMessage(getErrorMessage(orderError));
-    }
-
-    setNewListDraft(emptyNewListDraft);
-    setIsCreateListOpen(false);
-    await loadLists(user.id);
-    setActiveListId(data.id);
-  };
-
-  const sendFriendRequest = async () => {
-    if (!user || !friendEmail.trim()) {
-      return;
-    }
-
-    try {
-      await sendFriendRequestByEmail(supabase, {
-        email: friendEmail,
-        userId: user.id,
-      });
-    } catch (error) {
-      setStatusMessage(getErrorMessage(error));
-      return;
-    }
-
-    setFriendEmail("");
-  };
-
-  const acceptFriendRequest = async (friendshipId: string) => {
-    if (!user) {
-      return;
-    }
-
-    let error: unknown = null;
-
-    try {
-      const result = await acceptFriendRequestNotification(supabase, {
-        friendshipId,
-        userId: user.id,
-      });
-      error = result.error;
-    } catch (requestError) {
-      error = requestError;
-    }
-
-    if (error) {
-      setStatusMessage(getErrorMessage(error));
-      return;
-    }
-
-    await loadFriendsAndNotifications(user.id);
-  };
-
-  const inviteCollaborator = async () => {
-    if (!activeList || !user || !isOwner || !inviteEmail.trim()) {
-      return;
-    }
-
-    try {
-      await inviteListCollaborator(supabase, {
-        invitedBy: user.id,
-        listId: activeList.id,
-        listTitle: activeList.title,
-        role: inviteRole,
-        targetEmail: inviteEmail,
-      });
-    } catch (error) {
-      setStatusMessage(getErrorMessage(error));
-      return;
-    }
-
-    setInviteEmail("");
-  };
-
-  const acceptListInvite = async (collaboratorId: string) => {
-    if (!user) {
-      return;
-    }
-
-    let error: unknown = null;
-
-    try {
-      const result = await acceptListInviteNotification(supabase, {
-        collaboratorId,
-        userId: user.id,
-      });
-      error = result.error;
-    } catch (requestError) {
-      error = requestError;
-    }
-
-    if (error) {
-      setStatusMessage(getErrorMessage(error));
-      return;
-    }
-
-    await loadLists(user.id);
-    await loadFriendsAndNotifications(user.id);
-  };
-
-  const ignoreNotification = async (notification: Notification) => {
-    if (!user) {
-      return;
-    }
-
-    let error: unknown = null;
-
-    try {
-      const result = await ignoreAccountNotification(supabase, {
-        notification,
-        userId: user.id,
-      });
-      error = result.error;
-    } catch (requestError) {
-      error = requestError;
-    }
-
-    if (error) {
-      setStatusMessage(getErrorMessage(error));
-      return;
-    }
-
-    await loadFriendsAndNotifications(user.id);
-    await loadLists(user.id);
-  };
-
-  const updateCollaboratorRole = async (
-    collaboratorId: string,
-    role: ListRole,
-  ) => {
-    if (!isOwner) {
-      return;
-    }
-
-    const { error } = await updateListCollaboratorRole(supabase, {
-      collaboratorId,
-      role,
-    });
-
-    if (error) {
-      setStatusMessage(error.message);
-    }
-  };
-
-  const toggleCategoryFilter = (category: string) => {
-    setSelectedCategories((current) =>
-      current.some(
-        (selectedCategory) =>
-          selectedCategory.toLowerCase() === category.toLowerCase(),
-      )
-        ? current.filter(
-            (selectedCategory) =>
-              selectedCategory.toLowerCase() !== category.toLowerCase(),
-          )
-        : [...current, category],
-    );
-  };
-
-  const togglePriorityFilter = (priority: Priority) => {
-    setSelectedPriorities((current) =>
-      current.includes(priority)
-        ? current.filter((selectedPriority) => selectedPriority !== priority)
-        : [...current, priority],
-    );
-  };
-
-  const persistListOrder = async (orderedLists: List[]) => {
-    if (!user) {
-      return;
-    }
-
-    let error: unknown = null;
-
-    try {
-      const { error: orderError } = await saveListOrderPreferences(supabase, {
-        lists: orderedLists,
-        userId: user.id,
-      });
-
-      error = orderError;
-    } catch (orderError) {
-      error = orderError;
-    }
-
-    if (error) {
-      if (isMissingListOrderPreferencesError(error)) {
-        setStatusMessage(
-          "List ordering is unavailable until the latest Supabase schema is applied.",
-        );
-        return;
-      }
-
-      setStatusMessage(getErrorMessage(error));
-      void loadLists(user.id);
-    }
-  };
-
-  const reorderListByDrop = (
-    draggedId: string,
-    targetId: string,
-    placement: DropPlacement,
-  ) => {
-    if (draggedId === targetId) {
-      return;
-    }
-
-    const draggedIndex = lists.findIndex((list) => list.id === draggedId);
-    const targetIndex = lists.findIndex((list) => list.id === targetId);
-
-    if (draggedIndex < 0 || targetIndex < 0) {
-      return;
-    }
-
-    const orderedLists = [...lists];
-    const [movedList] = orderedLists.splice(draggedIndex, 1);
-    const nextTargetIndex = orderedLists.findIndex(
-      (list) => list.id === targetId,
-    );
-    const insertionIndex =
-      placement === "after" ? nextTargetIndex + 1 : nextTargetIndex;
-
-    orderedLists.splice(insertionIndex, 0, movedList);
-    setLists(orderedLists);
-    void persistListOrder(orderedLists);
-  };
 
   if (authStatus === "loading") {
     return (
@@ -866,10 +570,7 @@ export function ListApp({
           matchingSuggestions={matchingSuggestions}
           mobileView={mobileView}
           onAddItem={addItem}
-          onClearFilters={() => {
-            setSelectedCategories([]);
-            setSelectedPriorities([]);
-          }}
+          onClearFilters={clearFilters}
           onCreateList={() => setIsCreateListOpen(true)}
           onOpenCollaboration={() => setActiveListModal("collaboration")}
           onOpenHistory={() => setActiveListModal("history")}

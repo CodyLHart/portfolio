@@ -294,6 +294,24 @@ const listItemReorderingHook = await readFile(
     encoding: "utf8",
   },
 );
+const createListActionHook = await readFile(
+  new URL("../features/lists/hooks/useCreateListAction.ts", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const listFiltersHook = await readFile(
+  new URL("../features/lists/hooks/useListFilters.ts", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const listOrderControllerHook = await readFile(
+  new URL("../features/lists/hooks/useListOrderController.ts", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
 const listHistoryControllerHook = await readFile(
   new URL(
     "../features/lists/hooks/useListHistoryController.ts",
@@ -432,9 +450,42 @@ const appRouteControllerHook = await readFile(
     encoding: "utf8",
   },
 );
+const appStatusHook = await readFile(
+  new URL("../features/app/hooks/useAppStatus.ts", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
 const realtimeSubscriptionsHook = await readFile(
   new URL(
     "../features/realtime/hooks/useAppRealtimeSubscriptions.ts",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const notificationsControllerHook = await readFile(
+  new URL(
+    "../features/notifications/hooks/useNotificationsController.ts",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const listSharingControllerHook = await readFile(
+  new URL(
+    "../features/sharing/hooks/useListSharingController.ts",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
+const shareLinkAcceptanceHook = await readFile(
+  new URL(
+    "../features/sharing/hooks/useShareLinkAcceptance.ts",
     import.meta.url,
   ),
   {
@@ -763,6 +814,7 @@ test("shared shell, avatar, spinner, and landing live outside the app controller
 
 test("lists feature UI and pure helpers live outside the app controller", () => {
   assert.match(component, /<ListsWorkspace/);
+  assert.match(component, /useListFilters/);
   assert.match(listsWorkspaceComponent, /<ListsSidebar/);
   assert.match(listsWorkspaceComponent, /<ListDetail/);
   assert.match(listsIndexComponent, /<ListRow/);
@@ -771,6 +823,10 @@ test("lists feature UI and pure helpers live outside the app controller", () => 
   assert.match(listItemsComponent, /<ListItemRow/);
   assert.match(listItemRowComponent, /Open actions for/);
   assert.match(listUtilsSource, /export const sortListsByPreference/);
+  assert.match(listFiltersHook, /buildVisibleItemGroups/);
+  assert.match(listFiltersHook, /getCategoryOptions/);
+  assert.match(listFiltersHook, /getPriorityFilterOptions/);
+  assert.match(listFiltersHook, /toggleCategoryFilter/);
   assert.doesNotMatch(component, /function ItemCard/);
   assert.doesNotMatch(component, /function DropZone/);
   assert.doesNotMatch(styles, /\.item-card/);
@@ -835,7 +891,8 @@ test("list API modules and modal state hook keep orchestration out of the app", 
   assert.match(component, /loadAccessibleLists\(\s*supabase,\s*userId,\s*\)/);
   assert.match(component, /loadSharedCandidateLists\(/);
   assert.match(component, /loadListWorkspaceData\(supabase, listId\)/);
-  assert.match(component, /createListWithOwner\(supabase/);
+  assert.match(component, /useCreateListAction/);
+  assert.match(component, /useListOrderController/);
   assert.match(component, /useListItemMutations/);
   assert.match(component, /useListItemReordering/);
   assert.match(component, /useListHistoryController/);
@@ -844,6 +901,13 @@ test("list API modules and modal state hook keep orchestration out of the app", 
   assert.match(listApiSource, /export async function loadAccessibleLists/);
   assert.match(listApiSource, /export async function createListWithOwner/);
   assert.match(listApiSource, /export async function saveListOrderPreferences/);
+  assert.match(createListActionHook, /createListWithOwner\(supabase/);
+  assert.match(createListActionHook, /collaboratorLookupFailed/);
+  assert.match(createListActionHook, /setIsCreateListOpen\(false\)/);
+  assert.match(createListActionHook, /setActiveListId\(data\.id\)/);
+  assert.match(createListActionHook, /isCreatingList/);
+  assert.match(listOrderControllerHook, /saveListOrderPreferences\(supabase/);
+  assert.match(listOrderControllerHook, /setLists\(orderedLists\)/);
   assert.match(itemApiSource, /export async function loadListWorkspaceData/);
   assert.match(itemApiSource, /export async function createListItem/);
   assert.match(itemApiSource, /export async function updateListItem/);
@@ -859,6 +923,8 @@ test("list API modules and modal state hook keep orchestration out of the app", 
   assert.match(sharingApiSource, /export async function inviteListCollaborator/);
   assert.match(listModalStateHook, /export function useListModalState/);
   assert.match(listModalStateHook, /type ActiveListModal/);
+  assert.doesNotMatch(component, /createListWithOwner\(supabase/);
+  assert.doesNotMatch(component, /saveListOrderPreferences\(supabase/);
   assert.doesNotMatch(component, /\.from\("list_items"\)/);
   assert.doesNotMatch(component, /\.from\("lists"\)/);
   assert.doesNotMatch(component, /\.rpc\("accept_share_link"/);
@@ -887,6 +953,7 @@ test("profile and auth helpers live outside the app controller", () => {
 test("realtime and route controllers keep lifecycle effects out of the app", () => {
   assert.match(component, /useAppRealtimeSubscriptions/);
   assert.match(component, /useAppRouteController/);
+  assert.match(component, /useShareLinkAcceptance/);
   assert.match(realtimeSubscriptionsHook, /channel\(`user:\$\{user\.id\}`\)/);
   assert.match(realtimeSubscriptionsHook, /table: "notifications"/);
   assert.match(realtimeSubscriptionsHook, /table: "friendships"/);
@@ -899,6 +966,11 @@ test("realtime and route controllers keep lifecycle effects out of the app", () 
   assert.match(appRouteControllerHook, /getFriendsRouteState/);
   assert.match(appRouteControllerHook, /window\.addEventListener\("popstate"/);
   assert.match(appRouteControllerHook, /window\.history\.pushState/);
+  assert.match(shareLinkAcceptanceHook, /acceptShareLink\(supabase/);
+  assert.match(shareLinkAcceptanceHook, /acceptedTokenRef/);
+  assert.match(shareLinkAcceptanceHook, /searchParams\.delete\("join"\)/);
+  assert.match(shareLinkAcceptanceHook, /setActiveListId\(data as string\)/);
+  assert.doesNotMatch(component, /useEffect\(/);
   assert.doesNotMatch(component, /postgres_changes/);
   assert.doesNotMatch(component, /presenceState/);
   assert.doesNotMatch(component, /removeChannel/);
@@ -925,6 +997,7 @@ test("friends feature components own friends UI outside the app controller", () 
 });
 
 test("notifications feature owns notification menu UI and API helpers", () => {
+  assert.match(component, /useNotificationsController/);
   assert.match(appShellComponent, /from "\.\.\/\.\.\/features\/notifications/);
   assert.match(notificationMenuComponent, /aria-label="Notifications"/);
   assert.match(notificationMenuComponent, /event\.key === "Escape"/);
@@ -937,10 +1010,30 @@ test("notifications feature owns notification menu UI and API helpers", () => {
   assert.match(notificationsApiSource, /acceptFriendRequestNotification/);
   assert.match(notificationsApiSource, /acceptListInviteNotification/);
   assert.match(notificationsApiSource, /ignoreAccountNotification/);
+  assert.match(notificationsControllerHook, /loadAccountInboxData/);
+  assert.match(notificationsControllerHook, /acceptFriendRequestNotification/);
+  assert.match(notificationsControllerHook, /acceptListInviteNotification/);
+  assert.match(notificationsControllerHook, /ignoreAccountNotification/);
+  assert.doesNotMatch(component, /acceptFriendRequestNotification\(supabase/);
+  assert.doesNotMatch(component, /acceptListInviteNotification\(supabase/);
+  assert.doesNotMatch(component, /ignoreAccountNotification\(supabase/);
   assert.match(notificationMenuStyles, /\.panel/);
   assert.doesNotMatch(appShellComponent, /function NotificationsMenu/);
   assert.doesNotMatch(styles, /\.notification-list/);
   assert.doesNotMatch(styles, /\.popover-panel/);
+});
+
+test("sharing and status action controllers own remaining app actions", () => {
+  assert.match(component, /useListSharingController/);
+  assert.match(component, /useAppStatus/);
+  assert.match(listSharingControllerHook, /sendFriendRequestByEmail\(supabase/);
+  assert.match(listSharingControllerHook, /inviteListCollaborator\(supabase/);
+  assert.match(listSharingControllerHook, /updateListCollaboratorRole\(supabase/);
+  assert.match(appStatusHook, /getErrorMessage/);
+  assert.match(appStatusHook, /setStatusMessage/);
+  assert.doesNotMatch(component, /sendFriendRequestByEmail\(supabase/);
+  assert.doesNotMatch(component, /inviteListCollaborator\(supabase/);
+  assert.doesNotMatch(component, /updateListCollaboratorRole\(supabase/);
 });
 
 test("friends routes and server query hooks are present", () => {
