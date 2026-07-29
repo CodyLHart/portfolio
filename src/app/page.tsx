@@ -70,6 +70,7 @@ export default function Home() {
                     <a
                       className=" bg-black text-white px-4 py-2 font-sans text-sm font-semibold hover:bg-neutral-800"
                       href={project.href}
+                      target="blank"
                       aria-label={`Open ${project.name} project`}
                       rel={
                         isExternalHref(project.href) ? "noreferrer" : undefined
