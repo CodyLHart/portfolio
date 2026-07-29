@@ -318,6 +318,18 @@ const profileApiSource = await readFile(
     encoding: "utf8",
   },
 );
+const authSessionHook = await readFile(
+  new URL("../features/profile/hooks/useAuthSession.ts", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const profileControllerHook = await readFile(
+  new URL("../features/profile/hooks/useProfileController.ts", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
 const authApiSource = await readFile(
   new URL("../features/profile/lib/auth-api.ts", import.meta.url),
   {
@@ -414,6 +426,21 @@ const friendsQuerySource = await readFile(
     encoding: "utf8",
   },
 );
+const appRouteControllerHook = await readFile(
+  new URL("../features/app/hooks/useAppRouteController.ts", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const realtimeSubscriptionsHook = await readFile(
+  new URL(
+    "../features/realtime/hooks/useAppRealtimeSubscriptions.ts",
+    import.meta.url,
+  ),
+  {
+    encoding: "utf8",
+  },
+);
 const friendsRoute = await readFile(new URL("./friends/page.tsx", import.meta.url), {
   encoding: "utf8",
 });
@@ -449,7 +476,7 @@ test("signed-out landing uses concise product copy and Google CTA", () => {
 
 test("auth loading state does not render the signed-out landing", () => {
   assert.match(
-    component,
+    authSessionHook,
     /type AuthStatus = "loading" \| "authenticated" \| "unauthenticated"/,
   );
   assert.match(component, /authStatus === "loading"/);
@@ -838,15 +865,44 @@ test("list API modules and modal state hook keep orchestration out of the app", 
 });
 
 test("profile and auth helpers live outside the app controller", () => {
-  assert.match(component, /loadProfileForUser\(supabase, authUser\)/);
+  assert.match(component, /useAuthSession/);
+  assert.match(component, /useProfileController/);
   assert.match(component, /signInWithGoogle\(supabase\)/);
   assert.match(component, /signOutUser\(supabase\)/);
+  assert.match(authSessionHook, /supabase\.auth\.getSession/);
+  assert.match(authSessionHook, /supabase\.auth\.onAuthStateChange/);
+  assert.match(authSessionHook, /subscription\.subscription\.unsubscribe/);
+  assert.match(profileControllerHook, /loadProfileForUser\(supabase, authUser\)/);
   assert.match(profileApiSource, /profiles"\)\.upsert/);
   assert.match(authApiSource, /signInWithOAuth/);
   assert.match(authHelpersSource, /hostname === "127\.0\.0\.1"/);
   assert.match(errorsSource, /export const getErrorMessage/);
+  assert.doesNotMatch(component, /supabase\.auth\.getSession/);
+  assert.doesNotMatch(component, /supabase\.auth\.onAuthStateChange/);
+  assert.doesNotMatch(component, /loadProfileForUser\(supabase, authUser\)/);
   assert.doesNotMatch(component, /const getOAuthRedirectUrl/);
   assert.doesNotMatch(component, /function getErrorMessage/);
+});
+
+test("realtime and route controllers keep lifecycle effects out of the app", () => {
+  assert.match(component, /useAppRealtimeSubscriptions/);
+  assert.match(component, /useAppRouteController/);
+  assert.match(realtimeSubscriptionsHook, /channel\(`user:\$\{user\.id\}`\)/);
+  assert.match(realtimeSubscriptionsHook, /table: "notifications"/);
+  assert.match(realtimeSubscriptionsHook, /table: "friendships"/);
+  assert.match(realtimeSubscriptionsHook, /channel\(`list:\$\{activeListId\}`\)/);
+  assert.match(realtimeSubscriptionsHook, /table: "list_items"/);
+  assert.match(realtimeSubscriptionsHook, /table: "lists"/);
+  assert.match(realtimeSubscriptionsHook, /table: "list_collaborators"/);
+  assert.match(realtimeSubscriptionsHook, /presenceState/);
+  assert.match(realtimeSubscriptionsHook, /removeChannel/);
+  assert.match(appRouteControllerHook, /getFriendsRouteState/);
+  assert.match(appRouteControllerHook, /window\.addEventListener\("popstate"/);
+  assert.match(appRouteControllerHook, /window\.history\.pushState/);
+  assert.doesNotMatch(component, /postgres_changes/);
+  assert.doesNotMatch(component, /presenceState/);
+  assert.doesNotMatch(component, /removeChannel/);
+  assert.doesNotMatch(component, /window\.addEventListener\("popstate"/);
 });
 
 test("friends feature components own friends UI outside the app controller", () => {

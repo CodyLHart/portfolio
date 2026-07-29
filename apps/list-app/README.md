@@ -50,27 +50,38 @@ the app avoids loading every list's items for the Friends index/detail screens.
 The app follows a feature-based structure while keeping the existing routes and
 behavior intact.
 
-- `src/app`: route entries, the client app controller, route tests, and
-  app-level CSS for shared primitives and the list/Friends workspace.
+- `src/app`: route entries, the thin client app composer, route tests, and
+  app-wide CSS tokens/shared primitives.
 - `src/app/friends`: dedicated Friends routes that render in the authenticated
   shell without mounting the list workspace sidebar.
 - `src/app/api/friends`: authenticated API routes for Friends summaries and
   detail data.
+- `src/features/app`: authenticated route state, browser history, mobile detail
+  navigation, and shared-list route handoff helpers.
 - `src/components/layout`: reusable shell pieces such as the authenticated
-  header, notification menu, and account menu.
+  header and account menu.
 - `src/components/ui`: shared leaf UI such as avatars and persistent loading
   spinners.
 - `src/features/landing`: the signed-out landing experience and its colocated
   CSS Module.
+- `src/features/profile`: auth API helpers, local/prod OAuth redirect handling,
+  auth session lifecycle, and signed-in profile hydration.
+- `src/features/realtime`: Supabase Realtime subscriptions for account inbox,
+  list detail, collaborator changes, list refreshes, and presence.
+- `src/features/notifications`: notification menu UI, notification rows,
+  account inbox API helpers, and notification-label utilities.
+- `src/features/friends`: Friends page UI, shared-list rows, participant lists,
+  Friends controller hooks, client API helpers, and Friends domain derivation.
 - `src/features/lists`: the signed-in list workspace, list navigation, selected
-  list detail, item entry, item rows, drag/drop zones, list-specific types, and
-  pure list utilities.
-- `src/lib`: Supabase client setup, shared types, formatting helpers, Friends
-  domain derivation, and server query helpers.
+  list detail, item entry, item rows, drag/drop zones, list-related modals,
+  list/item/history/settings/sharing controllers, feature API helpers,
+  list-specific types, and pure list utilities.
+- `src/lib`: Supabase client setup, shared types, formatting helpers, error
+  helpers, compatibility re-exports, and server query helpers.
 
 CSS that belongs to standalone components is colocated in `.module.css` files.
 `globals.css` remains for app-wide tokens, base elements, shared button/form
-primitives, Friends screen styles, and modal/shared utility styles.
+primitives, and layout utilities shared across feature surfaces.
 
 ## Local Development
 

@@ -1,8 +1,12 @@
 "use client";
 
-import type { Session, User } from "@supabase/supabase-js";
+import type { User } from "@supabase/supabase-js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppShell as Shell } from "../components/layout/AppShell";
+import {
+  useAppRouteController,
+  type AppSection,
+} from "../features/app/hooks/useAppRouteController";
 import { FriendsPage } from "../features/friends/components/FriendsPage";
 import {
   FriendDetailLoadingPanel,
@@ -10,7 +14,6 @@ import {
 } from "../features/friends/components/FriendsLoadingRegion";
 import { useFriendsController } from "../features/friends/hooks/useFriendsController";
 import { sendFriendRequestByEmail } from "../features/friends/lib/friends-api";
-import { getFriendsRouteState } from "../features/friends/lib/friend-routes";
 import { LandingPage } from "../features/landing/components/LandingPage";
 import { ListDetailLoadingPanel } from "../features/lists/components/ListDetailLoadingPanel";
 import {
@@ -33,9 +36,7 @@ import {
   loadSharedCandidateLists,
   saveListOrderPreferences,
 } from "../features/lists/lib/list-api";
-import {
-  loadListWorkspaceData,
-} from "../features/lists/lib/item-api";
+import { loadListWorkspaceData } from "../features/lists/lib/item-api";
 import {
   useListModalState,
   type ActiveListModal,
@@ -60,7 +61,6 @@ import {
 import type {
   DropPlacement,
   ListDropIndicator,
-  MobileView,
 } from "../features/lists/types";
 import {
   acceptFriendRequestNotification,
@@ -70,7 +70,9 @@ import {
 } from "../features/notifications/lib/notifications-api";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { signInWithGoogle, signOutUser } from "../features/profile/lib/auth-api";
-import { loadProfileForUser } from "../features/profile/lib/profile-api";
+import { useAuthSession } from "../features/profile/hooks/useAuthSession";
+import { useProfileController } from "../features/profile/hooks/useProfileController";
+import { useAppRealtimeSubscriptions } from "../features/realtime/hooks/useAppRealtimeSubscriptions";
 import {
   Collaborator,
   emptyItemDraft,
@@ -88,9 +90,6 @@ import {
 } from "../lib/types";
 import { getErrorMessage } from "../lib/errors";
 
-type AppSection = "lists" | "friends";
-type AuthStatus = "loading" | "authenticated" | "unauthenticated";
-
 export function ListApp({
   initialFriendId = null,
   initialSection = "lists",
@@ -98,8 +97,6 @@ export function ListApp({
   initialFriendId?: string | null;
   initialSection?: AppSection;
 } = {}) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [lists, setLists] = useState<List[]>([]);
   const [activeListId, setActiveListId] = useState<string | null>(null);
   const [items, setItems] = useState<ListItem[]>([]);
@@ -138,17 +135,134 @@ export function ListApp({
   const [draggedListId, setDraggedListId] = useState<string | null>(null);
   const [listDropIndicator, setListDropIndicator] =
     useState<ListDropIndicator>(null);
-  const [authStatus, setAuthStatus] = useState<AuthStatus>("loading");
   const [isLoading, setIsLoading] = useState(true);
-  const mobileDetailHistoryRef = useRef(false);
-  const [mobileView, setMobileView] = useState<MobileView>("lists");
-  const [appSection, setAppSection] = useState<AppSection>(initialSection);
-  const [selectedFriendId, setSelectedFriendId] = useState<string | null>(
-    initialFriendId,
+  const authenticatedUserRef = useRef<User | null>(null);
+  const { clearProfile, loadProfile, profile } = useProfileController({
+    supabase,
+  });
+
+  const activeList = lists.find((list) => list.id === activeListId) ?? null;
+
+  const loadLists = useCallback(async (userId: string) => {
+    const { allCollaborators, lists } = await loadAccessibleLists(
+      supabase,
+      userId,
+    );
+
+    setLists(lists);
+    setActiveListId((current) => current ?? lists[0]?.id ?? null);
+    setAllListCollaborators(allCollaborators);
+  }, []);
+
+  const loadFriendsWorkspaceData = useCallback(async (userId: string) => {
+    const { allCollaborators, lists } = await loadSharedCandidateLists(
+      supabase,
+      userId,
+    );
+
+    setLists(lists);
+    setAllListCollaborators(allCollaborators);
+  }, []);
+
+  const loadUserData = useCallback(
+    async (authUser: User) => {
+      setIsLoading(true);
+      try {
+        await loadProfile(authUser);
+        if (initialSection === "friends") {
+          await loadFriendsWorkspaceData(authUser.id);
+        } else {
+          await loadLists(authUser.id);
+        }
+      } catch (error) {
+        setStatusMessage(getErrorMessage(error));
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [initialSection, loadFriendsWorkspaceData, loadLists, loadProfile],
   );
 
-  const user = session?.user ?? null;
-  const activeList = lists.find((list) => list.id === activeListId) ?? null;
+  const loadFriendsAndNotifications = useCallback(async (userId: string) => {
+    const data = await loadAccountInboxData(supabase, userId);
+
+    if (data.friends) {
+      setFriends(data.friends);
+    }
+
+    if (data.notifications) {
+      setNotifications(data.notifications);
+    }
+  }, []);
+
+  const loadListData = useCallback(async (listId: string) => {
+    const data = await loadListWorkspaceData(supabase, listId);
+
+    if (data.items) {
+      setItems(data.items);
+    }
+
+    if (data.collaborators) {
+      setCollaborators(data.collaborators);
+    }
+
+    if (data.snapshots) {
+      setSnapshots(data.snapshots);
+    }
+
+    if (data.suggestions) {
+      setSuggestions(data.suggestions);
+    }
+  }, []);
+
+  const refreshListsForCurrentUser = useCallback(() => {
+    if (authenticatedUserRef.current) {
+      void loadLists(authenticatedUserRef.current.id);
+    }
+  }, [loadLists]);
+  const {
+    appSection,
+    mobileView,
+    openFriend,
+    openSharedList,
+    resetToLists,
+    selectedFriendId,
+    selectActiveList,
+    showFriendsIndex,
+    showLists,
+    showMobileListIndex,
+  } = useAppRouteController({
+    initialFriendId,
+    initialSection,
+    refreshLists: refreshListsForCurrentUser,
+    setActiveListId,
+    setDeleteListConfirmation,
+    setSelectedCategories,
+    setSelectedPriorities,
+  });
+
+  const handleAuthenticated = useCallback(
+    (authUser: User) => {
+      void loadUserData(authUser);
+    },
+    [loadUserData],
+  );
+  const handleUnauthenticated = useCallback(() => {
+    setIsLoading(false);
+    clearProfile();
+    setLists([]);
+    setAllListCollaborators([]);
+    setActiveListId(null);
+    setItems([]);
+    resetToLists();
+  }, [clearProfile, resetToLists]);
+  const { authStatus, session, user } = useAuthSession({
+    onAuthenticated: handleAuthenticated,
+    onUnauthenticated: handleUnauthenticated,
+    supabase,
+  });
+  authenticatedUserRef.current = user;
+
   const acceptedFriendProfiles = useMemo(
     () =>
       friends
@@ -231,82 +345,6 @@ export function ListApp({
     );
   }, [categoryOptions, draft.category]);
 
-  const loadLists = useCallback(async (userId: string) => {
-    const { allCollaborators, lists } = await loadAccessibleLists(
-      supabase,
-      userId,
-    );
-
-    setLists(lists);
-    setActiveListId((current) => current ?? lists[0]?.id ?? null);
-    setAllListCollaborators(allCollaborators);
-  }, []);
-
-  const loadFriendsWorkspaceData = useCallback(async (userId: string) => {
-    const { allCollaborators, lists } = await loadSharedCandidateLists(
-      supabase,
-      userId,
-    );
-
-    setLists(lists);
-    setAllListCollaborators(allCollaborators);
-  }, []);
-
-  const loadProfile = useCallback(async (authUser: User) => {
-    setProfile(await loadProfileForUser(supabase, authUser));
-  }, []);
-
-  const loadUserData = useCallback(
-    async (authUser: User) => {
-      setIsLoading(true);
-      try {
-        await loadProfile(authUser);
-        if (initialSection === "friends") {
-          await loadFriendsWorkspaceData(authUser.id);
-        } else {
-          await loadLists(authUser.id);
-        }
-      } catch (error) {
-        setStatusMessage(getErrorMessage(error));
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [initialSection, loadFriendsWorkspaceData, loadLists, loadProfile],
-  );
-
-  const loadFriendsAndNotifications = useCallback(async (userId: string) => {
-    const data = await loadAccountInboxData(supabase, userId);
-
-    if (data.friends) {
-      setFriends(data.friends);
-    }
-
-    if (data.notifications) {
-      setNotifications(data.notifications);
-    }
-  }, []);
-
-  const loadListData = useCallback(async (listId: string) => {
-    const data = await loadListWorkspaceData(supabase, listId);
-
-    if (data.items) {
-      setItems(data.items);
-    }
-
-    if (data.collaborators) {
-      setCollaborators(data.collaborators);
-    }
-
-    if (data.snapshots) {
-      setSnapshots(data.snapshots);
-    }
-
-    if (data.suggestions) {
-      setSuggestions(data.suggestions);
-    }
-  }, []);
-
   const {
     beginItemDrag,
     completeItemDrop,
@@ -382,43 +420,22 @@ export function ListApp({
     setSuggestions,
     supabase,
   });
+  const clearListDetail = useCallback(() => {
+    setItems([]);
+    setCollaborators([]);
+  }, []);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session?.user) {
-        setSession(data.session);
-        setAuthStatus("authenticated");
-        void loadUserData(data.session.user);
-      } else {
-        setSession(null);
-        setAuthStatus("unauthenticated");
-        setIsLoading(false);
-      }
-    });
-
-    const { data: subscription } = supabase.auth.onAuthStateChange(
-      (_event, nextSession) => {
-        if (nextSession?.user) {
-          setSession(nextSession);
-          setAuthStatus("authenticated");
-          void loadUserData(nextSession.user);
-        } else {
-          setSession(null);
-          setAuthStatus("unauthenticated");
-          setIsLoading(false);
-          setProfile(null);
-          setLists([]);
-          setAllListCollaborators([]);
-          setActiveListId(null);
-          setItems([]);
-          setAppSection("lists");
-          setSelectedFriendId(null);
-        }
-      },
-    );
-
-    return () => subscription.subscription.unsubscribe();
-  }, [loadUserData]);
+  useAppRealtimeSubscriptions({
+    activeListId,
+    clearListDetail,
+    loadFriendsAndNotifications,
+    loadListData,
+    loadLists,
+    profile,
+    setPresenceUsers,
+    supabase,
+    user,
+  });
 
   useEffect(() => {
     if (!user || typeof window === "undefined") {
@@ -456,206 +473,6 @@ export function ListApp({
 
     void acceptShareLinkFromUrl();
   }, [loadLists, user]);
-
-  useEffect(() => {
-    if (!user) {
-      return;
-    }
-
-    queueMicrotask(() => {
-      void loadFriendsAndNotifications(user.id);
-    });
-
-    const channel = supabase
-      .channel(`user:${user.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications",
-          filter: `recipient_id=eq.${user.id}`,
-        },
-        () => void loadFriendsAndNotifications(user.id),
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "friendships" },
-        () => void loadFriendsAndNotifications(user.id),
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [loadFriendsAndNotifications, user]);
-
-  useEffect(() => {
-    if (!activeListId || !user) {
-      queueMicrotask(() => {
-        setItems([]);
-        setCollaborators([]);
-      });
-      return;
-    }
-
-    queueMicrotask(() => {
-      void loadListData(activeListId);
-    });
-
-    const channel = supabase.channel(`list:${activeListId}`);
-
-    channel
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "list_items",
-          filter: `list_id=eq.${activeListId}`,
-        },
-        () => void loadListData(activeListId),
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "lists",
-          filter: `id=eq.${activeListId}`,
-        },
-        () => void loadLists(user.id),
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "list_collaborators",
-          filter: `list_id=eq.${activeListId}`,
-        },
-        () => {
-          void loadListData(activeListId);
-          void loadLists(user.id);
-        },
-      )
-      .on("presence", { event: "sync" }, () => {
-        const state = channel.presenceState<{ profile: Profile }>();
-        setPresenceUsers(
-          Object.values(state)
-            .flat()
-            .map((presence) => presence.profile)
-            .filter((presenceProfile) => presenceProfile.id !== user.id),
-        );
-      })
-      .subscribe(async (status) => {
-        if (status === "SUBSCRIBED" && profile) {
-          await channel.track({ profile });
-        }
-      });
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [activeListId, loadListData, loadLists, profile, user]);
-
-  useEffect(() => {
-    const handlePopState = () => {
-      const routeState = getFriendsRouteState();
-
-      if (routeState.section === "friends") {
-        setAppSection("friends");
-        setSelectedFriendId(routeState.friendId);
-        setMobileView("lists");
-        mobileDetailHistoryRef.current = false;
-        return;
-      }
-
-      setAppSection("lists");
-      setSelectedFriendId(null);
-      mobileDetailHistoryRef.current = false;
-      setMobileView("lists");
-    };
-
-    window.addEventListener("popstate", handlePopState);
-
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, []);
-
-  const selectActiveList = (listId: string, skipMobileHistory = false) => {
-    setSelectedCategories([]);
-    setSelectedPriorities([]);
-    setDeleteListConfirmation("");
-    setAppSection("lists");
-    setSelectedFriendId(null);
-    setActiveListId(listId);
-    setMobileView("detail");
-
-    if (
-      typeof window !== "undefined" &&
-      window.matchMedia("(max-width: 860px)").matches &&
-      !skipMobileHistory &&
-      !mobileDetailHistoryRef.current
-    ) {
-      window.history.pushState({ listAppView: "detail", listId }, "", "");
-      mobileDetailHistoryRef.current = true;
-    }
-  };
-
-  const showMobileListIndex = () => {
-    if (mobileDetailHistoryRef.current) {
-      window.history.back();
-      return;
-    }
-
-    setMobileView("lists");
-  };
-
-  const showLists = () => {
-    setAppSection("lists");
-    setSelectedFriendId(null);
-    setMobileView("lists");
-
-    if (typeof window !== "undefined" && window.location.pathname !== "/") {
-      window.history.pushState({ listAppView: "lists" }, "", "/");
-    }
-  };
-
-  const showFriendsIndex = () => {
-    setAppSection("friends");
-    setSelectedFriendId(null);
-
-    if (
-      typeof window !== "undefined" &&
-      window.location.pathname !== "/friends"
-    ) {
-      window.history.pushState({ listAppView: "friends" }, "", "/friends");
-    }
-  };
-
-  const openFriend = (friendId: string) => {
-    setAppSection("friends");
-    setSelectedFriendId(friendId);
-    window.history.pushState(
-      { listAppView: "friend", friendId },
-      "",
-      `/friends/${friendId}`,
-    );
-  };
-
-  const openSharedList = (listId: string) => {
-    if (typeof window !== "undefined" && window.location.pathname !== "/") {
-      window.history.pushState({ listAppView: "detail", listId }, "", "/");
-    }
-
-    if (user) {
-      void loadLists(user.id);
-    }
-
-    selectActiveList(listId, true);
-  };
 
   const signIn = async () => {
     if (!isSupabaseConfigured) {
