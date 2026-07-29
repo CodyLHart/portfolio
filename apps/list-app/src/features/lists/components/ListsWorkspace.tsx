@@ -11,7 +11,6 @@ export function ListsWorkspace(props: ListsWorkspaceProps) {
         activeListId={props.activeListId}
         draggedListId={props.draggedListId}
         isLoading={props.isLoading}
-        items={props.items}
         listDropIndicator={props.listDropIndicator}
         lists={props.lists}
         onCreateList={props.onCreateList}
@@ -47,7 +46,6 @@ export function ListsWorkspaceLoadingView({
         activeListId={null}
         draggedListId={null}
         isLoading
-        items={[]}
         listDropIndicator={null}
         lists={[]}
         onCreateList={onCreateList ?? noopSelectList}

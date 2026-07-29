@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
-import type { List, ListItem } from "../../../lib/types";
+import type { List } from "../../../lib/types";
 import type { DropPlacement, ListDropIndicator } from "../types";
 import { ListsIndex } from "./ListsIndex";
 
@@ -7,7 +7,6 @@ export function ListsSidebar({
   activeListId,
   draggedListId,
   isLoading,
-  items,
   listDropIndicator,
   lists,
   onCreateList,
@@ -19,7 +18,6 @@ export function ListsSidebar({
   activeListId: string | null;
   draggedListId: string | null;
   isLoading: boolean;
-  items: ListItem[];
   listDropIndicator: ListDropIndicator;
   lists: List[];
   onCreateList: () => void;
@@ -38,7 +36,6 @@ export function ListsSidebar({
         activeListId={activeListId}
         draggedListId={draggedListId}
         isLoading={isLoading}
-        items={items}
         listDropIndicator={listDropIndicator}
         lists={lists}
         onCreateList={onCreateList}

@@ -10,7 +10,6 @@ import {
 import { useAppStatus } from "../features/app/hooks/useAppStatus";
 import { FriendsPage } from "../features/friends/components/FriendsPage";
 import {
-  FriendDetailLoadingPanel,
   FriendsIndexLoadingPanel,
 } from "../features/friends/components/FriendsLoadingRegion";
 import { useFriendsController } from "../features/friends/hooks/useFriendsController";
@@ -76,10 +75,11 @@ export function ListApp({
   initialSection?: AppSection;
 } = {}) {
   const [lists, setLists] = useState<List[]>([]);
+  const [friendLists, setFriendLists] = useState<List[]>([]);
   const [activeListId, setActiveListId] = useState<string | null>(null);
   const [items, setItems] = useState<ListItem[]>([]);
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
-  const [allListCollaborators, setAllListCollaborators] = useState<
+  const [friendListCollaborators, setFriendListCollaborators] = useState<
     Collaborator[]
   >([]);
   const [snapshots, setSnapshots] = useState<ListSnapshot[]>([]);
@@ -100,6 +100,7 @@ export function ListApp({
   const [isAddItemOpen, setIsAddItemOpen] = useState(false);
   const [listNameDraft, setListNameDraft] = useState("");
   const [deleteListConfirmation, setDeleteListConfirmation] = useState("");
+  const [hasLoadedLists, setHasLoadedLists] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const authenticatedUserRef = useRef<User | null>(null);
   const { clearProfile, loadProfile, profile } = useProfileController({
@@ -132,14 +133,11 @@ export function ListApp({
   });
 
   const loadLists = useCallback(async (userId: string) => {
-    const { allCollaborators, lists } = await loadAccessibleLists(
-      supabase,
-      userId,
-    );
+    const { lists } = await loadAccessibleLists(supabase, userId);
 
     setLists(lists);
     setActiveListId((current) => current ?? lists[0]?.id ?? null);
-    setAllListCollaborators(allCollaborators);
+    setHasLoadedLists(true);
   }, []);
 
   const loadFriendsWorkspaceData = useCallback(async (userId: string) => {
@@ -148,8 +146,8 @@ export function ListApp({
       userId,
     );
 
-    setLists(lists);
-    setAllListCollaborators(allCollaborators);
+    setFriendLists(lists);
+    setFriendListCollaborators(allCollaborators);
   }, []);
 
   const loadUserData = useCallback(
@@ -157,8 +155,9 @@ export function ListApp({
       setIsLoading(true);
       try {
         await loadProfile(authUser);
+        await loadFriendsWorkspaceData(authUser.id);
         if (initialSection === "friends") {
-          await loadFriendsWorkspaceData(authUser.id);
+          setHasLoadedLists(false);
         } else {
           await loadLists(authUser.id);
         }
@@ -174,8 +173,22 @@ export function ListApp({
   const loadListData = useCallback(async (listId: string) => {
     const data = await loadListWorkspaceData(supabase, listId);
 
-    if (data.items) {
-      setItems(data.items);
+    const loadedItems = data.items;
+
+    if (loadedItems) {
+      setItems(loadedItems);
+      setLists((current) =>
+        current.map((list) =>
+          list.id === listId
+            ? {
+                ...list,
+                completed_count: loadedItems.filter((item) => item.completed)
+                  .length,
+                item_count: loadedItems.length,
+              }
+            : list,
+        ),
+      );
     }
 
     if (data.collaborators) {
@@ -193,9 +206,21 @@ export function ListApp({
 
   const refreshListsForCurrentUser = useCallback(() => {
     if (authenticatedUserRef.current) {
-      void loadLists(authenticatedUserRef.current.id);
+      if (!hasLoadedLists && lists.length === 0) {
+        setIsLoading(true);
+      }
+
+      void loadLists(authenticatedUserRef.current.id).finally(() => {
+        setIsLoading(false);
+      });
     }
-  }, [loadLists]);
+  }, [hasLoadedLists, lists.length, loadLists]);
+  const loadListsAndFriends = useCallback(
+    async (userId: string) => {
+      await Promise.all([loadLists(userId), loadFriendsWorkspaceData(userId)]);
+    },
+    [loadFriendsWorkspaceData, loadLists],
+  );
   const {
     appSection,
     mobileView,
@@ -204,7 +229,6 @@ export function ListApp({
     resetToLists,
     selectedFriendId,
     selectActiveList,
-    showFriendsIndex,
     showLists,
     showMobileListIndex,
   } = useAppRouteController({
@@ -226,7 +250,9 @@ export function ListApp({
     setIsLoading(false);
     clearProfile();
     setLists([]);
-    setAllListCollaborators([]);
+    setFriendLists([]);
+    setFriendListCollaborators([]);
+    setHasLoadedLists(false);
     setActiveListId(null);
     setItems([]);
     resetToLists();
@@ -245,7 +271,7 @@ export function ListApp({
     loadFriendsAndNotifications,
     notifications,
   } = useNotificationsController({
-    loadLists,
+    loadLists: loadListsAndFriends,
     setStatusMessage,
     supabase,
     user,
@@ -274,27 +300,30 @@ export function ListApp({
     user,
   });
 
+  const { friendSummaries, selectedFriend } = useFriendsController({
+    allListCollaborators: friendListCollaborators,
+    currentUserId: user?.id ?? null,
+    lists: friendLists,
+    selectedFriendId,
+  });
   const acceptedFriendProfiles = useMemo(
     () =>
-      friends
-        .filter((friend) => friend.status === "accepted")
-        .map((friend) =>
-          friend.requester_id === user?.id
-            ? friend.addressee
-            : friend.requester,
-        )
-        .filter((friend): friend is Profile => Boolean(friend))
+      friendSummaries
+        .map((friend) => friend.profile)
         .sort((first, second) =>
           first.display_name.localeCompare(second.display_name),
         ),
-    [friends, user?.id],
+    [friendSummaries],
   );
-  const { friendSummaries, selectedFriend } = useFriendsController({
-    allListCollaborators,
-    currentUserId: user?.id ?? null,
-    lists,
-    selectedFriendId,
-  });
+  const availableInviteFriendProfiles = useMemo(() => {
+    const collaboratorUserIds = new Set(
+      collaborators.map((collaborator) => collaborator.user_id),
+    );
+
+    return acceptedFriendProfiles.filter(
+      (friend) => !collaboratorUserIds.has(friend.id),
+    );
+  }, [acceptedFriendProfiles, collaborators]);
   const currentRole = getCurrentRole(
     activeList,
     collaborators,
@@ -366,6 +395,7 @@ export function ListApp({
     setEditingItem,
     setIsAddItemOpen,
     setItems,
+    setLists,
     setStatusMessage,
     suggestions,
     supabase,
@@ -377,6 +407,7 @@ export function ListApp({
     items,
     loadListData,
     setItems,
+    setLists,
     setRestoreSnapshot,
     setStatusMessage,
     supabase,
@@ -419,7 +450,7 @@ export function ListApp({
     clearListDetail,
     loadFriendsAndNotifications,
     loadListData,
-    loadLists,
+    loadLists: loadListsAndFriends,
     profile,
     setPresenceUsers,
     supabase,
@@ -469,7 +500,7 @@ export function ListApp({
         >
           {initialSection === "friends" ? (
             initialFriendId ? (
-              <FriendDetailLoadingPanel />
+              <FriendsIndexLoadingPanel showLists={null} />
             ) : (
               <FriendsIndexLoadingPanel showLists={null} />
             )
@@ -516,7 +547,6 @@ export function ListApp({
           <FriendsPage
             friendSummaries={friendSummaries}
             isLoading={isLoading}
-            onBackToFriends={showFriendsIndex}
             onOpenFriend={openFriend}
             onOpenList={openSharedList}
             selectedFriendId={selectedFriendId}
@@ -618,7 +648,7 @@ export function ListApp({
 
       {activeList && activeListModal === "collaboration" ? (
         <CollaborationModal
-          acceptedFriendProfiles={acceptedFriendProfiles}
+          acceptedFriendProfiles={availableInviteFriendProfiles}
           activeList={activeList}
           appOrigin={appOrigin}
           collaborators={collaborators}

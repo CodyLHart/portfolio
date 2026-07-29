@@ -72,12 +72,6 @@ const friendRowComponent = await readFile(
     encoding: "utf8",
   },
 );
-const friendDetailComponent = await readFile(
-  new URL("../features/friends/components/FriendDetail.tsx", import.meta.url),
-  {
-    encoding: "utf8",
-  },
-);
 const sharedListRowComponent = await readFile(
   new URL("../features/friends/components/SharedListRow.tsx", import.meta.url),
   {
@@ -143,6 +137,12 @@ const friendsApiSource = await readFile(
 );
 const friendsControllerSource = await readFile(
   new URL("../features/friends/hooks/useFriendsController.ts", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const friendRouteHelpers = await readFile(
+  new URL("../features/friends/lib/friend-routes.ts", import.meta.url),
   {
     encoding: "utf8",
   },
@@ -224,6 +224,12 @@ const listsWorkspaceStyles = await readFile(
 );
 const listsIndexComponent = await readFile(
   new URL("../features/lists/components/ListsIndex.tsx", import.meta.url),
+  {
+    encoding: "utf8",
+  },
+);
+const listRowComponent = await readFile(
+  new URL("../features/lists/components/ListRow.tsx", import.meta.url),
   {
     encoding: "utf8",
   },
@@ -552,7 +558,6 @@ test("auth loading state does not render the signed-out landing", () => {
   assert.match(component, /isAccountLoading/);
   assert.match(component, /ListsWorkspaceLoadingView/);
   assert.match(component, /FriendsIndexLoadingPanel/);
-  assert.match(component, /FriendDetailLoadingPanel/);
   assert.doesNotMatch(component, /Loading your lists\.\.\./);
   assert.doesNotMatch(component, /Loading friends\.\.\./);
   assert.doesNotMatch(styles, /\.auth-loading-shell/);
@@ -577,23 +582,28 @@ test("loading lists keeps existing content during background refreshes", () => {
   assert.match(listsIndexComponent, /isLoading && lists\.length === 0/);
   assert.match(
     friendsPageComponent,
-    /selectedFriendId \? !selectedFriend : friendSummaries\.length === 0/,
+    /isLoading && friendSummaries\.length === 0/,
   );
   assert.doesNotMatch(component, /setLists\(\[\]\);\n\s*setIsLoading\(true\)/);
 });
 
+test("friends route data does not replace the lists workspace collection", () => {
+  assert.match(component, /const \[lists, setLists\]/);
+  assert.match(component, /const \[friendLists, setFriendLists\]/);
+  assert.match(component, /const \[friendListCollaborators/);
+  assert.match(component, /setFriendLists\(lists\)/);
+  assert.match(component, /setFriendListCollaborators\(allCollaborators\)/);
+  assert.doesNotMatch(component, /setLists\(lists\);\n\s*setFriendListCollaborators/);
+  assert.match(appRouteControllerHook, /refreshLists\(\)/);
+  assert.match(component, /hasLoadedLists/);
+});
+
 test("loading Friends uses static Friends UI with localized spinners", () => {
   assert.match(component, /<FriendsIndexLoadingPanel showLists=\{null\} \/>/);
-  assert.match(component, /<FriendDetailLoadingPanel \/>/);
   assert.match(friendsLoadingComponent, /<h1>Friends<\/h1>/);
-  assert.match(friendsLoadingComponent, /<h2>Shared lists<\/h2>/);
   assert.match(
     friendsLoadingComponent,
     /<LoadingSpinner label="Loading friends" \/>/,
-  );
-  assert.match(
-    friendsLoadingComponent,
-    /<LoadingSpinner label="Loading shared lists" \/>/,
   );
   assert.doesNotMatch(component, /FriendsIndexSkeleton/);
   assert.doesNotMatch(component, /FriendDetailSkeleton/);
@@ -610,6 +620,29 @@ test("signed-in app exposes list index and useful empty states", () => {
     /Create your first list to start keeping things organized\./,
   );
   assert.match(listItemsComponent, /This list is empty/);
+});
+
+test("list rows always render count metadata and subdued updated date", () => {
+  assert.match(listApiSource, /withListCounts/);
+  assert.match(listApiSource, /\.from\("list_items"\)/);
+  assert.match(listApiSource, /select\("list_id, completed"\)/);
+  assert.match(listsIndexComponent, /itemCount=\{list\.item_count \?\? 0\}/);
+  assert.match(listsIndexComponent, /completedCount=\{list\.completed_count \?\? 0\}/);
+  assert.doesNotMatch(listsIndexComponent, /isSelected \? items\.length : null/);
+  assert.match(listRowComponent, /list-row-counts/);
+  assert.match(listRowComponent, /item\{itemCount === 1 \? "" : "s"\}/);
+  assert.match(listRowComponent, /\{completedCount\} completed/);
+  assert.match(listRowComponent, /list-row-updated/);
+  assert.match(listsWorkspaceStyles, /\.list-row-updated/);
+  assert.match(listsWorkspaceStyles, /font-size: 0\.7rem/);
+  assert.match(listsWorkspaceStyles, /font-weight: 400/);
+  const updatedDateRule =
+    listsWorkspaceStyles.match(
+      /\.scope :global\(\.list-row-updated\) \{[\s\S]*?\}/,
+    )?.[0] ?? "";
+  assert.doesNotMatch(updatedDateRule, /background|border|padding/);
+  assert.match(listItemMutationsHook, /adjustListCounts/);
+  assert.match(listHistoryControllerHook, /completed_count: 0/);
 });
 
 test("mobile navigation hides the permanent sidebar and provides back flow", () => {
@@ -706,6 +739,18 @@ test("friends query model excludes pending, revoked, current, and unrelated user
   );
 });
 
+test("canonical friends data feeds the existing-friends picker", () => {
+  assert.match(component, /friendSummaries[\s\S]*\.map\(\(friend\) => friend\.profile\)/);
+  assert.match(component, /availableInviteFriendProfiles/);
+  assert.match(component, /collaboratorUserIds/);
+  assert.match(createListModal, /acceptedFriendProfiles\.map\(\(friend\)/);
+  assert.match(collaborationModal, /acceptedFriendProfiles\.map\(\(friend\)/);
+  assert.doesNotMatch(
+    component,
+    /friends[\s\S]*\.filter\(\(friend\) => friend\.status === "accepted"\)[\s\S]*acceptedFriendProfiles/,
+  );
+});
+
 test("deleting the final shared list removes the friend", () => {
   const summaries = buildFriendSummaries({
     collaborators: [
@@ -773,10 +818,10 @@ test("shared list participant model renders owner first with text access labels"
 test("friends navigation and empty states are present in the app UI", () => {
   assert.match(component, /<FriendsPage/);
   assert.match(friendsIndexComponent, /No friends yet/);
-  assert.match(friendDetailComponent, /No shared lists/);
-  assert.match(friendDetailComponent, /Lists shared with/);
+  assert.match(friendsIndexComponent, /You no longer share any lists with this person\./);
   assert.ok(appShellComponent.includes('href="/friends"'));
   assert.match(friendRowStyles, /\.row/);
+  assert.match(friendRowStyles, /\.expanded/);
   assert.match(sharedListRowStyles, /\.row/);
   assert.match(participantListStyles, /\.participants/);
   assert.match(participantListStyles, /\.access/);
@@ -790,6 +835,21 @@ test("friends navigation and empty states are present in the app UI", () => {
   assert.doesNotMatch(styles, /app-section-nav/);
 });
 
+test("friends rows expand inline instead of navigating to detail pages", () => {
+  assert.match(friendRowComponent, /<button/);
+  assert.match(friendRowComponent, /aria-expanded=\{isExpanded\}/);
+  assert.match(friendRowComponent, /aria-controls=\{drawerId\}/);
+  assert.match(friendRowComponent, /type="button"/);
+  assert.match(friendsIndexComponent, /className=\{styles\.friendDrawer\}/);
+  assert.match(friendsIndexComponent, /role="region"/);
+  assert.match(friendsIndexComponent, /<SharedListRow/);
+  assert.match(appRouteControllerHook, /window\.history\.replaceState/);
+  assert.match(friendRouteHelpers, /\/friends\?friend=/);
+  assert.doesNotMatch(friendRowComponent, /href=\{`\/friends/);
+  assert.match(friendDetailRoute, /redirect\(`\/friends\?friend=/);
+  assert.doesNotMatch(friendDetailRoute, /<ListApp/);
+});
+
 test("friends routes render outside the list workspace", () => {
   assert.match(component, /appSection === "friends"/);
   assert.match(component, /className="app-main friends-main"/);
@@ -798,6 +858,7 @@ test("friends routes render outside the list workspace", () => {
   assert.match(friendsPageStyles, /\.screen/);
   assert.doesNotMatch(friendsRoute, /app-grid|sidebar|Your lists/);
   assert.doesNotMatch(friendDetailRoute, /app-grid|sidebar|Your lists/);
+  assert.match(friendDetailRoute, /redirect/);
   assert.match(styles, /\.friends-main/);
 });
 
@@ -922,7 +983,7 @@ test("extracted modals preserve list tools and accessibility hooks", () => {
 });
 
 test("list API modules and modal state hook keep orchestration out of the app", () => {
-  assert.match(component, /loadAccessibleLists\(\s*supabase,\s*userId,\s*\)/);
+  assert.match(component, /loadAccessibleLists\(supabase, userId\)/);
   assert.match(component, /loadSharedCandidateLists\(/);
   assert.match(component, /loadListWorkspaceData\(supabase, listId\)/);
   assert.match(component, /useCreateListAction/);
@@ -1018,7 +1079,8 @@ test("friends feature components own friends UI outside the app controller", () 
   assert.doesNotMatch(component, /function FriendsIndexLoadingPanel/);
   assert.doesNotMatch(component, /function FriendDetailLoadingPanel/);
   assert.match(friendsControllerSource, /buildFriendSummaries/);
-  assert.ok(friendRowComponent.includes('href={`/friends/${friend.profile.id}`}'));
+  assert.match(friendRowComponent, /aria-expanded=\{isExpanded\}/);
+  assert.doesNotMatch(friendRowComponent, /href=\{`\/friends/);
   assert.match(sharedListRowComponent, /onOpenList\(sharedList\.list\.id\)/);
   assert.match(participantListComponent, /participant\.accessLabel/);
   assert.match(friendsApiSource, /sendFriendRequestByEmail/);
@@ -1072,10 +1134,12 @@ test("sharing and status action controllers own remaining app actions", () => {
 
 test("friends routes and server query hooks are present", () => {
   assert.match(friendsRoute, /initialSection="friends"/);
-  assert.match(friendDetailRoute, /initialFriendId=\{friendId\}/);
+  assert.match(friendsRoute, /initialFriendId=\{friend \?\? null\}/);
+  assert.match(friendDetailRoute, /redirect\(`\/friends\?friend=/);
   assert.match(friendsQuerySource, /loadSharedFriends/);
   assert.match(friendsQuerySource, /loadSharedFriend/);
   assert.match(friendsQuerySource, /Authorization: authorization/);
+  assert.match(friendsQuerySource, /loadSharedCandidateLists/);
   assert.match(friendsQuerySource, /buildFriendSummaries/);
 });
 

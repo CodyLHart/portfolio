@@ -46,6 +46,29 @@
   gap: 8px;
 }
 
+.friendDisclosure {
+  display: grid;
+}
+
+.friendDrawer {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-top: 0;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.friendDrawer h2 {
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+.drawerRows {
+  display: grid;
+  gap: 8px;
+}
+
 .emptyState {
   background: #f8fafc;
   border: 1px dashed #cbd5e1;

@@ -33,8 +33,9 @@ Friends uses dedicated routes in the authenticated List App shell. These routes
 share the signed-in header and account menu, but they do not mount the list
 workspace sidebar, selected-list pane, or list-index loading state.
 
-- `/friends`: shared users with shared-list counts.
-- `/friends/[friendId]`: lists shared with that person, owner-first participant lists, and roles.
+- `/friends`: shared users with inline shared-list drawers.
+- `/friends?friend=<id>`: opens the matching friend drawer when linked directly.
+- `/friends/[friendId]`: redirects to the drawer-based Friends route for compatibility.
 - Shared-list rows return to the existing list detail experience.
 
 The same derivation is exposed through authenticated API routes:

@@ -24,6 +24,7 @@ export function useListItemMutations({
   setEditingItem,
   setIsAddItemOpen,
   setItems,
+  setLists,
   setStatusMessage,
   suggestions,
   supabase,
@@ -38,6 +39,7 @@ export function useListItemMutations({
   setEditingItem: Dispatch<SetStateAction<ListItem | null>>;
   setIsAddItemOpen: Dispatch<SetStateAction<boolean>>;
   setItems: Dispatch<SetStateAction<ListItem[]>>;
+  setLists: Dispatch<SetStateAction<List[]>>;
   setStatusMessage: (message: string | null) => void;
   suggestions: Suggestion[];
   supabase: SupabaseClient;
@@ -87,6 +89,10 @@ export function useListItemMutations({
     }
 
     setItems((current) => [...current, data as ListItem]);
+    adjustListCounts(setLists, activeList.id, {
+      completedDelta: 0,
+      itemDelta: 1,
+    });
     await upsertSuggestion(activeList.id, draft.title, draft.category);
     setDraft(emptyItemDraft);
     setIsAddItemOpen(false);
@@ -126,6 +132,10 @@ export function useListItemMutations({
     setItems((current) =>
       current.filter((currentItem) => currentItem.id !== item.id),
     );
+    adjustListCounts(setLists, item.list_id, {
+      completedDelta: item.completed ? -1 : 0,
+      itemDelta: -1,
+    });
   };
 
   const toggleItem = async (item: ListItem) => {
@@ -135,6 +145,10 @@ export function useListItemMutations({
       position: item.completed
         ? item.position
         : Math.max(0, ...items.map((entry) => Number(entry.position))) + 1,
+    });
+    adjustListCounts(setLists, item.list_id, {
+      completedDelta: item.completed ? -1 : 1,
+      itemDelta: 0,
     });
   };
 
@@ -164,3 +178,24 @@ export function useListItemMutations({
     upsertSuggestion,
   };
 }
+
+const adjustListCounts = (
+  setLists: Dispatch<SetStateAction<List[]>>,
+  listId: string,
+  delta: { completedDelta: number; itemDelta: number },
+) => {
+  setLists((current) =>
+    current.map((list) =>
+      list.id === listId
+        ? {
+            ...list,
+            completed_count: Math.max(
+              0,
+              (list.completed_count ?? 0) + delta.completedDelta,
+            ),
+            item_count: Math.max(0, (list.item_count ?? 0) + delta.itemDelta),
+          }
+        : list,
+    ),
+  );
+};

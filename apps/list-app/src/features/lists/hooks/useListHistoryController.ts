@@ -18,6 +18,7 @@ export function useListHistoryController({
   items,
   loadListData,
   setItems,
+  setLists,
   setRestoreSnapshot,
   setStatusMessage,
   supabase,
@@ -29,6 +30,7 @@ export function useListHistoryController({
   items: ListItem[];
   loadListData: (listId: string) => void;
   setItems: Dispatch<SetStateAction<ListItem[]>>;
+  setLists: Dispatch<SetStateAction<List[]>>;
   setRestoreSnapshot: Dispatch<SetStateAction<ListSnapshot | null>>;
   setStatusMessage: (message: string | null) => void;
   supabase: SupabaseClient;
@@ -77,6 +79,17 @@ export function useListHistoryController({
     }
 
     setItems((current) => current.filter((item) => !item.completed));
+    setLists((current) =>
+      current.map((list) =>
+        list.id === activeList.id
+          ? {
+              ...list,
+              completed_count: 0,
+              item_count: Math.max(0, (list.item_count ?? 0) - completed.length),
+            }
+          : list,
+      ),
+    );
   };
 
   const clearAll = async () => {
@@ -98,6 +111,13 @@ export function useListHistoryController({
     }
 
     setItems([]);
+    setLists((current) =>
+      current.map((list) =>
+        list.id === activeList.id
+          ? { ...list, completed_count: 0, item_count: 0 }
+          : list,
+      ),
+    );
   };
 
   const restoreList = async (snapshot: ListSnapshot) => {
@@ -126,6 +146,17 @@ export function useListHistoryController({
     }
 
     setRestoreSnapshot(null);
+    setLists((current) =>
+      current.map((list) =>
+        list.id === activeList.id
+          ? {
+              ...list,
+              completed_count: rows.filter((row) => row.completed).length,
+              item_count: rows.length,
+            }
+          : list,
+      ),
+    );
     loadListData(activeList.id);
   };
 

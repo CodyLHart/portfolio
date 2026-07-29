@@ -71,10 +71,11 @@
   border: 0;
   color: #0f172a;
   display: grid;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
   padding: 12px;
   text-align: left;
+  width: 100%;
 }
 
 .scope :global(.list-nav-title strong),
@@ -84,10 +85,17 @@
   white-space: nowrap;
 }
 
-.scope :global(.list-nav-title span) {
+.scope :global(.list-row-counts) {
   color: #64748b;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 750;
+}
+
+.scope :global(.list-row-updated) {
+  color: #94a3b8;
+  font-size: 0.7rem;
+  font-weight: 400;
+  line-height: 1.2;
 }
 
 .scope :global(.list-nav-row .drag-handle) {

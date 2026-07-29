@@ -98,11 +98,12 @@ export function useAppRouteController({
     setAppSection("lists");
     setSelectedFriendId(null);
     setMobileView("lists");
+    refreshLists();
 
     if (typeof window !== "undefined" && window.location.pathname !== "/") {
       window.history.pushState({ listAppView: "lists" }, "", "/");
     }
-  }, []);
+  }, [refreshLists]);
 
   const showFriendsIndex = useCallback(() => {
     setAppSection("friends");
@@ -117,14 +118,18 @@ export function useAppRouteController({
   }, []);
 
   const openFriend = useCallback((friendId: string) => {
+    const nextFriendId = selectedFriendId === friendId ? null : friendId;
+
     setAppSection("friends");
-    setSelectedFriendId(friendId);
-    window.history.pushState(
-      { listAppView: "friend", friendId },
+    setSelectedFriendId(nextFriendId);
+    window.history.replaceState(
+      { listAppView: "friends", friendId: nextFriendId },
       "",
-      `/friends/${friendId}`,
+      nextFriendId
+        ? `/friends?friend=${encodeURIComponent(nextFriendId)}`
+        : "/friends",
     );
-  }, []);
+  }, [selectedFriendId]);
 
   const openSharedList = useCallback(
     (listId: string) => {

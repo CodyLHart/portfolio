@@ -84,7 +84,10 @@ export async function loadAccessibleLists(
   const orderPreferences = orderResult.error
     ? []
     : ((orderResult.data ?? []) as ListOrderPreference[]);
-  const lists = sortListsByPreference(uniqueLists, orderPreferences);
+  const lists = await withListCounts(
+    supabase,
+    sortListsByPreference(uniqueLists, orderPreferences),
+  );
   const listIds = lists.map((list) => list.id);
 
   if (listIds.length === 0) {
@@ -168,8 +171,60 @@ export async function loadSharedCandidateLists(
     allCollaborators: acceptedCollaborators.filter((collaborator) =>
       sharedListIds.has(collaborator.list_id),
     ),
-    lists: sharedCandidateLists.filter((list) => sharedListIds.has(list.id)),
+    lists: await withListCounts(
+      supabase,
+      sharedCandidateLists.filter((list) => sharedListIds.has(list.id)),
+    ),
   };
+}
+
+async function withListCounts(
+  supabase: SupabaseClient,
+  lists: List[],
+): Promise<List[]> {
+  if (lists.length === 0) {
+    return lists;
+  }
+
+  const listIds = lists.map((list) => list.id);
+  const { data, error } = await supabase
+    .from("list_items")
+    .select("list_id, completed")
+    .in("list_id", listIds);
+
+  if (error) {
+    throw error;
+  }
+
+  const countsByListId = new Map<
+    string,
+    { completed_count: number; item_count: number }
+  >();
+
+  listIds.forEach((listId) => {
+    countsByListId.set(listId, { completed_count: 0, item_count: 0 });
+  });
+
+  (data ?? []).forEach((item) => {
+    const listId = String(item.list_id);
+    const counts = countsByListId.get(listId);
+
+    if (!counts) {
+      return;
+    }
+
+    counts.item_count += 1;
+
+    if (item.completed) {
+      counts.completed_count += 1;
+    }
+  });
+
+  return lists.map((list) => ({
+    ...list,
+    completed_count: countsByListId.get(list.id)?.completed_count ?? 0,
+    item_count: countsByListId.get(list.id)?.item_count ?? 0,
+  }));
 }
 
 export async function createListWithOwner(

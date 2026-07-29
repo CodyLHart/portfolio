@@ -14,11 +14,13 @@ export const getFriendsRouteState = (): FriendsRouteState => {
     return { friendId: null, section: "lists" };
   }
 
+  const queryFriendId = new URLSearchParams(window.location.search).get("friend");
+
   return {
-    friendId: friendId ? decodeURIComponent(friendId) : null,
+    friendId: queryFriendId ?? (friendId ? decodeURIComponent(friendId) : null),
     section: "friends",
   };
 };
 
 export const getFriendHref = (friendId: string) =>
-  `/friends/${encodeURIComponent(friendId)}`;
+  `/friends?friend=${encodeURIComponent(friendId)}`;

@@ -1,15 +1,10 @@
 import type { FriendSummary } from "../lib/friend-utils";
-import { FriendDetail, FriendNotFound } from "./FriendDetail";
 import { FriendsIndex } from "./FriendsIndex";
-import {
-  FriendDetailLoadingPanel,
-  FriendsIndexLoadingPanel,
-} from "./FriendsLoadingRegion";
+import { FriendsIndexLoadingPanel } from "./FriendsLoadingRegion";
 
 export function FriendsPage({
   friendSummaries,
   isLoading,
-  onBackToFriends,
   onOpenFriend,
   onOpenList,
   selectedFriend,
@@ -18,7 +13,6 @@ export function FriendsPage({
 }: {
   friendSummaries: FriendSummary[];
   isLoading: boolean;
-  onBackToFriends: () => void;
   onOpenFriend: (friendId: string) => void;
   onOpenList: (listId: string) => void;
   selectedFriend: FriendSummary | null;
@@ -26,29 +20,10 @@ export function FriendsPage({
   showLists: () => void;
 }) {
   const shouldShowLoading =
-    isLoading &&
-    (selectedFriendId ? !selectedFriend : friendSummaries.length === 0);
+    isLoading && friendSummaries.length === 0;
 
   if (shouldShowLoading) {
-    return selectedFriendId ? (
-      <FriendDetailLoadingPanel onBackToFriends={onBackToFriends} />
-    ) : (
-      <FriendsIndexLoadingPanel showLists={showLists} />
-    );
-  }
-
-  if (selectedFriendId && !selectedFriend) {
-    return <FriendNotFound onBackToFriends={onBackToFriends} />;
-  }
-
-  if (selectedFriend) {
-    return (
-      <FriendDetail
-        onBackToFriends={onBackToFriends}
-        onOpenList={onOpenList}
-        selectedFriend={selectedFriend}
-      />
-    );
+    return <FriendsIndexLoadingPanel showLists={showLists} />;
   }
 
   return (
@@ -56,6 +31,9 @@ export function FriendsPage({
       friendSummaries={friendSummaries}
       onOpenFriend={onOpenFriend}
       showLists={showLists}
+      onOpenList={onOpenList}
+      selectedFriend={selectedFriend}
+      selectedFriendId={selectedFriendId}
     />
   );
 }

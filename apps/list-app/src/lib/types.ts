@@ -32,8 +32,10 @@ export type FriendRequest = {
 };
 
 export type List = {
+  completed_count?: number;
   created_at: string;
   id: string;
+  item_count?: number;
   item_fields: ListItemFields | null;
   owner_id: string;
   share_token: string;

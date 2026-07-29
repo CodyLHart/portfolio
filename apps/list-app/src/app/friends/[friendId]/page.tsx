@@ -1,4 +1,4 @@
-import { ListApp } from "../../ListApp";
+import { redirect } from "next/navigation";
 
 export default async function FriendPage({
   params,
@@ -7,5 +7,5 @@ export default async function FriendPage({
 }) {
   const { friendId } = await params;
 
-  return <ListApp initialFriendId={friendId} initialSection="friends" />;
+  redirect(`/friends?friend=${encodeURIComponent(friendId)}`);
 }

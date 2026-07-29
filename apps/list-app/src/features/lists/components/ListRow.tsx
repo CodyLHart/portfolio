@@ -19,9 +19,9 @@ export function ListRow({
   setListDropIndicator,
 }: {
   activeListId: string | null;
-  completedCount: number | null;
+  completedCount: number;
   draggedListId: string | null;
-  itemCount: number | null;
+  itemCount: number;
   list: List;
   listCount: number;
   listDropIndicator: ListDropIndicator;
@@ -96,12 +96,12 @@ export function ListRow({
             type="button"
           >
             <strong>{list.title}</strong>
-            <span>
-              {itemCount === null
-                ? `Updated ${formatDate(list.updated_at)}`
-                : `${itemCount} item${itemCount === 1 ? "" : "s"}${
-                    completedCount ? `, ${completedCount} completed` : ""
-                  }`}
+            <span className="list-row-counts">
+              {itemCount} item{itemCount === 1 ? "" : "s"} &middot;{" "}
+              {completedCount} completed
+            </span>
+            <span className="list-row-updated">
+              Updated {formatDate(list.updated_at)}
             </span>
           </button>
         </div>

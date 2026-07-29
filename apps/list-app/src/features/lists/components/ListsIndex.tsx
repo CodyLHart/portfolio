@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import { AppIcon } from "../../../components/ui/AppIcon";
-import type { List, ListItem } from "../../../lib/types";
+import type { List } from "../../../lib/types";
 import { LoadingSpinner } from "../../../components/ui/LoadingSpinner";
 import type { DropPlacement, ListDropIndicator } from "../types";
 import { ListRow } from "./ListRow";
@@ -10,7 +10,6 @@ export function ListsIndex({
   canCreate = true,
   draggedListId,
   isLoading,
-  items,
   listDropIndicator,
   lists,
   onCreateList,
@@ -23,7 +22,6 @@ export function ListsIndex({
   canCreate?: boolean;
   draggedListId: string | null;
   isLoading: boolean;
-  items: ListItem[];
   listDropIndicator: ListDropIndicator;
   lists: List[];
   onCreateList: (() => void) | null;
@@ -71,18 +69,12 @@ export function ListsIndex({
           <LoadingSpinner label="Loading lists" />
         ) : null}
         {lists.map((list) => {
-          const isSelected = list.id === activeListId;
-          const itemCount = isSelected ? items.length : null;
-          const completedCount = isSelected
-            ? items.filter((item) => item.completed).length
-            : null;
-
           return (
             <ListRow
               activeListId={activeListId}
-              completedCount={completedCount}
+              completedCount={list.completed_count ?? 0}
               draggedListId={draggedListId}
-              itemCount={itemCount}
+              itemCount={list.item_count ?? 0}
               key={list.id}
               list={list}
               listCount={lists.length}
