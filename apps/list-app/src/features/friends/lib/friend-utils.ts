@@ -47,7 +47,7 @@ export const roleLabel = (role: ListRole) => {
   }
 
   if (role === "editor") {
-    return "Can edit";
+    return "Editor";
   }
 
   return "View only";
@@ -158,7 +158,7 @@ export const findFriendSummary = (
   friendId: string | null,
 ) =>
   friendId
-    ? friendSummaries.find((friend) => friend.profile.id === friendId) ?? null
+    ? (friendSummaries.find((friend) => friend.profile.id === friendId) ?? null)
     : null;
 
 const getListParticipants = (
@@ -169,7 +169,8 @@ const getListParticipants = (
   const participantsById = new Map<string, SharedListParticipant>();
 
   acceptedCollaborators.forEach((collaborator) => {
-    const profile = collaborator.profile ?? profileById.get(collaborator.user_id);
+    const profile =
+      collaborator.profile ?? profileById.get(collaborator.user_id);
 
     if (!profile) {
       return;
@@ -193,6 +194,8 @@ const getListParticipants = (
       return 1;
     }
 
-    return first.profile.display_name.localeCompare(second.profile.display_name);
+    return first.profile.display_name.localeCompare(
+      second.profile.display_name,
+    );
   });
 };

@@ -146,7 +146,7 @@ export function ListItemRow({
           <div className="item-menu">
             <button
               aria-label={`Open actions for ${item.title}`}
-              className="secondary-button"
+              className="secondary-icon-button"
               disabled={!canEdit}
               onBlur={() => window.setTimeout(() => setIsMenuOpen(false), 120)}
               onClick={() => setIsMenuOpen((open) => !open)}

@@ -41,6 +41,7 @@
   align-items: center;
   background: #fff;
   border: 1px solid #e2e8f0;
+  cursor: pointer;
   display: flex;
   justify-content: space-between;
   min-height: 62px;

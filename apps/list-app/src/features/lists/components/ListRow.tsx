@@ -47,6 +47,7 @@ export function ListRow({
           list.id === activeListId ? "list-nav-row active" : "list-nav-row",
           draggedListId === list.id ? "dragging" : "",
         ].join(" ")}
+        onClick={() => onSelect(list.id)}
         draggable={listCount > 1}
         onDragEnd={onDragEnd}
         onDragOver={(event) => {
@@ -92,7 +93,7 @@ export function ListRow({
           </span>
           <button
             className="list-nav-title"
-            onClick={() => onSelect(list.id)}
+
             type="button"
           >
             <strong>{list.title}</strong>
